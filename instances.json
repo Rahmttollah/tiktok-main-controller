@@ -2,7 +2,7 @@
   "instances": [
     {
       "id": "1",
-      "url": "https://tiktok-bot-instance1.railway.app",
+      "url": "https://tiktok-bot-instance1.up.railway.app",
       "addedAt": "2024-01-01T00:00:00.000Z",
       "enabled": true
     },
