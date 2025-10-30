@@ -1,7 +1,7 @@
 {
   "name": "tiktok-main-controller",
   "version": "1.0.0",
-  "description": "TikTok Multi Bot Controller - No Instance Management for Users",
+  "description": "TikTok Multi Bot Controller - Fixed Version",
   "main": "main-controller.js",
   "scripts": {
     "start": "node main-controller.js"
