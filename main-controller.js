@@ -319,6 +319,67 @@ app.get('/api/status-all', requireAuth, async (req, res) => {
     res.json({ instances: allStatus, totals: totals });
 });
 
+
+
+// ✅ TEMPORARY ROUTES - MANUAL INSTANCE ADD (REMOVE AFTER USE)
+app.post('/temp-add-instance', (req, res) => {
+    try {
+        const instances = readInstances();
+        
+        // Your bot instance URL
+        const newInstance = {
+            id: Date.now().toString(),
+            url: "https://tiktok-bot-instance1.up.railway.app",
+            addedAt: new Date().toISOString(),
+            enabled: true
+        };
+
+        // Check if already exists
+        if (instances.find(inst => inst.url === newInstance.url)) {
+            return res.json({ success: false, message: 'Instance already exists' });
+        }
+
+        instances.push(newInstance);
+        
+        if (writeInstances(instances)) {
+            console.log('Instance added:', newInstance);
+            res.json({ 
+                success: true, 
+                message: 'Instance added successfully!',
+                instance: newInstance,
+                totalInstances: instances.length
+            });
+        } else {
+            res.json({ success: false, message: 'Failed to save instance' });
+        }
+    } catch (error) {
+        console.error('Error adding instance:', error);
+        res.json({ success: false, message: 'Server error: ' + error.message });
+    }
+});
+
+// ✅ Check all instances
+app.get('/temp-instances', (req, res) => {
+    const instances = readInstances();
+    res.json({ 
+        success: true, 
+        instances: instances,
+        count: instances.length 
+    });
+});
+
+// ✅ Delete all instances (if needed)
+app.delete('/temp-clear-instances', (req, res) => {
+    if (writeInstances([])) {
+        res.json({ success: true, message: 'All instances cleared' });
+    } else {
+        res.json({ success: false, message: 'Failed to clear instances' });
+    }
+});
+
+
+
+
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Main Controller running on port ${PORT}`);
     console.log(`🔑 Current Registration Key: ${getCurrentRegistrationKey()}`);
