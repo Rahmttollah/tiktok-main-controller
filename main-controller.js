@@ -24,35 +24,7 @@ app.use(session({
     }
 }));
 
-// ✅ REGISTRATION KEY SYSTEM FIXED
-const registrationFile = 'registration-key.json';
-
-function readRegistrationKey() {
-    try {
-        if (fs.existsSync(registrationFile)) {
-            const data = JSON.parse(fs.readFileSync(registrationFile, 'utf8'));
-            return data.key || 'TIKTOK123'; // Default key
-        }
-    } catch (error) {
-        console.log('Error reading registration key:', error);
-    }
-    return 'TIKTOK123'; // Default key
-}
-
-function writeRegistrationKey(key) {
-    try {
-        fs.writeFileSync(registrationFile, JSON.stringify({ key: key, updatedAt: new Date().toISOString() }, null, 2));
-        return true;
-    } catch (error) {
-        console.log('Error writing registration key:', error);
-        return false;
-    }
-}
-
-// Get current registration key
-function getCurrentRegistrationKey() {
-    return readRegistrationKey();
-}
+const REGISTRATION_KEY = process.env.REGISTRATION_KEY || 'TIKTOK123';
 
 // User storage
 const usersFile = 'users.json';
@@ -61,7 +33,9 @@ function readUsers() {
         if (fs.existsSync(usersFile)) {
             return JSON.parse(fs.readFileSync(usersFile, 'utf8'));
         }
-    } catch (error) {}
+    } catch (error) {
+        console.log('Error reading users:', error);
+    }
     return [];
 }
 
@@ -70,18 +44,23 @@ function writeUsers(users) {
         fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
         return true;
     } catch (error) {
+        console.log('Error writing users:', error);
         return false;
     }
 }
 
-// Instances storage
-const instancesFile = 'instances.json';
+// Instances storage - FIXED PATH
+const instancesFile = path.join(__dirname, 'instances.json');
+
 function readInstances() {
     try {
         if (fs.existsSync(instancesFile)) {
-            return JSON.parse(fs.readFileSync(instancesFile, 'utf8'));
+            const data = fs.readFileSync(instancesFile, 'utf8');
+            return JSON.parse(data);
         }
-    } catch (error) {}
+    } catch (error) {
+        console.log('Error reading instances:', error);
+    }
     return [];
 }
 
@@ -90,18 +69,17 @@ function writeInstances(instances) {
         fs.writeFileSync(instancesFile, JSON.stringify(instances, null, 2));
         return true;
     } catch (error) {
+        console.log('Error writing instances:', error);
         return false;
     }
 }
 
-let activeBots = [];
-
-// Authentication middleware
+// Auth middleware - FIXED
 function requireAuth(req, res, next) {
     if (req.session.user) {
         next();
     } else {
-        res.redirect('/login');
+        return res.status(401).json({ success: false, message: 'Authentication required' });
     }
 }
 
@@ -122,80 +100,57 @@ app.get('/dashboard', requireAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// ✅ NEW: Get current registration key API
-app.get('/api/registration-key', (req, res) => {
-    res.json({ 
-        success: true, 
-        key: getCurrentRegistrationKey(),
-        message: 'Current registration key'
-    });
-});
-
-// ✅ NEW: Update registration key API (Admin use karega)
-app.post('/api/registration-key', (req, res) => {
-    const { newKey } = req.body;
-    
-    if (!newKey || newKey.length < 6) {
-        return res.json({ success: false, message: 'Valid key required (min 6 characters)' });
-    }
-
-    if (writeRegistrationKey(newKey)) {
-        res.json({ 
-            success: true, 
-            message: 'Registration key updated successfully',
-            key: newKey
-        });
-    } else {
-        res.json({ success: false, message: 'Failed to update key' });
-    }
-});
-
-// ✅ FIXED: Registration API (Ab dynamic key use karega)
+// Auth APIs
 app.post('/api/register', async (req, res) => {
-    const { username, password, registrationKey } = req.body;
-    
-    if (!username || !password || !registrationKey) {
-        return res.json({ success: false, message: 'All fields required' });
-    }
+    try {
+        const { username, password, registrationKey } = req.body;
+        
+        if (!username || !password || !registrationKey) {
+            return res.json({ success: false, message: 'All fields required' });
+        }
 
-    // ✅ YAHAN CHANGE HUA: Dynamic key check
-    const currentKey = getCurrentRegistrationKey();
-    if (registrationKey !== currentKey) {
-        return res.json({ success: false, message: 'Invalid registration key' });
-    }
+        if (registrationKey !== REGISTRATION_KEY) {
+            return res.json({ success: false, message: 'Invalid registration key' });
+        }
 
-    const users = readUsers();
-    if (users.find(u => u.username === username)) {
-        return res.json({ success: false, message: 'Username exists' });
-    }
+        const users = readUsers();
+        if (users.find(u => u.username === username)) {
+            return res.json({ success: false, message: 'Username exists' });
+        }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    users.push({ username, password: hashedPassword, createdAt: new Date().toISOString() });
-    
-    writeUsers(users) ? 
-        res.json({ success: true, message: 'Registration successful' }) :
-        res.json({ success: false, message: 'Registration failed' });
+        const hashedPassword = await bcrypt.hash(password, 10);
+        users.push({ username, password: hashedPassword, createdAt: new Date().toISOString() });
+        
+        writeUsers(users) ? 
+            res.json({ success: true, message: 'Registration successful' }) :
+            res.json({ success: false, message: 'Registration failed' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
 });
 
-// ✅ Rest of the code same as before...
 app.post('/api/login', async (req, res) => {
-    const { username, password, rememberMe } = req.body;
+    try {
+        const { username, password, rememberMe } = req.body;
 
-    if (!username || !password) {
-        return res.json({ success: false, message: 'Username and password required' });
+        if (!username || !password) {
+            return res.json({ success: false, message: 'Username and password required' });
+        }
+
+        const users = readUsers();
+        const user = users.find(u => u.username === username);
+        
+        if (!user || !(await bcrypt.compare(password, user.password))) {
+            return res.json({ success: false, message: 'Invalid credentials' });
+        }
+
+        req.session.user = { username };
+        if (rememberMe) req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
+        
+        res.json({ success: true, message: 'Login successful' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
     }
-
-    const users = readUsers();
-    const user = users.find(u => u.username === username);
-    
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-        return res.json({ success: false, message: 'Invalid credentials' });
-    }
-
-    req.session.user = { username };
-    if (rememberMe) req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
-    
-    res.json({ success: true, message: 'Login successful' });
 });
 
 app.post('/api/logout', (req, res) => {
@@ -203,184 +158,236 @@ app.post('/api/logout', (req, res) => {
     res.json({ success: true, message: 'Logout successful' });
 });
 
-// Instances APIs (Normal users ke liye HATA DO)
+// Instances APIs - FIXED ALL ERRORS
 app.get('/api/instances', requireAuth, (req, res) => {
-    res.json({ success: true, instances: readInstances() });
+    try {
+        const instances = readInstances();
+        res.json({ success: true, instances: instances });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error reading instances' });
+    }
 });
 
 app.post('/api/instances', requireAuth, (req, res) => {
-    const { url } = req.body;
-    
-    if (!url) return res.json({ success: false, message: 'URL required' });
-    
-    try { new URL(url); } catch (error) {
-        return res.json({ success: false, message: 'Invalid URL' });
-    }
-
-    const instances = readInstances();
-    if (instances.find(inst => inst.url === url)) {
-        return res.json({ success: false, message: 'URL exists' });
-    }
-
-    const newInstance = { id: Date.now().toString(), url, addedAt: new Date().toISOString(), enabled: true };
-    instances.push(newInstance);
-    
-    writeInstances(instances) ?
-        res.json({ success: true, message: 'Instance added', instance: newInstance }) :
-        res.json({ success: false, message: 'Failed to add' });
-});
-
-app.delete('/api/instances/:id', requireAuth, (req, res) => {
-    const { id } = req.params;
-    let instances = readInstances();
-    const initialLength = instances.length;
-    
-    instances = instances.filter(inst => inst.id !== id);
-    
-    if (instances.length < initialLength && writeInstances(instances)) {
-        res.json({ success: true, message: 'Instance deleted' });
-    } else {
-        res.json({ success: false, message: 'Instance not found' });
-    }
-});
-
-// Bot Control APIs (Same as before)
-app.post('/api/start-all', requireAuth, async (req, res) => {
-    const { videoLink, targetViews } = req.body;
-    
-    if (!videoLink) return res.json({ success: false, message: 'Video link required' });
-
-    const instances = readInstances().filter(inst => inst.enabled);
-    if (instances.length === 0) {
-        return res.json({ success: false, message: 'No instances' });
-    }
-
-    const idMatch = videoLink.match(/\d{18,19}/g);
-    if (!idMatch) return res.json({ success: false, message: 'Invalid TikTok link' });
-
-    const results = [];
-    for (const instance of instances) {
-        try {
-            await axios.post(`${instance.url}/start`, {
-                targetViews: parseInt(targetViews) || 1000,
-                videoLink: videoLink,
-                mode: 'target'
-            }, { timeout: 10000 });
-            results.push({ instance: instance.url, success: true, message: 'Started' });
-        } catch (error) {
-            results.push({ instance: instance.url, success: false, message: 'Failed' });
-        }
-    }
-
-    const successful = results.filter(r => r.success).length;
-    res.json({
-        success: successful > 0,
-        message: `${successful}/${instances.length} started`,
-        results: results
-    });
-});
-
-app.post('/api/stop-all', requireAuth, async (req, res) => {
-    const instances = readInstances().filter(inst => inst.enabled);
-    
-    for (const instance of instances) {
-        try {
-            await axios.post(`${instance.url}/stop`, {}, { timeout: 10000 });
-        } catch (error) {}
-    }
-    
-    res.json({ success: true, message: 'All instances stopped' });
-});
-
-app.get('/api/status-all', requireAuth, async (req, res) => {
-    const instances = readInstances();
-    const allStatus = [];
-
-    for (const instance of instances) {
-        try {
-            const response = await axios.get(`${instance.url}/status`, { timeout: 10000 });
-            allStatus.push({ id: instance.id, url: instance.url, enabled: instance.enabled, status: response.data, online: true });
-        } catch (error) {
-            allStatus.push({ id: instance.id, url: instance.url, enabled: instance.enabled, status: null, online: false });
-        }
-    }
-
-    const totals = {
-        success: allStatus.reduce((sum, bot) => sum + (bot.status?.success || 0), 0),
-        fails: allStatus.reduce((sum, bot) => sum + (bot.status?.fails || 0), 0),
-        reqs: allStatus.reduce((sum, bot) => sum + (bot.status?.reqs || 0), 0),
-        rps: allStatus.reduce((sum, bot) => sum + (parseFloat(bot.status?.rps) || 0), 0),
-        onlineBots: allStatus.filter(bot => bot.online && bot.enabled).length,
-        totalBots: instances.filter(inst => inst.enabled).length
-    };
-    
-    totals.successRate = totals.reqs > 0 ? ((totals.success / totals.reqs) * 100).toFixed(1) + '%' : '0%';
-
-    res.json({ instances: allStatus, totals: totals });
-});
-
-
-
-// ✅ TEMPORARY ROUTES - MANUAL INSTANCE ADD (REMOVE AFTER USE)
-app.post('/temp-add-instance', (req, res) => {
     try {
+        const { url } = req.body;
+        
+        if (!url) {
+            return res.json({ success: false, message: 'URL required' });
+        }
+        
+        // Validate URL format
+        try {
+            new URL(url);
+        } catch (error) {
+            return res.json({ success: false, message: 'Invalid URL format' });
+        }
+
         const instances = readInstances();
         
-        // Your bot instance URL
-        const newInstance = {
-            id: Date.now().toString(),
-            url: "https://tiktok-bot-instance1.up.railway.app",
-            addedAt: new Date().toISOString(),
-            enabled: true
-        };
-
-        // Check if already exists
-        if (instances.find(inst => inst.url === newInstance.url)) {
-            return res.json({ success: false, message: 'Instance already exists' });
+        // Check if URL already exists
+        if (instances.find(inst => inst.url === url)) {
+            return res.json({ success: false, message: 'Instance URL already exists' });
         }
+
+        const newInstance = { 
+            id: Date.now().toString(), 
+            url: url.trim(), 
+            addedAt: new Date().toISOString(), 
+            enabled: true 
+        };
 
         instances.push(newInstance);
         
         if (writeInstances(instances)) {
-            console.log('Instance added:', newInstance);
             res.json({ 
                 success: true, 
-                message: 'Instance added successfully!',
-                instance: newInstance,
-                totalInstances: instances.length
+                message: 'Instance added successfully',
+                instance: newInstance
             });
         } else {
-            res.json({ success: false, message: 'Failed to save instance' });
+            res.json({ success: false, message: 'Failed to add instance' });
         }
     } catch (error) {
-        console.error('Error adding instance:', error);
-        res.json({ success: false, message: 'Server error: ' + error.message });
+        console.log('Instance add error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-// ✅ Check all instances
-app.get('/temp-instances', (req, res) => {
-    const instances = readInstances();
+app.delete('/api/instances/:id', requireAuth, (req, res) => {
+    try {
+        const { id } = req.params;
+        let instances = readInstances();
+        const initialLength = instances.length;
+        
+        instances = instances.filter(inst => inst.id !== id);
+        
+        if (instances.length < initialLength) {
+            if (writeInstances(instances)) {
+                res.json({ success: true, message: 'Instance deleted successfully' });
+            } else {
+                res.json({ success: false, message: 'Failed to delete instance' });
+            }
+        } else {
+            res.json({ success: false, message: 'Instance not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Bot Control APIs
+app.post('/api/start-all', requireAuth, async (req, res) => {
+    try {
+        const { videoLink, targetViews } = req.body;
+        
+        if (!videoLink) {
+            return res.json({ success: false, message: 'Video link required' });
+        }
+
+        const instances = readInstances().filter(inst => inst.enabled);
+        if (instances.length === 0) {
+            return res.json({ success: false, message: 'No bot instances configured' });
+        }
+
+        const idMatch = videoLink.match(/\d{18,19}/g);
+        if (!idMatch) {
+            return res.json({ success: false, message: 'Invalid TikTok video link' });
+        }
+
+        const results = [];
+        
+        // Test each instance first
+        for (const instance of instances) {
+            try {
+                // Test if instance is reachable
+                await axios.get(`${instance.url}/`, { timeout: 5000 });
+                results.push({ instance: instance.url, success: true, message: 'Online' });
+            } catch (error) {
+                results.push({ instance: instance.url, success: false, message: 'Offline' });
+            }
+        }
+
+        // Start only online instances
+        const onlineInstances = instances.filter((inst, index) => results[index].success);
+        
+        for (const instance of onlineInstances) {
+            try {
+                await axios.post(`${instance.url}/start`, {
+                    targetViews: parseInt(targetViews) || 1000,
+                    videoLink: videoLink,
+                    mode: 'target'
+                }, { timeout: 10000 });
+            } catch (error) {
+                console.log(`Error starting ${instance.url}:`, error.message);
+            }
+        }
+
+        const successful = onlineInstances.length;
+        res.json({
+            success: successful > 0,
+            message: `${successful}/${instances.length} instances started successfully`,
+            results: results
+        });
+    } catch (error) {
+        console.log('Start all error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+app.post('/api/stop-all', requireAuth, async (req, res) => {
+    try {
+        const instances = readInstances().filter(inst => inst.enabled);
+        
+        for (const instance of instances) {
+            try {
+                await axios.post(`${instance.url}/stop`, {}, { timeout: 10000 });
+            } catch (error) {
+                // Ignore errors when stopping
+            }
+        }
+        
+        res.json({ success: true, message: 'All instances stopped' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+app.get('/api/status-all', requireAuth, async (req, res) => {
+    try {
+        const instances = readInstances();
+        const allStatus = [];
+
+        for (const instance of instances) {
+            try {
+                const response = await axios.get(`${instance.url}/status`, { timeout: 10000 });
+                allStatus.push({ 
+                    id: instance.id, 
+                    url: instance.url, 
+                    enabled: instance.enabled, 
+                    status: response.data, 
+                    online: true 
+                });
+            } catch (error) {
+                allStatus.push({ 
+                    id: instance.id, 
+                    url: instance.url, 
+                    enabled: instance.enabled, 
+                    status: null, 
+                    online: false,
+                    error: error.message 
+                });
+            }
+        }
+
+        const totals = {
+            success: allStatus.reduce((sum, bot) => sum + (bot.status?.success || 0), 0),
+            fails: allStatus.reduce((sum, bot) => sum + (bot.status?.fails || 0), 0),
+            reqs: allStatus.reduce((sum, bot) => sum + (bot.status?.reqs || 0), 0),
+            rps: allStatus.reduce((sum, bot) => sum + (parseFloat(bot.status?.rps) || 0), 0),
+            onlineBots: allStatus.filter(bot => bot.online && bot.enabled).length,
+            totalBots: instances.filter(inst => inst.enabled).length
+        };
+        
+        totals.successRate = totals.reqs > 0 ? ((totals.success / totals.reqs) * 100).toFixed(1) + '%' : '0%';
+
+        res.json({
+            success: true,
+            instances: allStatus,
+            totals: totals
+        });
+    } catch (error) {
+        console.log('Status all error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
     res.json({ 
         success: true, 
-        instances: instances,
-        count: instances.length 
+        message: 'Server is running',
+        timestamp: new Date().toISOString()
     });
 });
 
-// ✅ Delete all instances (if needed)
-app.delete('/temp-clear-instances', (req, res) => {
-    if (writeInstances([])) {
-        res.json({ success: true, message: 'All instances cleared' });
-    } else {
-        res.json({ success: false, message: 'Failed to clear instances' });
-    }
+// 404 handler for API routes - FIXED
+app.use('/api/*', (req, res) => {
+    res.status(404).json({ success: false, message: 'API endpoint not found' });
 });
 
-
-
+// Serve static files for all other routes
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Main Controller running on port ${PORT}`);
-    console.log(`🔑 Current Registration Key: ${getCurrentRegistrationKey()}`);
+    console.log(`🔑 Registration Key: ${REGISTRATION_KEY}`);
+    
+    // Initialize instances file if not exists
+    if (!fs.existsSync(instancesFile)) {
+        writeInstances([]);
+        console.log('📁 Instances file initialized');
+    }
 });
