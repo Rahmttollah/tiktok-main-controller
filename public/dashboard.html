@@ -6,264 +6,729 @@
     <title>🚀 Dashboard - TikTok Multi Bot</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
         
         :root {
-            --primary: #8B5FBF; --primary-dark: #6B46C1; --primary-light: #9F7AEA;
-            --secondary: #D53F8C; --dark: #1A202C; --darker: #0F1419; 
-            --light: #EDF2F7; --success: #48BB78; --danger: #F56565; 
-            --warning: #ECC94B; --info: #4299E1;
+            --primary: #8B5FBF;
+            --primary-dark: #6B46C1;
+            --primary-light: #9F7AEA;
+            --secondary: #D53F8C;
+            --dark: #1A202C;
+            --darker: #0F1419;
+            --light: #EDF2F7;
+            --success: #48BB78;
+            --danger: #F56565;
+            --warning: #ECC94B;
+            --info: #4299E1;
         }
         
         body {
             background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 50%, var(--primary-dark) 100%);
-            min-height: 100vh; color: var(--light); 
-            animation: gradientShift 10s ease infinite; background-size: 400% 400%;
+            min-height: 100vh;
+            color: var(--light);
+            animation: gradientShift 10s ease infinite;
+            background-size: 400% 400%;
         }
         
         @keyframes gradientShift {
-            0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; }
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
         
         .header {
-            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(20px); padding: 20px 30px;
-            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             border-bottom: 1px solid rgba(139, 95, 191, 0.3);
             animation: slideDown 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
         
         @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-50px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { 
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .logo h1 {
             font-size: 1.8em;
             background: linear-gradient(135deg, var(--primary-light), var(--secondary));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
         
-        .user-menu { display: flex; align-items: center; gap: 20px; }
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
         
-        .welcome-text { opacity: 0.9; font-size: 1.1em; }
+        .welcome-text {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
         
         .btn-logout {
-            padding: 12px 24px; background: rgba(245, 101, 101, 0.2); color: var(--light);
-            border: 1px solid var(--danger); border-radius: 8px; cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-weight: 600;
+            padding: 12px 24px;
+            background: rgba(245, 101, 101, 0.2);
+            color: var(--light);
+            border: 1px solid var(--danger);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
         }
         
         .btn-logout:hover {
-            background: var(--danger); transform: translateY(-2px); 
+            background: var(--danger);
+            transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(245, 101, 101, 0.4);
         }
         
-        .container { max-width: 1400px; margin: 0 auto; padding: 30px; }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+        }
         
         .control-panel {
-            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); padding: 30px;
-            border-radius: 20px; margin-bottom: 30px; border: 1px solid rgba(139, 95, 191, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(139, 95, 191, 0.3);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
             animation: slideUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s both;
-            position: relative; overflow: hidden;
+            position: relative;
+            overflow: hidden;
         }
         
         .control-panel::before {
-            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
             background: linear-gradient(90deg, transparent, rgba(159, 122, 234, 0.1), transparent);
             transition: left 0.6s;
         }
         
-        .control-panel:hover::before { left: 100%; }
-        
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+        .control-panel:hover::before {
+            left: 100%;
         }
         
-        .panel-title { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; color: var(--primary-light); }
-        .panel-title i { font-size: 1.5em; }
+        @keyframes slideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
         
-        .form-group { margin-bottom: 25px; animation: fadeIn 0.6s ease 0.4s both; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            color: var(--primary-light);
+        }
         
-        label { display: block; margin-bottom: 12px; font-weight: 600; color: var(--primary-light); font-size: 1.1em; }
+        .panel-title i {
+            font-size: 1.5em;
+        }
         
-        .input-group { display: flex; gap: 15px; align-items: center; }
+        .form-group {
+            margin-bottom: 25px;
+            animation: fadeIn 0.6s ease 0.4s both;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: var(--primary-light);
+            font-size: 1.1em;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
         
         input {
-            flex: 1; padding: 16px 20px; background: rgba(45, 55, 72, 0.8);
-            border: 2px solid rgba(139, 95, 191, 0.3); border-radius: 12px; font-size: 16px;
-            color: var(--light); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            flex: 1;
+            padding: 16px 20px;
+            background: rgba(45, 55, 72, 0.8);
+            border: 2px solid rgba(139, 95, 191, 0.3);
+            border-radius: 12px;
+            font-size: 16px;
+            color: var(--light);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        input::placeholder {
+            color: rgba(237, 242, 247, 0.5);
         }
         
         input:focus {
-            outline: none; border-color: var(--primary-light); 
-            box-shadow: 0 0 0 3px rgba(159, 122, 234, 0.3); background: rgba(45, 55, 72, 1);
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(159, 122, 234, 0.3);
+            background: rgba(45, 55, 72, 1);
             transform: translateY(-2px);
         }
         
         .btn-paste {
-            padding: 16px 24px; background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white; border: none; border-radius: 12px; cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-weight: 600; white-space: nowrap;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            white-space: nowrap;
         }
         
         .btn-paste:hover {
-            transform: translateY(-3px); box-shadow: 0 8px 20px rgba(139, 95, 191, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(139, 95, 191, 0.4);
         }
         
-        .btn-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 30px 0; }
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
         
         button {
-            padding: 18px 25px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600;
-            cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex; align-items: center; justify-content: center; gap: 12px;
-            position: relative; overflow: hidden;
+            padding: 18px 25px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
         }
         
         button::before {
-            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
             transition: left 0.5s;
         }
         
-        button:hover::before { left: 100%; }
-        button:hover { transform: translateY(-3px); }
-        button:active { transform: translateY(-1px); }
-        
-        button.loading { pointer-events: none; opacity: 0.8; }
-        button.loading::after {
-            content: ''; position: absolute; width: 20px; height: 20px; top: 50%; left: 50%;
-            margin: -10px 0 0 -10px; border: 2px solid transparent; border-top: 2px solid white;
-            border-radius: 50%; animation: spin 0.8s linear infinite;
+        button:hover::before {
+            left: 100%;
         }
         
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        button:hover {
+            transform: translateY(-3px);
+        }
         
-        .btn-start { background: linear-gradient(135deg, var(--success), #38A169); color: white; }
-        .btn-stop { background: linear-gradient(135deg, var(--danger), #E53E3E); color: white; }
-        .btn-refresh { background: linear-gradient(135deg, var(--info), #3182CE); color: white; }
+        button:active {
+            transform: translateY(-1px);
+        }
+        
+        button.loading {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+        
+        button.loading::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            top: 50%;
+            left: 50%;
+            margin: -10px 0 0 -10px;
+            border: 2px solid transparent;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, var(--success), #38A169);
+            color: white;
+        }
+        
+        .btn-stop {
+            background: linear-gradient(135deg, var(--danger), #E53E3E);
+            color: white;
+        }
+        
+        .btn-refresh {
+            background: linear-gradient(135deg, var(--info), #3182CE);
+            color: white;
+        }
+        
+        .btn-manage {
+            background: linear-gradient(135deg, var(--warning), #D69E2E);
+            color: white;
+        }
         
         .speed-indicator {
-            text-align: center; font-size: 2.2em; margin: 30px 0;
+            text-align: center;
+            font-size: 2.2em;
+            margin: 30px 0;
             background: linear-gradient(135deg, var(--primary-light), var(--secondary));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            animation: pulse 2s ease-in-out infinite; text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: pulse 2s ease-in-out infinite;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
         
         @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.9; }
+            0%, 100% { 
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% { 
+                transform: scale(1.05);
+                opacity: 0.9;
+            }
         }
         
         .stats-overview {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
-            gap: 25px; margin-bottom: 35px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 25px;
+            margin-bottom: 35px;
         }
         
         .stat-card {
-            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); padding: 25px;
-            border-radius: 15px; text-align: center; border: 1px solid rgba(139, 95, 191, 0.3);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            animation: slideUp 0.6s ease 0.6s both; position: relative; overflow: hidden;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid rgba(139, 95, 191, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: slideUp 0.6s ease 0.6s both;
+            position: relative;
+            overflow: hidden;
         }
         
         .stat-card::before {
-            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
             background: linear-gradient(90deg, transparent, rgba(159, 122, 234, 0.1), transparent);
             transition: left 0.5s;
         }
         
-        .stat-card:hover::before { left: 100%; }
-        .stat-card:hover { transform: translateY(-5px); border-color: var(--primary-light); box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4); }
+        .stat-card:hover::before {
+            left: 100%;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-light);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+        }
         
         .stat-number {
-            font-size: 2.8em; font-weight: bold; margin-bottom: 8px;
+            font-size: 2.8em;
+            font-weight: bold;
+            margin-bottom: 8px;
             background: linear-gradient(135deg, var(--primary-light), var(--secondary));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
         
-        .stat-label { font-size: 1em; opacity: 0.9; font-weight: 600; }
+        .stat-label {
+            font-size: 1em;
+            opacity: 0.9;
+            font-weight: 600;
+        }
         
-        .instances-section { animation: slideUp 0.8s ease 0.8s both; }
+        .instances-section {
+            animation: slideUp 0.8s ease 0.8s both;
+        }
         
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-        .section-header h3 { color: var(--primary-light); font-size: 1.5em; }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
         
-        .instances-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 25px; }
+        .section-header h3 {
+            color: var(--primary-light);
+            font-size: 1.5em;
+        }
+        
+        .instances-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+        }
         
         .instance-card {
-            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); padding: 25px;
-            border-radius: 15px; border: 1px solid rgba(139, 95, 191, 0.3);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); animation: fadeIn 0.6s ease both;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid rgba(139, 95, 191, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: fadeIn 0.6s ease both;
         }
         
-        .instance-card:hover { transform: translateY(-5px); border-color: var(--primary-light); box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4); }
+        .instance-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-light);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+        }
         
-        .instance-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .instance-title { font-weight: 600; color: var(--primary-light); }
+        .instance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
         
-        .instance-status { padding: 8px 16px; border-radius: 20px; font-size: 0.85em; font-weight: bold; }
-        .status-online { background: linear-gradient(135deg, var(--success), #38A169); color: white; }
-        .status-offline { background: linear-gradient(135deg, var(--danger), #E53E3E); color: white; }
-        .status-disabled { background: linear-gradient(135deg, #718096, #4A5568); color: white; }
+        .instance-title {
+            font-weight: 600;
+            color: var(--primary-light);
+        }
         
-        .instance-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px; }
+        .instance-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        
+        .status-online {
+            background: linear-gradient(135deg, var(--success), #38A169);
+            color: white;
+        }
+        
+        .status-offline {
+            background: linear-gradient(135deg, var(--danger), #E53E3E);
+            color: white;
+        }
+        
+        .status-disabled {
+            background: linear-gradient(135deg, #718096, #4A5568);
+            color: white;
+        }
+        
+        .instance-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
         
         .mini-stat {
-            text-align: center; padding: 15px; background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px; transition: all 0.3s ease;
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            transition: all 0.3s ease;
         }
         
-        .mini-stat:hover { background: rgba(255, 255, 255, 0.1); transform: scale(1.05); }
+        .mini-stat:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
         
-        .mini-number { font-size: 1.4em; font-weight: bold; margin-bottom: 5px; }
-        .mini-label { font-size: 0.85em; opacity: 0.8; }
+        .mini-number {
+            font-size: 1.4em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
         
-        .progress-container { margin: 20px 0; }
+        .mini-label {
+            font-size: 0.85em;
+            opacity: 0.8;
+        }
+        
+        .progress-container {
+            margin: 20px 0;
+        }
         
         .progress-bar {
-            width: 100%; height: 12px; background: rgba(255, 255, 255, 0.1);
-            border-radius: 6px; overflow: hidden; position: relative;
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
         }
         
         .progress-fill {
-            height: 100%; background: linear-gradient(135deg, var(--primary-light), var(--secondary));
-            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
         }
         
         .progress-fill::after {
-            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
             animation: shimmer 2s infinite;
         }
         
-        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
         
-        .progress-text { text-align: center; font-weight: 600; margin-top: 10px; color: var(--primary-light); }
+        .progress-text {
+            text-align: center;
+            font-weight: 600;
+            margin-top: 10px;
+            color: var(--primary-light);
+        }
         
         .alert {
-            padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
             animation: slideInRight 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
         }
         
-        @keyframes slideInRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
-        .alert.success { background: rgba(72, 187, 120, 0.2); border: 1px solid var(--success); color: var(--success); }
-        .alert.error { background: rgba(245, 101, 101, 0.2); border: 1px solid var(--danger); color: var(--danger); }
-        .alert.info { background: rgba(66, 153, 225, 0.2); border: 1px solid var(--info); color: var(--info); }
+        @keyframes slideInRight {
+            from { 
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
         
-        .empty-state { text-align: center; padding: 60px 40px; opacity: 0.7; }
-        .empty-state i { font-size: 4em; margin-bottom: 20px; opacity: 0.5; }
+        .alert.success {
+            background: rgba(72, 187, 120, 0.2);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
         
-        .floating-particles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+        .alert.error {
+            background: rgba(245, 101, 101, 0.2);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+        
+        .alert.info {
+            background: rgba(66, 153, 225, 0.2);
+            border: 1px solid var(--info);
+            color: var(--info);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal-content {
+            background: rgba(26, 32, 44, 0.95);
+            backdrop-filter: blur(30px);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(139, 95, 191, 0.3);
+            width: 90%;
+            max-width: 600px;
+            color: var(--light);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            animation: modalSlideUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        @keyframes modalSlideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(50px) scale(0.9);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .modal-header h3 {
+            color: var(--primary-light);
+            font-size: 1.5em;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            color: var(--light);
+            font-size: 1.8em;
+            cursor: pointer;
+            transition: color 0.3s;
+            padding: 5px;
+        }
+        
+        .close-modal:hover {
+            color: var(--secondary);
+        }
+        
+        .instances-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 25px 0;
+        }
+        
+        .instance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(139, 95, 191, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .instance-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(139, 95, 191, 0.4);
+            transform: translateX(5px);
+        }
+        
+        .instance-info {
+            flex: 1;
+        }
+        
+        .instance-url {
+            font-weight: 600;
+            margin-bottom: 5px;
+            word-break: break-all;
+        }
+        
+        .instance-meta {
+            font-size: 0.9em;
+            opacity: 0.7;
+        }
+        
+        .instance-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-delete {
+            padding: 10px 16px;
+            background: linear-gradient(135deg, var(--danger), #E53E3E);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        
+        .btn-delete:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 101, 101, 0.4);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 40px;
+            opacity: 0.7;
+        }
+        
+        .empty-state i {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .floating-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
         .particle {
-            position: absolute; background: rgba(159, 122, 234, 0.1); border-radius: 50%;
+            position: absolute;
+            background: rgba(159, 122, 234, 0.1);
+            border-radius: 50%;
             animation: float 8s ease-in-out infinite;
         }
         
-        @keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); } 50% { transform: translateY(-30px) rotate(180deg) scale(1.1); } }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
+            50% { transform: translateY(-30px) rotate(180deg) scale(1.1); }
+        }
     </style>
 </head>
 <body>
@@ -313,6 +778,9 @@
                 <button class="btn-refresh" onclick="refreshStatus()" id="refreshBtn">
                     <i class="fas fa-sync-alt"></i> REFRESH STATUS
                 </button>
+                <button class="btn-manage" onclick="showInstanceManager()">
+                    <i class="fas fa-cog"></i> MANAGE INSTANCES
+                </button>
             </div>
             
             <div id="message"></div>
@@ -353,8 +821,45 @@
                 <div class="empty-state">
                     <i class="fas fa-robot"></i>
                     <h3>No Bot Instances Connected</h3>
-                    <p>Contact admin to add bot instances</p>
+                    <p>Add bot instances to get started</p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instance Manager Modal -->
+    <div class="modal" id="instanceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-cog"></i> Manage Bot Instances</h3>
+                <button class="close-modal" onclick="hideInstanceManager()">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label>Add New Instance URL</label>
+                <div class="input-group">
+                    <input type="text" id="newInstanceUrl" placeholder="https://tiktok-bot-instance.railway.app">
+                    <button class="btn-paste" onclick="addInstance()" id="addInstanceBtn">
+                        <i class="fas fa-plus"></i> Add Instance
+                    </button>
+                </div>
+            </div>
+            
+            <div class="instances-list" id="instancesList">
+                <div class="empty-state">
+                    <i class="fas fa-server"></i>
+                    <h3>No Instances Added</h3>
+                    <p>Add your first bot instance</p>
+                </div>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn-refresh" onclick="loadInstances()">
+                    <i class="fas fa-sync-alt"></i> Refresh List
+                </button>
+                <button class="btn-stop" onclick="hideInstanceManager()">
+                    <i class="fas fa-times"></i> Close
+                </button>
             </div>
         </div>
     </div>
@@ -362,6 +867,7 @@
     <script>
         let refreshInterval;
         
+        // Create floating particles
         function createParticles() {
             const container = document.getElementById('particles');
             for (let i = 0; i < 20; i++) {
@@ -380,7 +886,9 @@
         function showMessage(message, type) {
             const messageDiv = document.getElementById('message');
             messageDiv.innerHTML = `<div class="alert ${type}">${message}</div>`;
-            setTimeout(() => { messageDiv.innerHTML = ''; }, 5000);
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 5000);
         }
         
         function setLoading(buttonId, isLoading) {
@@ -400,9 +908,12 @@
                 document.getElementById('videoLink').value = text;
                 showMessage('📋 Pasted from clipboard!', 'success');
                 
+                // Add micro animation
                 const input = document.getElementById('videoLink');
                 input.style.transform = 'scale(1.02)';
-                setTimeout(() => { input.style.transform = 'scale(1)'; }, 300);
+                setTimeout(() => {
+                    input.style.transform = 'scale(1)';
+                }, 300);
             } catch (error) {
                 showMessage('Failed to paste from clipboard', 'error');
             }
@@ -422,8 +933,12 @@
             
             try {
                 const response = await fetch('/api/start-all', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ videoLink: videoLink, targetViews: parseInt(targetViews) })
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        videoLink: videoLink,
+                        targetViews: parseInt(targetViews)
+                    })
                 });
                 
                 const data = await response.json();
@@ -447,7 +962,8 @@
             
             try {
                 const response = await fetch('/api/stop-all', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
                 });
                 
                 const data = await response.json();
@@ -472,15 +988,18 @@
                 const data = await response.json();
                 
                 if (data.success) {
+                    // Update overview stats
                     document.getElementById('totalSuccess').textContent = data.totals.success.toLocaleString();
                     document.getElementById('totalRequests').textContent = data.totals.reqs.toLocaleString();
                     document.getElementById('onlineBots').textContent = data.totals.onlineBots;
                     document.getElementById('totalRpsNum').textContent = data.totals.rps.toFixed(1);
                     document.getElementById('rpsValue').textContent = data.totals.rps.toFixed(1);
                     
+                    // Update instances count
                     document.getElementById('instancesCount').textContent = 
                         `${data.instances.length} instances (${data.totals.onlineBots} online)`;
                     
+                    // Update instances grid
                     const container = document.getElementById('instancesContainer');
                     
                     if (data.instances.length === 0) {
@@ -488,7 +1007,7 @@
                             <div class="empty-state">
                                 <i class="fas fa-robot"></i>
                                 <h3>No Bot Instances Connected</h3>
-                                <p>Contact admin to add bot instances</p>
+                                <p>Add bot instances to get started</p>
                             </div>
                         `;
                         return;
@@ -578,28 +1097,163 @@
         
         async function logout() {
             try {
-                await fetch('/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
                 window.location.href = '/login';
             } catch (error) {
                 window.location.href = '/login';
             }
         }
         
+        // Instance Management
+        function showInstanceManager() {
+            document.getElementById('instanceModal').style.display = 'flex';
+            loadInstances();
+        }
+        
+        function hideInstanceManager() {
+            document.getElementById('instanceModal').style.display = 'none';
+        }
+        
+        async function loadInstances() {
+            try {
+                const response = await fetch('/api/instances');
+                const data = await response.json();
+                
+                const instancesList = document.getElementById('instancesList');
+                
+                if (!data.success || data.instances.length === 0) {
+                    instancesList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-server"></i>
+                            <h3>No Instances Added</h3>
+                            <p>Add your first bot instance</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                instancesList.innerHTML = '';
+                
+                data.instances.forEach((instance, index) => {
+                    const instanceItem = document.createElement('div');
+                    instanceItem.className = 'instance-item';
+                    instanceItem.style.animationDelay = `${index * 0.1}s`;
+                    
+                    instanceItem.innerHTML = `
+                        <div class="instance-info">
+                            <div class="instance-url">${instance.url}</div>
+                            <div class="instance-meta">
+                                Added: ${new Date(instance.addedAt).toLocaleDateString()} | 
+                                Status: <span style="color: ${instance.enabled ? 'var(--success)' : 'var(--danger)'}">
+                                    ${instance.enabled ? 'Enabled' : 'Disabled'}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="instance-actions">
+                            <button class="btn-delete" onclick="deleteInstance('${instance.id}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    `;
+                    instancesList.appendChild(instanceItem);
+                });
+            } catch (error) {
+                console.log('Error loading instances:', error);
+            }
+        }
+        
+        async function addInstance() {
+            const url = document.getElementById('newInstanceUrl').value;
+            
+            if (!url) {
+                showMessage('Please enter instance URL!', 'error');
+                return;
+            }
+            
+            setLoading('addInstanceBtn', true);
+            
+            try {
+                const response = await fetch('/api/instances', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage('Instance added successfully!', 'success');
+                    document.getElementById('newInstanceUrl').value = '';
+                    loadInstances();
+                    updateStatus();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error adding instance: ' + error.message, 'error');
+            } finally {
+                setLoading('addInstanceBtn', false);
+            }
+        }
+        
+        async function deleteInstance(id) {
+            if (!confirm('Are you sure you want to delete this instance?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/instances/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage('Instance deleted successfully!', 'success');
+                    loadInstances();
+                    updateStatus();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error deleting instance: ' + error.message, 'error');
+            }
+        }
+        
         function startStatusUpdates() {
-            if (refreshInterval) clearInterval(refreshInterval);
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
             refreshInterval = setInterval(updateStatus, 2000);
             updateStatus();
         }
         
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             createParticles();
             startStatusUpdates();
             showMessage('🎉 Welcome to TikTok Multi Bot Controller!', 'success');
             
+            // Add micro-interactions
             document.querySelectorAll('input').forEach(input => {
-                input.addEventListener('focus', function() { this.style.transform = 'scale(1.02)'; });
-                input.addEventListener('blur', function() { this.style.transform = 'scale(1)'; });
+                input.addEventListener('focus', function() {
+                    this.style.transform = 'scale(1.02)';
+                });
+                
+                input.addEventListener('blur', function() {
+                    this.style.transform = 'scale(1)';
+                });
             });
+        });
+        
+        // Close modal when clicking outside
+        document.getElementById('instanceModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideInstanceManager();
+            }
         });
     </script>
 </body>
