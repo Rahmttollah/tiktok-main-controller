@@ -1,0 +1,17 @@
+{
+  "name": "tiktok-main-controller",
+  "version": "1.0.0",
+  "description": "TikTok Multi Bot Controller - No Instance Management for Users",
+  "main": "main-controller.js",
+  "scripts": {
+    "start": "node main-controller.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "express-session": "^1.17.3",
+    "bcryptjs": "^2.4.3",
+    "axios": "^1.6.0"
+  },
+  "author": "NAIMUL HACKER KING",
+  "license": "MIT"
+}
