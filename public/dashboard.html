@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Dashboard - TikTok Multi Bot</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        
+        :root {
+            --primary: #8B5FBF; --primary-dark: #6B46C1; --primary-light: #9F7AEA;
+            --secondary: #D53F8C; --dark: #1A202C; --darker: #0F1419; 
+            --light: #EDF2F7; --success: #48BB78; --danger: #F56565; 
+            --warning: #ECC94B; --info: #4299E1;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 50%, var(--primary-dark) 100%);
+            min-height: 100vh; color: var(--light); 
+            animation: gradientShift 10s ease infinite; background-size: 400% 400%;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; }
+        }
+        
+        .header {
+            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(20px); padding: 20px 30px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(139, 95, 191, 0.3);
+            animation: slideDown 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .logo h1 {
+            font-size: 1.8em;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .user-menu { display: flex; align-items: center; gap: 20px; }
+        
+        .welcome-text { opacity: 0.9; font-size: 1.1em; }
+        
+        .btn-logout {
+            padding: 12px 24px; background: rgba(245, 101, 101, 0.2); color: var(--light);
+            border: 1px solid var(--danger); border-radius: 8px; cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-weight: 600;
+        }
+        
+        .btn-logout:hover {
+            background: var(--danger); transform: translateY(-2px); 
+            box-shadow: 0 5px 15px rgba(245, 101, 101, 0.4);
+        }
+        
+        .container { max-width: 1400px; margin: 0 auto; padding: 30px; }
+        
+        .control-panel {
+            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); padding: 30px;
+            border-radius: 20px; margin-bottom: 30px; border: 1px solid rgba(139, 95, 191, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s both;
+            position: relative; overflow: hidden;
+        }
+        
+        .control-panel::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(159, 122, 234, 0.1), transparent);
+            transition: left 0.6s;
+        }
+        
+        .control-panel:hover::before { left: 100%; }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        .panel-title { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; color: var(--primary-light); }
+        .panel-title i { font-size: 1.5em; }
+        
+        .form-group { margin-bottom: 25px; animation: fadeIn 0.6s ease 0.4s both; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        label { display: block; margin-bottom: 12px; font-weight: 600; color: var(--primary-light); font-size: 1.1em; }
+        
+        .input-group { display: flex; gap: 15px; align-items: center; }
+        
+        input {
+            flex: 1; padding: 16px 20px; background: rgba(45, 55, 72, 0.8);
+            border: 2px solid rgba(139, 95, 191, 0.3); border-radius: 12px; font-size: 16px;
+            color: var(--light); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        input:focus {
+            outline: none; border-color: var(--primary-light); 
+            box-shadow: 0 0 0 3px rgba(159, 122, 234, 0.3); background: rgba(45, 55, 72, 1);
+            transform: translateY(-2px);
+        }
+        
+        .btn-paste {
+            padding: 16px 24px; background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white; border: none; border-radius: 12px; cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-weight: 600; white-space: nowrap;
+        }
+        
+        .btn-paste:hover {
+            transform: translateY(-3px); box-shadow: 0 8px 20px rgba(139, 95, 191, 0.4);
+        }
+        
+        .btn-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 30px 0; }
+        
+        button {
+            padding: 18px 25px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            position: relative; overflow: hidden;
+        }
+        
+        button::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        button:hover::before { left: 100%; }
+        button:hover { transform: translateY(-3px); }
+        button:active { transform: translateY(-1px); }
+        
+        button.loading { pointer-events: none; opacity: 0.8; }
+        button.loading::after {
+            content: ''; position: absolute; width: 20px; height: 20px; top: 50%; left: 50%;
+            margin: -10px 0 0 -10px; border: 2px solid transparent; border-top: 2px solid white;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .btn-start { background: linear-gradient(135deg, var(--success), #38A169); color: white; }
+        .btn-stop { background: linear-gradient(135deg, var(--danger), #E53E3E); color: white; }
+        .btn-refresh { background: linear-gradient(135deg, var(--info), #3182CE); color: white; }
+        
+        .speed-indicator {
+            text-align: center; font-size: 2.2em; margin: 30px 0;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            animation: pulse 2s ease-in-out infinite; text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+        }
+        
+        .stats-overview {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+            gap: 25px; margin-bottom: 35px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); padding: 25px;
+            border-radius: 15px; text-align: center; border: 1px solid rgba(139, 95, 191, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            animation: slideUp 0.6s ease 0.6s both; position: relative; overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(159, 122, 234, 0.1), transparent);
+            transition: left 0.5s;
+        }
+        
+        .stat-card:hover::before { left: 100%; }
+        .stat-card:hover { transform: translateY(-5px); border-color: var(--primary-light); box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4); }
+        
+        .stat-number {
+            font-size: 2.8em; font-weight: bold; margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        
+        .stat-label { font-size: 1em; opacity: 0.9; font-weight: 600; }
+        
+        .instances-section { animation: slideUp 0.8s ease 0.8s both; }
+        
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .section-header h3 { color: var(--primary-light); font-size: 1.5em; }
+        
+        .instances-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 25px; }
+        
+        .instance-card {
+            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); padding: 25px;
+            border-radius: 15px; border: 1px solid rgba(139, 95, 191, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); animation: fadeIn 0.6s ease both;
+        }
+        
+        .instance-card:hover { transform: translateY(-5px); border-color: var(--primary-light); box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4); }
+        
+        .instance-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .instance-title { font-weight: 600; color: var(--primary-light); }
+        
+        .instance-status { padding: 8px 16px; border-radius: 20px; font-size: 0.85em; font-weight: bold; }
+        .status-online { background: linear-gradient(135deg, var(--success), #38A169); color: white; }
+        .status-offline { background: linear-gradient(135deg, var(--danger), #E53E3E); color: white; }
+        .status-disabled { background: linear-gradient(135deg, #718096, #4A5568); color: white; }
+        
+        .instance-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px; }
+        
+        .mini-stat {
+            text-align: center; padding: 15px; background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px; transition: all 0.3s ease;
+        }
+        
+        .mini-stat:hover { background: rgba(255, 255, 255, 0.1); transform: scale(1.05); }
+        
+        .mini-number { font-size: 1.4em; font-weight: bold; margin-bottom: 5px; }
+        .mini-label { font-size: 0.85em; opacity: 0.8; }
+        
+        .progress-container { margin: 20px 0; }
+        
+        .progress-bar {
+            width: 100%; height: 12px; background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px; overflow: hidden; position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%; background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden;
+        }
+        
+        .progress-fill::after {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+        
+        .progress-text { text-align: center; font-weight: 600; margin-top: 10px; color: var(--primary-light); }
+        
+        .alert {
+            padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center;
+            animation: slideInRight 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+        }
+        
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+        .alert.success { background: rgba(72, 187, 120, 0.2); border: 1px solid var(--success); color: var(--success); }
+        .alert.error { background: rgba(245, 101, 101, 0.2); border: 1px solid var(--danger); color: var(--danger); }
+        .alert.info { background: rgba(66, 153, 225, 0.2); border: 1px solid var(--info); color: var(--info); }
+        
+        .empty-state { text-align: center; padding: 60px 40px; opacity: 0.7; }
+        .empty-state i { font-size: 4em; margin-bottom: 20px; opacity: 0.5; }
+        
+        .floating-particles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+        .particle {
+            position: absolute; background: rgba(159, 122, 234, 0.1); border-radius: 50%;
+            animation: float 8s ease-in-out infinite;
+        }
+        
+        @keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); } 50% { transform: translateY(-30px) rotate(180deg) scale(1.1); } }
+    </style>
+</head>
+<body>
+    <div class="floating-particles" id="particles"></div>
+    
+    <div class="header">
+        <div class="logo">
+            <h1>🚀 TikTok Multi Bot Controller</h1>
+        </div>
+        <div class="user-menu">
+            <span class="welcome-text">Welcome, <span id="username">User</span></span>
+            <button class="btn-logout" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="control-panel">
+            <div class="panel-title">
+                <i class="fas fa-rocket"></i>
+                <h2>🎯 Bot Control Panel</h2>
+            </div>
+            
+            <div class="form-group">
+                <label>📹 TikTok Video Link</label>
+                <div class="input-group">
+                    <input type="text" id="videoLink" placeholder="Paste TikTok video URL here">
+                    <button class="btn-paste" onclick="pasteFromClipboard()">
+                        <i class="fas fa-paste"></i> Paste
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="targetViews">🎯 Target Views Per Bot</label>
+                <input type="number" id="targetViews" placeholder="Enter target views for each bot" value="1000">
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn-start" onclick="startAllBots()" id="startBtn">
+                    <i class="fas fa-play-circle"></i> START ALL BOTS
+                </button>
+                <button class="btn-stop" onclick="stopAllBots()" id="stopBtn">
+                    <i class="fas fa-stop-circle"></i> STOP ALL BOTS
+                </button>
+                <button class="btn-refresh" onclick="refreshStatus()" id="refreshBtn">
+                    <i class="fas fa-sync-alt"></i> REFRESH STATUS
+                </button>
+            </div>
+            
+            <div id="message"></div>
+        </div>
+        
+        <div class="speed-indicator" id="totalRps">
+            🚀 TOTAL SPEED: <span id="rpsValue">0</span> RPS
+        </div>
+        
+        <div class="stats-overview">
+            <div class="stat-card">
+                <div class="stat-number" id="totalSuccess">0</div>
+                <div class="stat-label">Total Success</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalRequests">0</div>
+                <div class="stat-label">Total Requests</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="onlineBots">0</div>
+                <div class="stat-label">Online Bots</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalRpsNum">0</div>
+                <div class="stat-label">Total RPS</div>
+            </div>
+        </div>
+        
+        <div class="instances-section">
+            <div class="section-header">
+                <h3><i class="fas fa-robot"></i> Bot Instances Status</h3>
+                <div class="instance-count">
+                    <span id="instancesCount">0 instances</span>
+                </div>
+            </div>
+            
+            <div class="instances-grid" id="instancesContainer">
+                <div class="empty-state">
+                    <i class="fas fa-robot"></i>
+                    <h3>No Bot Instances Connected</h3>
+                    <p>Contact admin to add bot instances</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let refreshInterval;
+        
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.width = Math.random() * 80 + 20 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 8 + 's';
+                particle.style.background = `rgba(159, 122, 234, ${Math.random() * 0.1 + 0.03})`;
+                container.appendChild(particle);
+            }
+        }
+        
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="alert ${type}">${message}</div>`;
+            setTimeout(() => { messageDiv.innerHTML = ''; }, 5000);
+        }
+        
+        function setLoading(buttonId, isLoading) {
+            const btn = document.getElementById(buttonId);
+            if (isLoading) {
+                btn.classList.add('loading');
+                btn.disabled = true;
+            } else {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+        
+        async function pasteFromClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('videoLink').value = text;
+                showMessage('📋 Pasted from clipboard!', 'success');
+                
+                const input = document.getElementById('videoLink');
+                input.style.transform = 'scale(1.02)';
+                setTimeout(() => { input.style.transform = 'scale(1)'; }, 300);
+            } catch (error) {
+                showMessage('Failed to paste from clipboard', 'error');
+            }
+        }
+        
+        async function startAllBots() {
+            const videoLink = document.getElementById('videoLink').value;
+            const targetViews = document.getElementById('targetViews').value;
+            
+            if (!videoLink) {
+                showMessage('Please enter TikTok video link!', 'error');
+                return;
+            }
+            
+            setLoading('startBtn', true);
+            showMessage('🚀 Starting all bot instances...', 'info');
+            
+            try {
+                const response = await fetch('/api/start-all', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ videoLink: videoLink, targetViews: parseInt(targetViews) })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(`✅ ${data.message}`, 'success');
+                    startStatusUpdates();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error starting bots: ' + error.message, 'error');
+            } finally {
+                setLoading('startBtn', false);
+            }
+        }
+        
+        async function stopAllBots() {
+            setLoading('stopBtn', true);
+            showMessage('🛑 Stopping all bot instances...', 'info');
+            
+            try {
+                const response = await fetch('/api/stop-all', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                showMessage('🛑 ' + data.message, 'success');
+            } catch (error) {
+                showMessage('Error stopping bots', 'error');
+            } finally {
+                setLoading('stopBtn', false);
+            }
+        }
+        
+        async function refreshStatus() {
+            setLoading('refreshBtn', true);
+            await updateStatus();
+            setTimeout(() => setLoading('refreshBtn', false), 1000);
+            showMessage('🔄 Status refreshed!', 'success');
+        }
+        
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/status-all');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('totalSuccess').textContent = data.totals.success.toLocaleString();
+                    document.getElementById('totalRequests').textContent = data.totals.reqs.toLocaleString();
+                    document.getElementById('onlineBots').textContent = data.totals.onlineBots;
+                    document.getElementById('totalRpsNum').textContent = data.totals.rps.toFixed(1);
+                    document.getElementById('rpsValue').textContent = data.totals.rps.toFixed(1);
+                    
+                    document.getElementById('instancesCount').textContent = 
+                        `${data.instances.length} instances (${data.totals.onlineBots} online)`;
+                    
+                    const container = document.getElementById('instancesContainer');
+                    
+                    if (data.instances.length === 0) {
+                        container.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-robot"></i>
+                                <h3>No Bot Instances Connected</h3>
+                                <p>Contact admin to add bot instances</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    container.innerHTML = '';
+                    
+                    data.instances.forEach((instance, index) => {
+                        const instanceCard = document.createElement('div');
+                        instanceCard.className = 'instance-card';
+                        instanceCard.style.animationDelay = `${index * 0.1}s`;
+                        
+                        const status = instance.status;
+                        const isOnline = instance.online;
+                        const isEnabled = instance.enabled;
+                        
+                        let statusClass = 'status-offline';
+                        let statusText = 'OFFLINE';
+                        
+                        if (isEnabled) {
+                            if (isOnline) {
+                                statusClass = 'status-online';
+                                statusText = 'ONLINE';
+                            } else {
+                                statusClass = 'status-offline';
+                                statusText = 'OFFLINE';
+                            }
+                        } else {
+                            statusClass = 'status-disabled';
+                            statusText = 'DISABLED';
+                        }
+                        
+                        instanceCard.innerHTML = `
+                            <div class="instance-header">
+                                <div class="instance-title">🤖 ${instance.url.split('//')[1]}</div>
+                                <span class="instance-status ${statusClass}">
+                                    ${statusText}
+                                </span>
+                            </div>
+                            
+                            ${isOnline && isEnabled ? `
+                                <div class="instance-stats">
+                                    <div class="mini-stat">
+                                        <div class="mini-number" style="color: var(--success)">${status.success}</div>
+                                        <div class="mini-label">Success</div>
+                                    </div>
+                                    <div class="mini-stat">
+                                        <div class="mini-number" style="color: var(--danger)">${status.fails}</div>
+                                        <div class="mini-label">Failed</div>
+                                    </div>
+                                    <div class="mini-stat">
+                                        <div class="mini-number" style="color: var(--info)">${status.reqs}</div>
+                                        <div class="mini-label">Requests</div>
+                                    </div>
+                                    <div class="mini-stat">
+                                        <div class="mini-number" style="color: var(--warning)">${status.rps}</div>
+                                        <div class="mini-label">RPS</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: ${status.targetViews > 0 ? (status.success / status.targetViews) * 100 : 0}%"></div>
+                                    </div>
+                                    <div class="progress-text">
+                                        ${status.targetViews > 0 ? 
+                                            `Progress: ${status.success}/${status.targetViews} (${((status.success / status.targetViews) * 100).toFixed(1)}%)` : 
+                                            `Views: ${status.success}`
+                                        }
+                                    </div>
+                                </div>
+                            ` : `
+                                <div style="text-align: center; padding: 30px; opacity: 0.7;">
+                                    <i class="fas fa-exclamation-triangle" style="font-size: 2em; margin-bottom: 15px;"></i>
+                                    <div>${!isEnabled ? 'Instance Disabled' : 'Instance Offline'}</div>
+                                </div>
+                            `}
+                        `;
+                        
+                        container.appendChild(instanceCard);
+                    });
+                }
+            } catch (error) {
+                console.log('Error fetching status:', error);
+            }
+        }
+        
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                window.location.href = '/login';
+            } catch (error) {
+                window.location.href = '/login';
+            }
+        }
+        
+        function startStatusUpdates() {
+            if (refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(updateStatus, 2000);
+            updateStatus();
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            createParticles();
+            startStatusUpdates();
+            showMessage('🎉 Welcome to TikTok Multi Bot Controller!', 'success');
+            
+            document.querySelectorAll('input').forEach(input => {
+                input.addEventListener('focus', function() { this.style.transform = 'scale(1.02)'; });
+                input.addEventListener('blur', function() { this.style.transform = 'scale(1)'; });
+            });
+        });
+    </script>
+</body>
+</html>
