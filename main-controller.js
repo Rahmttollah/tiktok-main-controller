@@ -6,8 +6,8 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Auth Server URL - UPDATE THIS WITH YOUR AUTH SERVER URL
-const AUTH_SERVER_URL = process.env.AUTH_SERVER_URL || 'https://tiktok-bot-auth.up.railway.app';
+// Auth Server URL
+const AUTH_SERVER_URL = 'https://tiktok-view-bot.up.railway.app';
 
 // Middleware
 app.use(express.json());
@@ -44,7 +44,7 @@ async function verifyToken(req, res, next) {
         const token = req.query.token || req.body.token;
         
         if (!token) {
-            return res.redirect(AUTH_SERVER_URL);
+            return res.redirect(AUTH_SERVER_URL + '/login');
         }
 
         // Verify token with auth server
@@ -55,15 +55,15 @@ async function verifyToken(req, res, next) {
         if (response.data.success && response.data.valid) {
             req.user = { 
                 username: response.data.username,
-                isAdmin: response.data.isAdmin
+                isAdmin: response.data.username === 'admin'
             };
             next();
         } else {
-            return res.redirect(AUTH_SERVER_URL);
+            return res.redirect(AUTH_SERVER_URL + '/login');
         }
     } catch (error) {
         console.log('Token verification error:', error);
-        return res.redirect(AUTH_SERVER_URL);
+        return res.redirect(AUTH_SERVER_URL + '/login');
     }
 }
 
@@ -78,45 +78,45 @@ function requireAdmin(req, res, next) {
 
 // Routes
 app.get('/', (req, res) => {
-    res.redirect(AUTH_SERVER_URL);
+    res.redirect(AUTH_SERVER_URL + '/login');
 });
 
 app.get('/dashboard', verifyToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-app.get('/admin-panel', verifyToken, requireAdmin, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin-panel.html'));
+app.get('/admin', verifyToken, requireAdmin, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
 // Protected APIs
+app.get('/api/user-info', verifyToken, (req, res) => {
+    res.json({ 
+        success: true, 
+        user: {
+            username: req.user.username,
+            isAdmin: req.user.isAdmin
+        }
+    });
+});
+
 app.get('/api/instances', verifyToken, (req, res) => {
     try {
         const instances = readInstances();
         
-        // For normal users, show only instance names and status
-        // For admin, show full details including URLs
-        const safeInstances = instances.map(instance => {
-            if (req.user.isAdmin) {
-                return {
-                    id: instance.id,
-                    name: `Bot Instance ${instance.id.substring(0, 8)}`,
-                    url: instance.url,
-                    status: 'active',
-                    addedAt: instance.addedAt,
-                    enabled: instance.enabled
-                };
-            } else {
-                return {
-                    id: instance.id,
-                    name: `Bot Instance ${instance.id.substring(0, 8)}`,
-                    status: 'active',
-                    addedAt: instance.addedAt,
-                    enabled: instance.enabled
-                    // URL hidden for normal users
-                };
-            }
-        });
+        // For normal users, show only basic info
+        // For admin, show all details including URLs
+        const safeInstances = instances.map(instance => ({
+            id: instance.id,
+            name: `Bot ${instance.id.substring(0, 6)}`,
+            status: instance.enabled ? 'active' : 'disabled',
+            addedAt: instance.addedAt,
+            // Only admin can see URLs
+            url: req.user.isAdmin ? instance.url : '🔒 Hidden',
+            enabled: instance.enabled,
+            // Show online status to all users
+            online: false // Will be updated by status check
+        }));
         
         res.json({ success: true, instances: safeInstances });
     } catch (error) {
@@ -124,6 +124,7 @@ app.get('/api/instances', verifyToken, (req, res) => {
     }
 });
 
+// Admin-only instance management
 app.post('/api/instances', verifyToken, requireAdmin, (req, res) => {
     try {
         const { url } = req.body;
@@ -135,13 +136,13 @@ app.post('/api/instances', verifyToken, requireAdmin, (req, res) => {
         try {
             new URL(url);
         } catch (error) {
-            return res.json({ success: false, message: 'Invalid URL' });
+            return res.json({ success: false, message: 'Invalid URL format' });
         }
 
         const instances = readInstances();
         
         if (instances.find(inst => inst.url === url)) {
-            return res.json({ success: false, message: 'Instance already exists' });
+            return res.json({ success: false, message: 'Instance URL already exists' });
         }
 
         const newInstance = { 
@@ -189,6 +190,7 @@ app.delete('/api/instances/:id', verifyToken, requireAdmin, (req, res) => {
     }
 });
 
+// Bot Control APIs (Available to all authenticated users)
 app.post('/api/start-all', verifyToken, async (req, res) => {
     try {
         const { videoLink, targetViews } = req.body;
@@ -199,7 +201,7 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
 
         const instances = readInstances().filter(inst => inst.enabled);
         if (instances.length === 0) {
-            return res.json({ success: false, message: 'No bot instances configured' });
+            return res.json({ success: false, message: 'No bot instances available' });
         }
 
         const idMatch = videoLink.match(/\d{18,19}/g);
@@ -208,8 +210,6 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
         }
 
         const results = [];
-        
-        // Start all enabled instances
         for (const instance of instances) {
             try {
                 await axios.post(`${instance.url}/start`, {
@@ -254,7 +254,7 @@ app.post('/api/stop-all', verifyToken, async (req, res) => {
             }
         }
         
-        res.json({ success: true, message: 'All instances stopped' });
+        res.json({ success: true, message: 'All bot instances stopped' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
     }
@@ -270,9 +270,9 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
                 const response = await axios.get(`${instance.url}/status`, { timeout: 10000 });
                 allStatus.push({ 
                     id: instance.id,
-                    name: `Bot ${instance.id.substring(0, 8)}`,
-                    // Hide URL from normal users, show only to admin
-                    url: req.user.isAdmin ? instance.url : 'Hidden',
+                    name: `Bot ${instance.id.substring(0, 6)}`,
+                    // Only admin can see URLs
+                    url: req.user.isAdmin ? instance.url : '🔒 Hidden',
                     enabled: instance.enabled, 
                     status: response.data, 
                     online: true 
@@ -280,8 +280,8 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
             } catch (error) {
                 allStatus.push({ 
                     id: instance.id,
-                    name: `Bot ${instance.id.substring(0, 8)}`,
-                    url: req.user.isAdmin ? instance.url : 'Hidden',
+                    name: `Bot ${instance.id.substring(0, 6)}`,
+                    url: req.user.isAdmin ? instance.url : '🔒 Hidden',
                     enabled: instance.enabled, 
                     status: null, 
                     online: false 
@@ -289,6 +289,7 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
             }
         }
 
+        // Calculate totals
         const totals = {
             success: allStatus.reduce((sum, bot) => sum + (bot.status?.success || 0), 0),
             fails: allStatus.reduce((sum, bot) => sum + (bot.status?.fails || 0), 0),
@@ -314,24 +315,39 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
     }
 });
 
-// User profile API
-app.get('/api/user/profile', verifyToken, (req, res) => {
-    res.json({
-        success: true,
-        user: {
-            username: req.user.username,
-            isAdmin: req.user.isAdmin
-        }
-    });
+// Logout endpoint
+app.post('/api/logout', verifyToken, async (req, res) => {
+    try {
+        const token = req.query.token || req.body.token;
+        
+        // Call auth server to invalidate token
+        await axios.post(`${AUTH_SERVER_URL}/api/logout`, {
+            token: token
+        });
+        
+        res.json({ 
+            success: true, 
+            message: 'Logout successful',
+            redirectUrl: AUTH_SERVER_URL + '/login'
+        });
+    } catch (error) {
+        res.json({ 
+            success: true, 
+            message: 'Logout successful',
+            redirectUrl: AUTH_SERVER_URL + '/login'
+        });
+    }
 });
 
-// Initialize
+// Initialize instances file if not exists
 if (!fs.existsSync(instancesFile)) {
     writeInstances([]);
+    console.log('📁 Instances file initialized');
 }
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🔧 Main Controller running on port ${PORT}`);
+    console.log(`🚀 Main Controller running on port ${PORT}`);
     console.log(`🔐 Auth Server: ${AUTH_SERVER_URL}`);
-    console.log(`🔒 Token Protection: ENABLED`);
+    console.log(`✅ Token protection: ENABLED`);
+    console.log(`🔧 Admin access: RESTRICTED`);
 });
