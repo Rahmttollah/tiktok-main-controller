@@ -69,19 +69,26 @@
         }
         
         .btn-logout {
-            padding: 12px 24px;
+            padding: 10px 20px;
             background: rgba(245, 101, 101, 0.2);
             color: var(--light);
             border: 1px solid var(--danger);
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s;
-            font-weight: 600;
         }
         
         .btn-logout:hover {
             background: var(--danger);
-            transform: translateY(-2px);
+        }
+        
+        .admin-badge {
+            background: linear-gradient(135deg, var(--warning), #D69E2E);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
         }
         
         .container {
@@ -125,7 +132,7 @@
         
         input {
             flex: 1;
-            padding: 16px 20px;
+            padding: 15px 20px;
             background: rgba(45, 55, 72, 0.8);
             border: 2px solid rgba(139, 95, 191, 0.3);
             border-radius: 12px;
@@ -138,20 +145,19 @@
         }
         
         .btn-paste {
-            padding: 16px 24px;
+            padding: 15px 20px;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
             border: none;
             border-radius: 12px;
             cursor: pointer;
-            font-weight: 600;
         }
         
         .btn-group {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: 1fr 1fr;
             gap: 15px;
-            margin: 30px 0;
+            margin: 25px 0;
         }
         
         button {
@@ -161,15 +167,10 @@
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 12px;
-        }
-        
-        button:hover {
-            transform: translateY(-3px);
         }
         
         .btn-start {
@@ -182,14 +183,9 @@
             color: white;
         }
         
-        .btn-refresh {
-            background: linear-gradient(135deg, var(--info), #3182CE);
-            color: white;
-        }
-        
         .speed-indicator {
             text-align: center;
-            font-size: 2.2em;
+            font-size: 2em;
             margin: 30px 0;
             background: linear-gradient(135deg, var(--primary-light), var(--secondary));
             -webkit-background-clip: text;
@@ -198,9 +194,9 @@
         
         .stats-overview {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 25px;
-            margin-bottom: 35px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
         }
         
         .stat-card {
@@ -212,7 +208,7 @@
         }
         
         .stat-number {
-            font-size: 2.8em;
+            font-size: 2.5em;
             font-weight: bold;
             margin-bottom: 8px;
             background: linear-gradient(135deg, var(--primary-light), var(--secondary));
@@ -238,7 +234,6 @@
         
         .section-header h3 {
             color: var(--primary-light);
-            font-size: 1.5em;
         }
         
         .instances-grid {
@@ -249,7 +244,7 @@
         
         .instance-card {
             background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
+            padding: 25px;
             border-radius: 15px;
             border: 1px solid rgba(139, 95, 191, 0.3);
         }
@@ -258,18 +253,18 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
         
-        .instance-name {
+        .instance-title {
             font-weight: 600;
             color: var(--primary-light);
         }
         
         .instance-status {
-            padding: 6px 12px;
-            border-radius: 15px;
-            font-size: 0.8em;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
             font-weight: bold;
         }
         
@@ -285,33 +280,34 @@
         
         .instance-stats {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
         }
         
         .mini-stat {
             text-align: center;
-            padding: 10px;
+            padding: 15px;
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
+            border-radius: 10px;
         }
         
         .mini-number {
-            font-size: 1.2em;
+            font-size: 1.4em;
             font-weight: bold;
+            margin-bottom: 5px;
         }
         
         .mini-label {
-            font-size: 0.8em;
+            font-size: 0.85em;
             opacity: 0.8;
         }
         
         .progress-bar {
             width: 100%;
-            height: 8px;
+            height: 10px;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
+            border-radius: 5px;
             overflow: hidden;
             margin: 10px 0;
         }
@@ -323,7 +319,8 @@
         
         .progress-text {
             text-align: center;
-            font-size: 0.9em;
+            font-weight: 600;
+            margin-top: 10px;
             color: var(--primary-light);
         }
         
@@ -346,14 +343,21 @@
             color: var(--danger);
         }
         
-        .admin-badge {
-            background: var(--warning);
-            color: var(--dark);
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.7em;
-            font-weight: bold;
-            margin-left: 8px;
+        .admin-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .btn-admin {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, var(--warning), #D69E2E);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
         }
     </style>
 </head>
@@ -363,7 +367,10 @@
             <h1>🚀 TikTok Multi Bot</h1>
         </div>
         <div class="user-menu">
-            <span class="welcome-text">Welcome, <span id="username">User</span><span id="adminBadge" class="admin-badge" style="display: none;">ADMIN</span></span>
+            <div class="welcome-text">
+                Welcome, <span id="username">User</span>
+                <span id="adminBadge" class="admin-badge" style="display: none;">ADMIN</span>
+            </div>
             <button class="btn-logout" onclick="logout()">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </button>
@@ -398,9 +405,6 @@
                 </button>
                 <button class="btn-stop" onclick="stopAllBots()" id="stopBtn">
                     <i class="fas fa-stop-circle"></i> STOP ALL BOTS
-                </button>
-                <button class="btn-refresh" onclick="refreshStatus()" id="refreshBtn">
-                    <i class="fas fa-sync-alt"></i> REFRESH STATUS
                 </button>
             </div>
             
@@ -439,39 +443,39 @@
             </div>
             
             <div class="instances-grid" id="instancesContainer">
-                <div class="instance-card">
-                    <div class="instance-header">
-                        <div class="instance-name">Loading...</div>
-                        <div class="instance-status status-offline">OFFLINE</div>
-                    </div>
-                    <div style="text-align: center; padding: 20px;">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <div>Loading instances...</div>
-                    </div>
-                </div>
+                <!-- Instances will be loaded here -->
             </div>
+        </div>
+        
+        <div id="adminSection" class="admin-link" style="display: none;">
+            <a href="/admin" class="btn-admin">
+                <i class="fas fa-cog"></i> Admin Panel
+            </a>
         </div>
     </div>
 
     <script>
-        let currentToken = new URLSearchParams(window.location.search).get('token');
-        let currentUser = null;
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
         
-        if (!currentToken) {
+        if (!token) {
             window.location.href = 'https://tiktok-view-bot.up.railway.app/login';
         }
         
+        let refreshInterval;
+        
+        // Load user info
         async function loadUserInfo() {
             try {
-                const response = await fetch('/api/user-info?token=' + currentToken);
+                const response = await fetch(`/api/user-info?token=${token}`);
                 const data = await response.json();
                 
                 if (data.success) {
-                    currentUser = data.user;
-                    document.getElementById('username').textContent = currentUser.username;
+                    document.getElementById('username').textContent = data.user.username;
                     
-                    if (currentUser.isAdmin) {
-                        document.getElementById('adminBadge').style.display = 'inline';
+                    if (data.user.isAdmin) {
+                        document.getElementById('adminBadge').style.display = 'inline-block';
+                        document.getElementById('adminSection').style.display = 'block';
                     }
                 }
             } catch (error) {
@@ -479,16 +483,135 @@
             }
         }
         
-        async function logout() {
+        async function pasteFromClipboard() {
             try {
-                const response = await fetch('/api/logout?token=' + currentToken, {
-                    method: 'POST'
+                const text = await navigator.clipboard.readText();
+                document.getElementById('videoLink').value = text;
+                showMessage('Pasted from clipboard!', 'success');
+            } catch (error) {
+                showMessage('Failed to paste', 'error');
+            }
+        }
+        
+        async function startAllBots() {
+            const videoLink = document.getElementById('videoLink').value;
+            const targetViews = document.getElementById('targetViews').value;
+            
+            if (!videoLink) {
+                showMessage('Please enter video link!', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/start-all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        videoLink: videoLink,
+                        targetViews: parseInt(targetViews),
+                        token: token
+                    })
                 });
                 
                 const data = await response.json();
-                window.location.href = data.redirectUrl;
+                
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                } else {
+                    showMessage(data.message, 'error');
+                }
             } catch (error) {
-                window.location.href = 'https://tiktok-view-bot.up.railway.app/login';
+                showMessage('Error starting bots', 'error');
+            }
+        }
+        
+        async function stopAllBots() {
+            try {
+                const response = await fetch('/api/stop-all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: token })
+                });
+                
+                const data = await response.json();
+                showMessage(data.message, 'success');
+            } catch (error) {
+                showMessage('Error stopping bots', 'error');
+            }
+        }
+        
+        async function updateStatus() {
+            try {
+                const response = await fetch(`/api/status-all?token=${token}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update stats
+                    document.getElementById('totalSuccess').textContent = data.totals.success.toLocaleString();
+                    document.getElementById('totalRequests').textContent = data.totals.reqs.toLocaleString();
+                    document.getElementById('onlineBots').textContent = data.totals.onlineBots;
+                    document.getElementById('totalRpsNum').textContent = data.totals.rps.toFixed(1);
+                    document.getElementById('rpsValue').textContent = data.totals.rps.toFixed(1);
+                    
+                    // Update instances
+                    const container = document.getElementById('instancesContainer');
+                    container.innerHTML = '';
+                    
+                    data.instances.forEach(instance => {
+                        const card = document.createElement('div');
+                        card.className = 'instance-card';
+                        
+                        card.innerHTML = `
+                            <div class="instance-header">
+                                <div class="instance-title">${instance.name}</div>
+                                <span class="instance-status ${instance.online ? 'status-online' : 'status-offline'}">
+                                    ${instance.online ? 'ONLINE' : 'OFFLINE'}
+                                </span>
+                            </div>
+                            
+                            ${instance.online ? `
+                                <div class="instance-stats">
+                                    <div class="mini-stat">
+                                        <div class="mini-number">${instance.status.success}</div>
+                                        <div class="mini-label">Success</div>
+                                    </div>
+                                    <div class="mini-stat">
+                                        <div class="mini-number">${instance.status.fails}</div>
+                                        <div class="mini-label">Failed</div>
+                                    </div>
+                                    <div class="mini-stat">
+                                        <div class="mini-number">${instance.status.reqs}</div>
+                                        <div class="mini-label">Requests</div>
+                                    </div>
+                                    <div class="mini-stat">
+                                        <div class="mini-number">${instance.status.rps}</div>
+                                        <div class="mini-label">RPS</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${instance.status.targetViews > 0 ? (instance.status.success / instance.status.targetViews) * 100 : 0}%"></div>
+                                </div>
+                                
+                                <div class="progress-text">
+                                    Progress: ${instance.status.success}/${instance.status.targetViews} 
+                                    (${((instance.status.success / instance.status.targetViews) * 100).toFixed(1)}%)
+                                </div>
+                            ` : `
+                                <div style="text-align: center; padding: 20px; opacity: 0.7;">
+                                    Instance Offline
+                                </div>
+                            `}
+                        `;
+                        
+                        container.appendChild(card);
+                    });
+                    
+                    document.getElementById('instancesCount').textContent = 
+                        `${data.instances.length} instances (${data.totals.onlineBots} online)`;
+                }
+            } catch (error) {
+                console.log('Error updating status:', error);
             }
         }
         
@@ -500,158 +623,18 @@
             }, 5000);
         }
         
-        async function pasteFromClipboard() {
-            try {
-                const text = await navigator.clipboard.readText();
-                document.getElementById('videoLink').value = text;
-                showMessage('📋 Pasted from clipboard!', 'success');
-            } catch (error) {
-                showMessage('Failed to paste from clipboard', 'error');
-            }
+        function logout() {
+            window.location.href = 'https://tiktok-view-bot.up.railway.app/logout';
         }
         
-        async function startAllBots() {
-            const videoLink = document.getElementById('videoLink').value;
-            const targetViews = document.getElementById('targetViews').value;
-            
-            if (!videoLink) {
-                showMessage('Please enter TikTok video link!', 'error');
-                return;
-            }
-            
-            showMessage('🚀 Starting all bot instances...', 'success');
-            
-            try {
-                const response = await fetch('/api/start-all?token=' + currentToken, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        videoLink: videoLink,
-                        targetViews: parseInt(targetViews)
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showMessage(`✅ ${data.message}`, 'success');
-                } else {
-                    showMessage(data.message, 'error');
-                }
-            } catch (error) {
-                showMessage('Error starting bots: ' + error.message, 'error');
-            }
-        }
-        
-        async function stopAllBots() {
-            showMessage('🛑 Stopping all bot instances...', 'success');
-            
-            try {
-                const response = await fetch('/api/stop-all?token=' + currentToken, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                
-                const data = await response.json();
-                showMessage('🛑 ' + data.message, 'success');
-            } catch (error) {
-                showMessage('Error stopping bots', 'error');
-            }
-        }
-        
-        async function refreshStatus() {
-            await updateStatus();
-            showMessage('🔄 Status refreshed!', 'success');
-        }
-        
-        async function updateStatus() {
-            try {
-                const response = await fetch('/api/status-all?token=' + currentToken);
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Update overview stats
-                    document.getElementById('totalSuccess').textContent = data.totals.success.toLocaleString();
-                    document.getElementById('totalRequests').textContent = data.totals.reqs.toLocaleString();
-                    document.getElementById('onlineBots').textContent = data.totals.onlineBots;
-                    document.getElementById('totalRpsNum').textContent = data.totals.rps.toFixed(1);
-                    document.getElementById('rpsValue').textContent = data.totals.rps.toFixed(1);
-                    
-                    // Update instances count
-                    document.getElementById('instancesCount').textContent = 
-                        `${data.instances.length} instances (${data.totals.onlineBots} online)`;
-                    
-                    // Update instances grid
-                    const container = document.getElementById('instancesContainer');
-                    container.innerHTML = '';
-                    
-                    data.instances.forEach(instance => {
-                        const instanceCard = document.createElement('div');
-                        instanceCard.className = 'instance-card';
-                        
-                        const status = instance.status;
-                        const isOnline = instance.online;
-                        
-                        instanceCard.innerHTML = `
-                            <div class="instance-header">
-                                <div class="instance-name">${instance.name}</div>
-                                <div class="instance-status ${isOnline ? 'status-online' : 'status-offline'}">
-                                    ${isOnline ? 'ONLINE' : 'OFFLINE'}
-                                </div>
-                            </div>
-                            
-                            ${isOnline ? `
-                                <div class="instance-stats">
-                                    <div class="mini-stat">
-                                        <div class="mini-number" style="color: var(--success)">${status.success}</div>
-                                        <div class="mini-label">Success</div>
-                                    </div>
-                                    <div class="mini-stat">
-                                        <div class="mini-number" style="color: var(--danger)">${status.fails}</div>
-                                        <div class="mini-label">Failed</div>
-                                    </div>
-                                    <div class="mini-stat">
-                                        <div class="mini-number" style="color: var(--info)">${status.reqs}</div>
-                                        <div class="mini-label">Requests</div>
-                                    </div>
-                                    <div class="mini-stat">
-                                        <div class="mini-number" style="color: var(--warning)">${status.rps}</div>
-                                        <div class="mini-label">RPS</div>
-                                    </div>
-                                </div>
-                                
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: ${status.targetViews > 0 ? (status.success / status.targetViews) * 100 : 0}%"></div>
-                                </div>
-                                
-                                <div class="progress-text">
-                                    ${status.targetViews > 0 ? 
-                                        `Progress: ${status.success}/${status.targetViews} (${((status.success / status.targetViews) * 100).toFixed(1)}%)` : 
-                                        `Views: ${status.success}`
-                                    }
-                                </div>
-                            ` : `
-                                <div style="text-align: center; padding: 20px; opacity: 0.7;">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                    <div>Instance Offline</div>
-                                </div>
-                            `}
-                        `;
-                        
-                        container.appendChild(instanceCard);
-                    });
-                }
-            } catch (error) {
-                console.log('Error fetching status:', error);
-            }
+        function startStatusUpdates() {
+            refreshInterval = setInterval(updateStatus, 3000);
+            updateStatus();
         }
         
         // Initialize
         loadUserInfo();
-        updateStatus();
-        setInterval(updateStatus, 5000);
-        
-        showMessage('🎉 Welcome to TikTok Multi Bot Controller!', 'success');
+        startStatusUpdates();
     </script>
 </body>
 </html>
