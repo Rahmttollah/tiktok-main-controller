@@ -7,7 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Auth Server URL
-const AUTH_SERVER_URL = 'https://tiktok-view-bot.up.railway.app';
+const AUTH_SERVER_URL = process.env.AUTH_SERVER_URL || 'https://tiktok-bot-auth.up.railway.app/';
 
 // Middleware
 app.use(express.json());
@@ -44,7 +44,7 @@ async function verifyToken(req, res, next) {
         const token = req.query.token || req.body.token;
         
         if (!token) {
-            return res.redirect(AUTH_SERVER_URL + '/login');
+            return res.redirect(AUTH_SERVER_URL);
         }
 
         // Verify token with auth server
@@ -53,32 +53,27 @@ async function verifyToken(req, res, next) {
         });
 
         if (response.data.success && response.data.valid) {
-            req.user = { 
-                username: response.data.username,
-                isAdmin: response.data.username === 'admin' // Admin check
-            };
+            req.user = { username: response.data.username };
             next();
         } else {
-            return res.redirect(AUTH_SERVER_URL + '/login');
+            return res.redirect(AUTH_SERVER_URL);
         }
     } catch (error) {
         console.log('Token verification error:', error);
-        return res.redirect(AUTH_SERVER_URL + '/login');
+        return res.redirect(AUTH_SERVER_URL);
     }
 }
 
 // Admin check middleware
 function requireAdmin(req, res, next) {
-    if (req.user && req.user.isAdmin) {
-        next();
-    } else {
-        res.status(403).json({ success: false, message: 'Admin access required' });
-    }
+    // Add admin check logic here
+    // For now, allow all authenticated users
+    next();
 }
 
 // Routes
 app.get('/', (req, res) => {
-    res.redirect(AUTH_SERVER_URL + '/login');
+    res.redirect(AUTH_SERVER_URL);
 });
 
 app.get('/dashboard', verifyToken, (req, res) => {
@@ -86,48 +81,22 @@ app.get('/dashboard', verifyToken, (req, res) => {
 });
 
 app.get('/admin', verifyToken, requireAdmin, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-
-// User info API
-app.get('/api/user-info', verifyToken, (req, res) => {
-    res.json({
-        success: true,
-        user: {
-            username: req.user.username,
-            isAdmin: req.user.isAdmin
-        }
-    });
+    res.sendFile(path.join(__dirname, 'public', 'admin-panel.html'));
 });
 
 // Protected APIs
 app.get('/api/instances', verifyToken, (req, res) => {
     try {
         const instances = readInstances();
-        
-        // For normal users, show only basic info
-        // For admin, show full info including URLs
-        const safeInstances = instances.map(instance => {
-            if (req.user.isAdmin) {
-                return {
-                    id: instance.id,
-                    name: `Bot ${instance.id.substring(0, 8)}`,
-                    url: instance.url,
-                    status: 'active',
-                    addedAt: instance.addedAt,
-                    enabled: instance.enabled
-                };
-            } else {
-                return {
-                    id: instance.id,
-                    name: `Bot ${instance.id.substring(0, 8)}`,
-                    status: 'active',
-                    addedAt: instance.addedAt,
-                    // Hide URL from normal users
-                    url: 'Hidden'
-                };
-            }
-        });
+        // Hide URLs from normal users, show only to admin
+        const safeInstances = instances.map(instance => ({
+            id: instance.id,
+            name: `Bot Instance ${instance.id.substring(0, 8)}`,
+            status: 'active',
+            addedAt: instance.addedAt,
+            // Hide URL from normal users
+            url: req.user.username === 'admin' ? instance.url : 'Hidden'
+        }));
         
         res.json({ success: true, instances: safeInstances });
     } catch (error) {
@@ -135,7 +104,6 @@ app.get('/api/instances', verifyToken, (req, res) => {
     }
 });
 
-// Admin only instance management
 app.post('/api/instances', verifyToken, requireAdmin, (req, res) => {
     try {
         const { url } = req.body;
@@ -147,13 +115,13 @@ app.post('/api/instances', verifyToken, requireAdmin, (req, res) => {
         try {
             new URL(url);
         } catch (error) {
-            return res.json({ success: false, message: 'Invalid URL format' });
+            return res.json({ success: false, message: 'Invalid URL' });
         }
 
         const instances = readInstances();
         
         if (instances.find(inst => inst.url === url)) {
-            return res.json({ success: false, message: 'Instance URL already exists' });
+            return res.json({ success: false, message: 'Instance exists' });
         }
 
         const newInstance = { 
@@ -168,11 +136,11 @@ app.post('/api/instances', verifyToken, requireAdmin, (req, res) => {
         if (writeInstances(instances)) {
             res.json({ 
                 success: true, 
-                message: 'Instance added successfully',
+                message: 'Instance added',
                 instance: newInstance
             });
         } else {
-            res.json({ success: false, message: 'Failed to add instance' });
+            res.json({ success: false, message: 'Failed to add' });
         }
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
@@ -187,12 +155,8 @@ app.delete('/api/instances/:id', verifyToken, requireAdmin, (req, res) => {
         
         instances = instances.filter(inst => inst.id !== id);
         
-        if (instances.length < initialLength) {
-            if (writeInstances(instances)) {
-                res.json({ success: true, message: 'Instance deleted successfully' });
-            } else {
-                res.json({ success: false, message: 'Failed to delete instance' });
-            }
+        if (instances.length < initialLength && writeInstances(instances)) {
+            res.json({ success: true, message: 'Instance deleted' });
         } else {
             res.json({ success: false, message: 'Instance not found' });
         }
@@ -201,10 +165,9 @@ app.delete('/api/instances/:id', verifyToken, requireAdmin, (req, res) => {
     }
 });
 
-// Bot control APIs (available to all authenticated users)
 app.post('/api/start-all', verifyToken, async (req, res) => {
     try {
-        const { videoLink, targetViews } = req.body;
+        const { videoLink, targetViews, token } = req.body;
         
         if (!videoLink) {
             return res.json({ success: false, message: 'Video link required' });
@@ -212,12 +175,12 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
 
         const instances = readInstances().filter(inst => inst.enabled);
         if (instances.length === 0) {
-            return res.json({ success: false, message: 'No bot instances available' });
+            return res.json({ success: false, message: 'No instances' });
         }
 
         const idMatch = videoLink.match(/\d{18,19}/g);
         if (!idMatch) {
-            return res.json({ success: false, message: 'Invalid TikTok video link' });
+            return res.json({ success: false, message: 'Invalid TikTok link' });
         }
 
         const results = [];
@@ -228,24 +191,16 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
                     videoLink: videoLink,
                     mode: 'target'
                 }, { timeout: 10000 });
-                results.push({ 
-                    instance: instance.id, 
-                    success: true, 
-                    message: 'Started successfully' 
-                });
+                results.push({ instance: instance.id, success: true, message: 'Started' });
             } catch (error) {
-                results.push({ 
-                    instance: instance.id, 
-                    success: false, 
-                    message: 'Failed to start' 
-                });
+                results.push({ instance: instance.id, success: false, message: 'Failed' });
             }
         }
 
         const successful = results.filter(r => r.success).length;
         res.json({
             success: successful > 0,
-            message: `${successful}/${instances.length} instances started successfully`,
+            message: `${successful}/${instances.length} started`,
             results: results
         });
     } catch (error) {
@@ -260,12 +215,10 @@ app.post('/api/stop-all', verifyToken, async (req, res) => {
         for (const instance of instances) {
             try {
                 await axios.post(`${instance.url}/stop`, {}, { timeout: 10000 });
-            } catch (error) {
-                // Ignore errors when stopping
-            }
+            } catch (error) {}
         }
         
-        res.json({ success: true, message: 'All instances stopped successfully' });
+        res.json({ success: true, message: 'All instances stopped' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
     }
@@ -282,8 +235,7 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
                 allStatus.push({ 
                     id: instance.id,
                     name: `Bot ${instance.id.substring(0, 8)}`,
-                    // Hide URL from normal users
-                    url: req.user.isAdmin ? instance.url : 'Hidden',
+                    url: req.user.username === 'admin' ? instance.url : 'Hidden',
                     enabled: instance.enabled, 
                     status: response.data, 
                     online: true 
@@ -291,8 +243,8 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
             } catch (error) {
                 allStatus.push({ 
                     id: instance.id,
-                    name: `Bot ${instance.id.substring(0, 8)}`,
-                    url: req.user.isAdmin ? instance.url : 'Hidden',
+                    name: `Bot ${instance.id.substring(0, 8)}`, 
+                    url: req.user.username === 'admin' ? instance.url : 'Hidden',
                     enabled: instance.enabled, 
                     status: null, 
                     online: false 
@@ -300,7 +252,6 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
             }
         }
 
-        // Calculate totals
         const totals = {
             success: allStatus.reduce((sum, bot) => sum + (bot.status?.success || 0), 0),
             fails: allStatus.reduce((sum, bot) => sum + (bot.status?.fails || 0), 0),
@@ -315,26 +266,19 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
         res.json({
             success: true,
             instances: allStatus,
-            totals: totals,
-            user: {
-                username: req.user.username,
-                isAdmin: req.user.isAdmin
-            }
+            totals: totals
         });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-// Initialize instances file
+// Initialize
 if (!fs.existsSync(instancesFile)) {
     writeInstances([]);
-    console.log('📁 Instances file initialized');
 }
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Main Controller running on port ${PORT}`);
+    console.log(`🔧 Main Controller running on port ${PORT}`);
     console.log(`🔐 Auth Server: ${AUTH_SERVER_URL}`);
-    console.log(`👑 Admin Panel: /admin`);
-    console.log(`🎯 User Dashboard: /dashboard`);
 });
