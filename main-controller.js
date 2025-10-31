@@ -1,370 +1,1037 @@
-const express = require('express');
-const axios = require('axios');
-const path = require('path');
-const fs = require('fs');
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// ✅ CORRECT Auth Server URL 
-const AUTH_SERVER_URL = process.env.AUTH_SERVER_URL || 'https://tiktok-bot-auth.up.railway.app';
-
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
-
-// ✅ USER SESSIONS STORAGE - Har user ka alag data
-const userSessionsFile = path.join(__dirname, 'user-sessions.json');
-
-function readUserSessions() {
-    try {
-        if (fs.existsSync(userSessionsFile)) {
-            return JSON.parse(fs.readFileSync(userSessionsFile, 'utf8'));
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Dashboard - TikTok Multi Bot</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-    } catch (error) {
-        console.log('Error reading user sessions:', error);
-    }
-    return {};
-}
-
-function writeUserSessions(sessions) {
-    try {
-        fs.writeFileSync(userSessionsFile, JSON.stringify(sessions, null, 2));
-        return true;
-    } catch (error) {
-        console.log('Error writing user sessions:', error);
-        return false;
-    }
-}
-
-// ✅ GET INSTANCES FROM AUTH SERVER
-async function getInstancesFromAuthServer(token) {
-    try {
-        const response = await axios.get(`${AUTH_SERVER_URL}/api/bot-instances?token=${token}`, {
-            timeout: 5000
-        });
         
-        if (response.data.success) {
-            return response.data.instances;
+        :root {
+            --primary: #8B5FBF;
+            --primary-dark: #6B46C1;
+            --primary-light: #9F7AEA;
+            --secondary: #D53F8C;
+            --dark: #1A202C;
+            --darker: #0F1419;
+            --light: #EDF2F7;
+            --success: #48BB78;
+            --danger: #F56565;
+            --warning: #ECC94B;
+            --info: #4299E1;
         }
-        return [];
-    } catch (error) {
-        console.log('Error fetching instances from auth server:', error.message);
-        return [];
-    }
-}
-
-// ✅ STRICT Token verification middleware
-async function verifyToken(req, res, next) {
-    try {
-        const token = req.query.token || req.body.token;
         
-        if (!token) {
-            return res.redirect(AUTH_SERVER_URL);
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 50%, var(--primary-dark) 100%);
+            min-height: 100vh;
+            color: var(--light);
+            animation: gradientShift 10s ease infinite;
+            background-size: 400% 400%;
         }
-
-        const response = await axios.post(`${AUTH_SERVER_URL}/api/verify-token`, {
-            token: token
-        }, { timeout: 5000 });
-
-        if (response.data.success && response.data.valid) {
-            req.user = { 
-                username: response.data.username,
-                token: token
-            };
-            next();
-        } else {
-            return res.redirect(AUTH_SERVER_URL);
-        }
-    } catch (error) {
-        return res.redirect(AUTH_SERVER_URL);
-    }
-}
-
-// ✅ GET USER SPECIFIC DATA
-function getUserSessionData(username) {
-    const sessions = readUserSessions();
-    if (!sessions[username]) {
-        sessions[username] = {
-            username: username,
-            currentVideo: null,
-            targetViews: 0,
-            isRunning: false,
-            success: 0,
-            fails: 0,
-            reqs: 0,
-            startTime: null,
-            lastUpdated: new Date().toISOString()
-        };
-        writeUserSessions(sessions);
-    }
-    return sessions[username];
-}
-
-function updateUserSessionData(username, data) {
-    const sessions = readUserSessions();
-    if (sessions[username]) {
-        sessions[username] = { ...sessions[username], ...data, lastUpdated: new Date().toISOString() };
-        writeUserSessions(sessions);
-    }
-}
-
-// Routes
-app.get('/', (req, res) => {
-    res.redirect(AUTH_SERVER_URL);
-});
-
-app.get('/dashboard', verifyToken, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
-
-// ✅ GET USER INFO API - Username fetch karega
-app.get('/api/user-info', verifyToken, async (req, res) => {
-    try {
-        const username = req.user.username;
         
-        res.json({
-            success: true,
-            user: {
-                username: username,
-                isActive: true
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .header {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(139, 95, 191, 0.3);
+            animation: slideDown 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        @keyframes slideDown {
+            from { 
+                opacity: 0;
+                transform: translateY(-50px);
             }
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// ✅ FIXED LOGOUT ROUTE
-app.post('/api/logout', verifyToken, async (req, res) => {
-    try {
-        const token = req.user.token;
-        const username = req.user.username;
-        
-        // ✅ User session clear karo
-        const sessions = readUserSessions();
-        if (sessions[username]) {
-            sessions[username].isRunning = false;
-            writeUserSessions(sessions);
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
-        // ✅ Auth server ko logout notify karo
-        await axios.post(`${AUTH_SERVER_URL}/api/logout`, {
-            token: token
-        }).catch(err => {
-            console.log('Auth server logout notification failed:', err.message);
-        });
+        .logo h1 {
+            font-size: 1.8em;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
         
-        // ✅ Direct auth server ke login page pe redirect
-        res.json({ 
-            success: true, 
-            message: 'Logout successful',
-            redirectUrl: AUTH_SERVER_URL
-        });
-    } catch (error) {
-        res.json({ 
-            success: true, 
-            redirectUrl: AUTH_SERVER_URL 
-        });
-    }
-});
-
-// ✅ Protected APIs - User specific data
-app.get('/api/instances', verifyToken, async (req, res) => {
-    try {
-        const token = req.user.token;
-        const instances = await getInstancesFromAuthServer(token);
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
         
-        const safeInstances = instances.map(instance => ({
-            id: instance.id,
-            name: `Bot Instance ${instance.id.substring(0, 8)}`,
-            status: 'active',
-            addedAt: instance.addedAt,
-            url: instance.url
-        }));
+        .welcome-text {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
         
-        res.json({ success: true, instances: safeInstances });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// ✅ USER SPECIFIC START BOT - Har user ka alag session
-app.post('/api/start-all', verifyToken, async (req, res) => {
-    try {
-        const { videoLink, targetViews } = req.body;
-        const username = req.user.username;
-        const token = req.user.token;
+        .btn-logout {
+            padding: 12px 24px;
+            background: rgba(245, 101, 101, 0.2);
+            color: var(--light);
+            border: 1px solid var(--danger);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+        }
         
-        if (!videoLink) {
-            return res.json({ success: false, message: 'Video link required' });
+        .btn-logout:hover {
+            background: var(--danger);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 101, 101, 0.4);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+        
+        .control-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(139, 95, 191, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s both;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .control-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(159, 122, 234, 0.1), transparent);
+            transition: left 0.6s;
+        }
+        
+        .control-panel:hover::before {
+            left: 100%;
+        }
+        
+        @keyframes slideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            color: var(--primary-light);
+        }
+        
+        .panel-title i {
+            font-size: 1.5em;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+            animation: fadeIn 0.6s ease 0.4s both;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: var(--primary-light);
+            font-size: 1.1em;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        input {
+            flex: 1;
+            padding: 16px 20px;
+            background: rgba(45, 55, 72, 0.8);
+            border: 2px solid rgba(139, 95, 191, 0.3);
+            border-radius: 12px;
+            font-size: 16px;
+            color: var(--light);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        input::placeholder {
+            color: rgba(237, 242, 247, 0.5);
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(159, 122, 234, 0.3);
+            background: rgba(45, 55, 72, 1);
+            transform: translateY(-2px);
+        }
+        
+        .btn-paste {
+            padding: 16px 24px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .btn-paste:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(139, 95, 191, 0.4);
+        }
+        
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+        
+        button {
+            padding: 18px 25px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        button:hover::before {
+            left: 100%;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+        }
+        
+        button:active {
+            transform: translateY(-1px);
+        }
+        
+        button.loading {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+        
+        button.loading::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            top: 50%;
+            left: 50%;
+            margin: -10px 0 0 -10px;
+            border: 2px solid transparent;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, var(--success), #38A169);
+            color: white;
+        }
+        
+        .btn-stop {
+            background: linear-gradient(135deg, var(--danger), #E53E3E);
+            color: white;
+        }
+        
+        .btn-refresh {
+            background: linear-gradient(135deg, var(--info), #3182CE);
+            color: white;
+        }
+        
+        .speed-indicator {
+            text-align: center;
+            font-size: 2.2em;
+            margin: 30px 0;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: pulse 2s ease-in-out infinite;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { 
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% { 
+                transform: scale(1.05);
+                opacity: 0.9;
+            }
+        }
+        
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 25px;
+            margin-bottom: 35px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid rgba(139, 95, 191, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: slideUp 0.6s ease 0.6s both;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(159, 122, 234, 0.1), transparent);
+            transition: left 0.5s;
+        }
+        
+        .stat-card:hover::before {
+            left: 100%;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-light);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+        }
+        
+        .stat-number {
+            font-size: 2.8em;
+            font-weight: bold;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stat-label {
+            font-size: 1em;
+            opacity: 0.9;
+            font-weight: 600;
+        }
+        
+        .instances-section {
+            animation: slideUp 0.8s ease 0.8s both;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        
+        .section-header h3 {
+            color: var(--primary-light);
+            font-size: 1.5em;
+        }
+        
+        .instances-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+        }
+        
+        .instance-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid rgba(139, 95, 191, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: fadeIn 0.6s ease both;
+        }
+        
+        .instance-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-light);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+        }
+        
+        .instance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .instance-title {
+            font-weight: 600;
+            color: var(--primary-light);
+            font-size: 1.1em;
+        }
+        
+        .instance-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        
+        .status-online {
+            background: linear-gradient(135deg, var(--success), #38A169);
+            color: white;
+        }
+        
+        .status-offline {
+            background: linear-gradient(135deg, var(--danger), #E53E3E);
+            color: white;
+        }
+        
+        .instance-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .mini-stat {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .mini-stat:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
+        
+        .mini-number {
+            font-size: 1.4em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .mini-label {
+            font-size: 0.85em;
+            opacity: 0.8;
+        }
+        
+        .progress-container {
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .progress-text {
+            text-align: center;
+            font-weight: 600;
+            margin-top: 10px;
+            color: var(--primary-light);
+        }
+        
+        .alert {
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+            animation: slideInRight 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+        }
+        
+        @keyframes slideInRight {
+            from { 
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .alert.success {
+            background: rgba(72, 187, 120, 0.2);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+        
+        .alert.error {
+            background: rgba(245, 101, 101, 0.2);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+        
+        .alert.info {
+            background: rgba(66, 153, 225, 0.2);
+            border: 1px solid var(--info);
+            color: var(--info);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 40px;
+            opacity: 0.7;
+        }
+        
+        .empty-state i {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .floating-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .particle {
+            position: absolute;
+            background: rgba(159, 122, 234, 0.1);
+            border-radius: 50%;
+            animation: float 8s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
+            50% { transform: translateY(-30px) rotate(180deg) scale(1.1); }
         }
 
-        const instances = await getInstancesFromAuthServer(token);
-        const enabledInstances = instances.filter(inst => inst.enabled);
+        .user-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(139, 95, 191, 0.3);
+        }
+
+        .user-info h4 {
+            color: var(--primary-light);
+            margin-bottom: 10px;
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        .username-display {
+            color: var(--primary-light);
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-particles" id="particles"></div>
+    
+    <div class="header">
+        <div class="logo">
+            <h1>🚀 TikTok Multi Bot</h1>
+        </div>
+        <div class="user-menu">
+            <span class="welcome-text">Welcome, <span id="username">User</span></span>
+            <button class="btn-logout" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="user-info">
+            <h4><i class="fas fa-user"></i> Account Information</h4>
+            <div>Username: <strong class="username-display" id="userUsername">Loading...</strong></div>
+            <div class="system-status">
+                <div class="status-dot"></div>
+                <span>System Status: <strong>Operational</strong></span>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="panel-title">
+                <i class="fas fa-rocket"></i>
+                <h2>🎯 TikTok View Bot Control</h2>
+            </div>
+            
+            <div class="form-group">
+                <label>📹 TikTok Video Link</label>
+                <div class="input-group">
+                    <input type="text" id="videoLink" placeholder="Paste TikTok video URL here">
+                    <button class="btn-paste" onclick="pasteFromClipboard()">
+                        <i class="fas fa-paste"></i> Paste
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="targetViews">🎯 Target Views</label>
+                <input type="number" id="targetViews" placeholder="Enter target views" value="1000">
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn-start" onclick="startAllBots()" id="startBtn">
+                    <i class="fas fa-play-circle"></i> START VIEW BOT
+                </button>
+                <button class="btn-stop" onclick="stopAllBots()" id="stopBtn">
+                    <i class="fas fa-stop-circle"></i> STOP BOT
+                </button>
+                <button class="btn-refresh" onclick="refreshStatus()" id="refreshBtn">
+                    <i class="fas fa-sync-alt"></i> REFRESH
+                </button>
+            </div>
+            
+            <div id="message"></div>
+        </div>
         
-        if (enabledInstances.length === 0) {
-            return res.json({ success: false, message: 'No bot instances available' });
+        <div class="speed-indicator" id="totalRps">
+            🚀 TOTAL SPEED: <span id="rpsValue">0</span> RPS
+        </div>
+        
+        <div class="stats-overview">
+            <div class="stat-card">
+                <div class="stat-number" id="totalSuccess">0</div>
+                <div class="stat-label">Total Success</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalRequests">0</div>
+                <div class="stat-label">Total Requests</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="onlineBots">0</div>
+                <div class="stat-label">Online Bots</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalRpsNum">0</div>
+                <div class="stat-label">Total RPS</div>
+            </div>
+        </div>
+        
+        <div class="instances-section">
+            <div class="section-header">
+                <h3><i class="fas fa-robot"></i> Bot System Status</h3>
+                <div class="instance-count">
+                    <span id="instancesCount">0 bots active</span>
+                </div>
+            </div>
+            
+            <div class="instances-grid" id="instancesContainer">
+                <div class="empty-state">
+                    <i class="fas fa-robot"></i>
+                    <h3>Bot System Initializing</h3>
+                    <p>Start the view bot to see statistics</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let refreshInterval;
+        let currentUsername = 'User';
+        
+        // Create floating particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.width = Math.random() * 80 + 20 + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 8 + 's';
+                particle.style.background = `rgba(159, 122, 234, ${Math.random() * 0.1 + 0.03})`;
+                container.appendChild(particle);
+            }
         }
-
-        const idMatch = videoLink.match(/\d{18,19}/g);
-        if (!idMatch) {
-            return res.json({ success: false, message: 'Invalid TikTok link' });
-        }
-
-        // ✅ Stop other users from controlling this user's session
-        const userSession = getUserSessionData(username);
-        if (userSession.isRunning) {
-            return res.json({ success: false, message: 'You already have a running session' });
-        }
-
-        // ✅ Update user session
-        updateUserSessionData(username, {
-            currentVideo: videoLink,
-            targetViews: parseInt(targetViews) || 1000,
-            isRunning: true,
-            success: 0,
-            fails: 0,
-            reqs: 0,
-            startTime: new Date().toISOString()
-        });
-
-        const results = [];
-        for (const instance of enabledInstances) {
+        
+        // ✅ GET REAL USERNAME FROM SERVER
+        async function loadUserInfo() {
             try {
-                await axios.post(`${instance.url}/start`, {
-                    targetViews: parseInt(targetViews) || 1000,
-                    videoLink: videoLink,
-                    mode: 'target',
-                    userToken: token // ✅ User identification for bot
-                }, { timeout: 10000 });
-                results.push({ instance: instance.id, success: true, message: 'Started' });
+                const token = new URLSearchParams(window.location.search).get('token');
+                const response = await fetch(`/api/user-info?token=${token}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUsername = data.user.username;
+                    document.getElementById('username').textContent = currentUsername;
+                    document.getElementById('userUsername').textContent = currentUsername;
+                }
             } catch (error) {
-                results.push({ instance: instance.id, success: false, message: 'Failed' });
+                console.log('Error loading user info:', error);
             }
         }
-
-        const successful = results.filter(r => r.success).length;
-        res.json({
-            success: successful > 0,
-            message: `${successful}/${enabledInstances.length} started`,
-            results: results
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// ✅ USER SPECIFIC STOP BOT - Sirf apna hi stop kar sake
-app.post('/api/stop-all', verifyToken, async (req, res) => {
-    try {
-        const username = req.user.username;
-        const token = req.user.token;
-        const instances = await getInstancesFromAuthServer(token);
-        const enabledInstances = instances.filter(inst => inst.enabled);
         
-        // ✅ Sirf current user ka session stop karo
-        updateUserSessionData(username, {
-            isRunning: false
-        });
-
-        for (const instance of enabledInstances) {
-            try {
-                await axios.post(`${instance.url}/stop`, {
-                    userToken: token // ✅ User specific stop
-                }, { timeout: 10000 });
-            } catch (error) {}
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="alert ${type}">${message}</div>`;
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 5000);
         }
         
-        res.json({ success: true, message: 'Your bot session stopped' });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// ✅ USER SPECIFIC STATUS - Sirf apna data dikhao
-app.get('/api/status-all', verifyToken, async (req, res) => {
-    try {
-        const username = req.user.username;
-        const token = req.user.token;
-        const instances = await getInstancesFromAuthServer(token);
-        const allStatus = [];
-
-        const userSession = getUserSessionData(username);
-
-        for (const instance of instances) {
+        function setLoading(buttonId, isLoading) {
+            const btn = document.getElementById(buttonId);
+            if (isLoading) {
+                btn.classList.add('loading');
+                btn.disabled = true;
+            } else {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+        
+        async function pasteFromClipboard() {
             try {
-                const response = await axios.get(`${instance.url}/status`, { 
-                    params: { userToken: token },
-                    timeout: 10000 
+                const text = await navigator.clipboard.readText();
+                document.getElementById('videoLink').value = text;
+                showMessage('📋 Pasted from clipboard!', 'success');
+                
+                // Add micro animation
+                const input = document.getElementById('videoLink');
+                input.style.transform = 'scale(1.02)';
+                setTimeout(() => {
+                    input.style.transform = 'scale(1)';
+                }, 300);
+            } catch (error) {
+                showMessage('Failed to paste from clipboard', 'error');
+            }
+        }
+        
+        async function startAllBots() {
+            const videoLink = document.getElementById('videoLink').value;
+            const targetViews = document.getElementById('targetViews').value;
+            
+            if (!videoLink) {
+                showMessage('Please enter TikTok video link!', 'error');
+                return;
+            }
+            
+            setLoading('startBtn', true);
+            showMessage('🚀 Starting view bot system...', 'info');
+            
+            try {
+                const token = new URLSearchParams(window.location.search).get('token');
+                const response = await fetch('/api/start-all', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        videoLink: videoLink,
+                        targetViews: parseInt(targetViews),
+                        token: token
+                    })
                 });
                 
-                allStatus.push({ 
-                    id: instance.id,
-                    name: `Bot ${instance.id.substring(0, 8)}`,
-                    url: instance.url,
-                    enabled: instance.enabled, 
-                    status: response.data, 
-                    online: true 
-                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(`✅ ${data.message}`, 'success');
+                    startStatusUpdates();
+                } else {
+                    showMessage(data.message, 'error');
+                }
             } catch (error) {
-                allStatus.push({ 
-                    id: instance.id,
-                    name: `Bot ${instance.id.substring(0, 8)}`, 
-                    url: instance.url,
-                    enabled: instance.enabled, 
-                    status: null, 
-                    online: false 
-                });
+                showMessage('Error starting bot: ' + error.message, 'error');
+            } finally {
+                setLoading('startBtn', false);
             }
         }
-
-        // ✅ User specific statistics
-        const totals = {
-            success: userSession.success || 0,
-            fails: userSession.fails || 0,
-            reqs: userSession.reqs || 0,
-            rps: 0,
-            onlineBots: allStatus.filter(bot => bot.online && bot.enabled).length,
-            totalBots: instances.filter(inst => inst.enabled).length,
-            isRunning: userSession.isRunning || false,
-            currentVideo: userSession.currentVideo,
-            targetViews: userSession.targetViews || 0,
-            startTime: userSession.startTime
-        };
         
-        totals.successRate = totals.reqs > 0 ? ((totals.success / totals.reqs) * 100).toFixed(1) + '%' : '0%';
-
-        // ✅ Calculate RPS based on user session
-        if (userSession.startTime) {
-            const startTime = new Date(userSession.startTime);
-            const now = new Date();
-            const diffSeconds = (now - startTime) / 1000;
-            if (diffSeconds > 0) {
-                totals.rps = (totals.reqs / diffSeconds).toFixed(1);
+        async function stopAllBots() {
+            setLoading('stopBtn', true);
+            showMessage('🛑 Stopping view bot...', 'info');
+            
+            try {
+                const token = new URLSearchParams(window.location.search).get('token');
+                const response = await fetch('/api/stop-all', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        token: token
+                    })
+                });
+                
+                const data = await response.json();
+                showMessage('🛑 ' + data.message, 'success');
+            } catch (error) {
+                showMessage('Error stopping bot', 'error');
+            } finally {
+                setLoading('stopBtn', false);
             }
         }
-
-        res.json({
-            success: true,
-            instances: allStatus,
-            totals: totals,
-            userData: userSession
+        
+        async function refreshStatus() {
+            setLoading('refreshBtn', true);
+            await updateStatus();
+            setTimeout(() => setLoading('refreshBtn', false), 1000);
+            showMessage('🔄 Status refreshed!', 'success');
+        }
+        
+        async function updateStatus() {
+            try {
+                const token = new URLSearchParams(window.location.search).get('token');
+                const response = await fetch(`/api/status-all?token=${token}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update overview stats
+                    document.getElementById('totalSuccess').textContent = data.totals.success.toLocaleString();
+                    document.getElementById('totalRequests').textContent = data.totals.reqs.toLocaleString();
+                    document.getElementById('onlineBots').textContent = data.totals.onlineBots;
+                    document.getElementById('totalRpsNum').textContent = data.totals.rps.toFixed(1);
+                    document.getElementById('rpsValue').textContent = data.totals.rps.toFixed(1);
+                    
+                    // Update instances count
+                    document.getElementById('instancesCount').textContent = 
+                        `${data.totals.onlineBots} bots online`;
+                    
+                    // Update instances grid
+                    const container = document.getElementById('instancesContainer');
+                    
+                    if (data.instances.length === 0) {
+                        container.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-robot"></i>
+                                <h3>Bot System Ready</h3>
+                                <p>Start the view bot to begin</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    container.innerHTML = '';
+                    
+                    data.instances.forEach((instance, index) => {
+                        const instanceCard = document.createElement('div');
+                        instanceCard.className = 'instance-card';
+                        instanceCard.style.animationDelay = `${index * 0.1}s`;
+                        
+                        const status = instance.status;
+                        const isOnline = instance.online;
+                        
+                        instanceCard.innerHTML = `
+                            <div class="instance-header">
+                                <div class="instance-title">${instance.name}</div>
+                                <span class="instance-status ${isOnline ? 'status-online' : 'status-offline'}">
+                                    ${isOnline ? 'ONLINE' : 'OFFLINE'}
+                                </span>
+                            </div>
+                            
+                            ${isOnline ? `
+                                <div class="instance-stats">
+                                    <div class="mini-stat">
+                                        <div class="mini-number" style="color: var(--success)">${status.success}</div>
+                                        <div class="mini-label">Success</div>
+                                    </div>
+                                    <div class="mini-stat">
+                                        <div class="mini-number" style="color: var(--danger)">${status.fails}</div>
+                                        <div class="mini-label">Failed</div>
+                                    </div>
+                                    <div class="mini-stat">
+                                        <div class="mini-number" style="color: var(--info)">${status.reqs}</div>
+                                        <div class="mini-label">Requests</div>
+                                    </div>
+                                    <div class="mini-stat">
+                                        <div class="mini-number" style="color: var(--warning)">${status.rps}</div>
+                                        <div class="mini-label">RPS</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: ${status.targetViews > 0 ? (status.success / status.targetViews) * 100 : 0}%"></div>
+                                    </div>
+                                    <div class="progress-text">
+                                        ${status.targetViews > 0 ? 
+                                            `Progress: ${status.success}/${status.targetViews} (${((status.success / status.targetViews) * 100).toFixed(1)}%)` : 
+                                            `Views: ${status.success}`
+                                        }
+                                    </div>
+                                </div>
+                            ` : `
+                                <div style="text-align: center; padding: 30px; opacity: 0.7;">
+                                    <i class="fas fa-exclamation-triangle" style="font-size: 2em; margin-bottom: 15px;"></i>
+                                    <div>Bot Offline</div>
+                                </div>
+                            `}
+                        `;
+                        
+                        container.appendChild(instanceCard);
+                    });
+                }
+            } catch (error) {
+                console.log('Error fetching status:', error);
+            }
+        }
+        
+        // ✅ FIXED LOGOUT FUNCTION - Properly logout karega
+        async function logout() {
+            try {
+                const token = new URLSearchParams(window.location.search).get('token');
+                
+                // ✅ Main controller ko logout notify karo
+                const response = await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        token: token
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // ✅ Auth server ke login page pe redirect
+                if (data.redirectUrl) {
+                    window.location.href = data.redirectUrl;
+                } else {
+                    window.location.href = 'https://tiktok-bot-auth.up.railway.app';
+                }
+            } catch (error) {
+                // ✅ Anyway auth server pe redirect karo
+                window.location.href = 'https://tiktok-bot-auth.up.railway.app';
+            }
+        }
+        
+        function startStatusUpdates() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+            refreshInterval = setInterval(updateStatus, 2000);
+            updateStatus();
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            createParticles();
+            loadUserInfo(); // ✅ Load real username
+            startStatusUpdates();
+            showMessage(`🎉 Welcome ${currentUsername} to TikTok View Bot! Start by pasting a TikTok link.`, 'info');
+            
+            // Add micro-interactions
+            document.querySelectorAll('input').forEach(input => {
+                input.addEventListener('focus', function() {
+                    this.style.transform = 'scale(1.02)';
+                });
+                
+                input.addEventListener('blur', function() {
+                    this.style.transform = 'scale(1)';
+                });
+            });
         });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// ✅ Initialize user sessions
-if (!fs.existsSync(userSessionsFile)) {
-    writeUserSessions({});
-}
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🔧 Main Controller running on port ${PORT}`);
-    console.log(`🔐 Auth Server: ${AUTH_SERVER_URL}`);
-    console.log(`✅ User Isolation: Enabled - Each user has separate data`);
-    console.log(`🚀 Unlimited Users Support: Ready`);
-});
+    </script>
+</body>
+</html>
