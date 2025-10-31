@@ -14,8 +14,29 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// ✅ REMOVE LOCAL INSTANCES STORAGE - Auth server se manage hoga
-// const instancesFile = path.join(__dirname, 'instances.json'); - DELETE THIS
+// ✅ USER SESSIONS STORAGE - Har user ka alag data
+const userSessionsFile = path.join(__dirname, 'user-sessions.json');
+
+function readUserSessions() {
+    try {
+        if (fs.existsSync(userSessionsFile)) {
+            return JSON.parse(fs.readFileSync(userSessionsFile, 'utf8'));
+        }
+    } catch (error) {
+        console.log('Error reading user sessions:', error);
+    }
+    return {};
+}
+
+function writeUserSessions(sessions) {
+    try {
+        fs.writeFileSync(userSessionsFile, JSON.stringify(sessions, null, 2));
+        return true;
+    } catch (error) {
+        console.log('Error writing user sessions:', error);
+        return false;
+    }
+}
 
 // ✅ GET INSTANCES FROM AUTH SERVER
 async function getInstancesFromAuthServer(token) {
@@ -48,13 +69,44 @@ async function verifyToken(req, res, next) {
         }, { timeout: 5000 });
 
         if (response.data.success && response.data.valid) {
-            req.user = { username: response.data.username };
+            req.user = { 
+                username: response.data.username,
+                token: token
+            };
             next();
         } else {
             return res.redirect(AUTH_SERVER_URL);
         }
     } catch (error) {
         return res.redirect(AUTH_SERVER_URL);
+    }
+}
+
+// ✅ GET USER SPECIFIC DATA
+function getUserSessionData(username) {
+    const sessions = readUserSessions();
+    if (!sessions[username]) {
+        sessions[username] = {
+            username: username,
+            currentVideo: null,
+            targetViews: 0,
+            isRunning: false,
+            success: 0,
+            fails: 0,
+            reqs: 0,
+            startTime: null,
+            lastUpdated: new Date().toISOString()
+        };
+        writeUserSessions(sessions);
+    }
+    return sessions[username];
+}
+
+function updateUserSessionData(username, data) {
+    const sessions = readUserSessions();
+    if (sessions[username]) {
+        sessions[username] = { ...sessions[username], ...data, lastUpdated: new Date().toISOString() };
+        writeUserSessions(sessions);
     }
 }
 
@@ -67,21 +119,48 @@ app.get('/dashboard', verifyToken, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// ✅ REMOVE ADMIN ROUTE FROM MAIN CONTROLLER
-// app.get('/admin', ...) - DELETE THIS
+// ✅ GET USER INFO API - Username fetch karega
+app.get('/api/user-info', verifyToken, async (req, res) => {
+    try {
+        const username = req.user.username;
+        
+        res.json({
+            success: true,
+            user: {
+                username: username,
+                isActive: true
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
 
-// ✅ Logout route
+// ✅ FIXED LOGOUT ROUTE
 app.post('/api/logout', verifyToken, async (req, res) => {
     try {
-        const token = req.query.token || req.body.token;
+        const token = req.user.token;
+        const username = req.user.username;
         
+        // ✅ User session clear karo
+        const sessions = readUserSessions();
+        if (sessions[username]) {
+            sessions[username].isRunning = false;
+            writeUserSessions(sessions);
+        }
+        
+        // ✅ Auth server ko logout notify karo
         await axios.post(`${AUTH_SERVER_URL}/api/logout`, {
             token: token
-        }).catch(err => {});
+        }).catch(err => {
+            console.log('Auth server logout notification failed:', err.message);
+        });
         
+        // ✅ Direct auth server ke login page pe redirect
         res.json({ 
             success: true, 
-            redirectUrl: AUTH_SERVER_URL 
+            message: 'Logout successful',
+            redirectUrl: AUTH_SERVER_URL
         });
     } catch (error) {
         res.json({ 
@@ -91,10 +170,10 @@ app.post('/api/logout', verifyToken, async (req, res) => {
     }
 });
 
-// ✅ Protected APIs - Instances auth server se fetch karo
+// ✅ Protected APIs - User specific data
 app.get('/api/instances', verifyToken, async (req, res) => {
     try {
-        const token = req.query.token || req.body.token;
+        const token = req.user.token;
         const instances = await getInstancesFromAuthServer(token);
         
         const safeInstances = instances.map(instance => ({
@@ -111,14 +190,12 @@ app.get('/api/instances', verifyToken, async (req, res) => {
     }
 });
 
-// ✅ REMOVE INSTANCE MANAGEMENT APIS FROM MAIN CONTROLLER
-// app.post('/api/instances', ...) - DELETE THIS
-// app.delete('/api/instances/:id', ...) - DELETE THIS
-
-// ✅ Start/Stop/Status APIs (existing code)
+// ✅ USER SPECIFIC START BOT - Har user ka alag session
 app.post('/api/start-all', verifyToken, async (req, res) => {
     try {
-        const { videoLink, targetViews, token } = req.body;
+        const { videoLink, targetViews } = req.body;
+        const username = req.user.username;
+        const token = req.user.token;
         
         if (!videoLink) {
             return res.json({ success: false, message: 'Video link required' });
@@ -136,13 +213,31 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
             return res.json({ success: false, message: 'Invalid TikTok link' });
         }
 
+        // ✅ Stop other users from controlling this user's session
+        const userSession = getUserSessionData(username);
+        if (userSession.isRunning) {
+            return res.json({ success: false, message: 'You already have a running session' });
+        }
+
+        // ✅ Update user session
+        updateUserSessionData(username, {
+            currentVideo: videoLink,
+            targetViews: parseInt(targetViews) || 1000,
+            isRunning: true,
+            success: 0,
+            fails: 0,
+            reqs: 0,
+            startTime: new Date().toISOString()
+        });
+
         const results = [];
         for (const instance of enabledInstances) {
             try {
                 await axios.post(`${instance.url}/start`, {
                     targetViews: parseInt(targetViews) || 1000,
                     videoLink: videoLink,
-                    mode: 'target'
+                    mode: 'target',
+                    userToken: token // ✅ User identification for bot
                 }, { timeout: 10000 });
                 results.push({ instance: instance.id, success: true, message: 'Started' });
             } catch (error) {
@@ -161,33 +256,50 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
     }
 });
 
+// ✅ USER SPECIFIC STOP BOT - Sirf apna hi stop kar sake
 app.post('/api/stop-all', verifyToken, async (req, res) => {
     try {
-        const token = req.query.token || req.body.token;
+        const username = req.user.username;
+        const token = req.user.token;
         const instances = await getInstancesFromAuthServer(token);
         const enabledInstances = instances.filter(inst => inst.enabled);
         
+        // ✅ Sirf current user ka session stop karo
+        updateUserSessionData(username, {
+            isRunning: false
+        });
+
         for (const instance of enabledInstances) {
             try {
-                await axios.post(`${instance.url}/stop`, {}, { timeout: 10000 });
+                await axios.post(`${instance.url}/stop`, {
+                    userToken: token // ✅ User specific stop
+                }, { timeout: 10000 });
             } catch (error) {}
         }
         
-        res.json({ success: true, message: 'All instances stopped' });
+        res.json({ success: true, message: 'Your bot session stopped' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
+// ✅ USER SPECIFIC STATUS - Sirf apna data dikhao
 app.get('/api/status-all', verifyToken, async (req, res) => {
     try {
-        const token = req.query.token || req.body.token;
+        const username = req.user.username;
+        const token = req.user.token;
         const instances = await getInstancesFromAuthServer(token);
         const allStatus = [];
 
+        const userSession = getUserSessionData(username);
+
         for (const instance of instances) {
             try {
-                const response = await axios.get(`${instance.url}/status`, { timeout: 10000 });
+                const response = await axios.get(`${instance.url}/status`, { 
+                    params: { userToken: token },
+                    timeout: 10000 
+                });
+                
                 allStatus.push({ 
                     id: instance.id,
                     name: `Bot ${instance.id.substring(0, 8)}`,
@@ -208,29 +320,51 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
             }
         }
 
+        // ✅ User specific statistics
         const totals = {
-            success: allStatus.reduce((sum, bot) => sum + (bot.status?.success || 0), 0),
-            fails: allStatus.reduce((sum, bot) => sum + (bot.status?.fails || 0), 0),
-            reqs: allStatus.reduce((sum, bot) => sum + (bot.status?.reqs || 0), 0),
-            rps: allStatus.reduce((sum, bot) => sum + (parseFloat(bot.status?.rps) || 0), 0),
+            success: userSession.success || 0,
+            fails: userSession.fails || 0,
+            reqs: userSession.reqs || 0,
+            rps: 0,
             onlineBots: allStatus.filter(bot => bot.online && bot.enabled).length,
-            totalBots: instances.filter(inst => inst.enabled).length
+            totalBots: instances.filter(inst => inst.enabled).length,
+            isRunning: userSession.isRunning || false,
+            currentVideo: userSession.currentVideo,
+            targetViews: userSession.targetViews || 0,
+            startTime: userSession.startTime
         };
         
         totals.successRate = totals.reqs > 0 ? ((totals.success / totals.reqs) * 100).toFixed(1) + '%' : '0%';
 
+        // ✅ Calculate RPS based on user session
+        if (userSession.startTime) {
+            const startTime = new Date(userSession.startTime);
+            const now = new Date();
+            const diffSeconds = (now - startTime) / 1000;
+            if (diffSeconds > 0) {
+                totals.rps = (totals.reqs / diffSeconds).toFixed(1);
+            }
+        }
+
         res.json({
             success: true,
             instances: allStatus,
-            totals: totals
+            totals: totals,
+            userData: userSession
         });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
+// ✅ Initialize user sessions
+if (!fs.existsSync(userSessionsFile)) {
+    writeUserSessions({});
+}
+
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🔧 Main Controller running on port ${PORT}`);
     console.log(`🔐 Auth Server: ${AUTH_SERVER_URL}`);
-    console.log(`✅ Cross-domain authentication: Enabled`);
+    console.log(`✅ User Isolation: Enabled - Each user has separate data`);
+    console.log(`🚀 Unlimited Users Support: Ready`);
 });
