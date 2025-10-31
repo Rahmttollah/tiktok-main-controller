@@ -55,7 +55,7 @@ async function verifyToken(req, res, next) {
         if (response.data.success && response.data.valid) {
             req.user = { 
                 username: response.data.username,
-                isAdmin: response.data.username === 'admin'
+                isAdmin: response.data.username === 'admin' // Admin check
             };
             next();
         } else {
@@ -89,10 +89,10 @@ app.get('/admin', verifyToken, requireAdmin, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// Protected APIs
+// User info API
 app.get('/api/user-info', verifyToken, (req, res) => {
-    res.json({ 
-        success: true, 
+    res.json({
+        success: true,
         user: {
             username: req.user.username,
             isAdmin: req.user.isAdmin
@@ -100,23 +100,34 @@ app.get('/api/user-info', verifyToken, (req, res) => {
     });
 });
 
+// Protected APIs
 app.get('/api/instances', verifyToken, (req, res) => {
     try {
         const instances = readInstances();
         
         // For normal users, show only basic info
-        // For admin, show all details including URLs
-        const safeInstances = instances.map(instance => ({
-            id: instance.id,
-            name: `Bot ${instance.id.substring(0, 6)}`,
-            status: instance.enabled ? 'active' : 'disabled',
-            addedAt: instance.addedAt,
-            // Only admin can see URLs
-            url: req.user.isAdmin ? instance.url : '🔒 Hidden',
-            enabled: instance.enabled,
-            // Show online status to all users
-            online: false // Will be updated by status check
-        }));
+        // For admin, show full info including URLs
+        const safeInstances = instances.map(instance => {
+            if (req.user.isAdmin) {
+                return {
+                    id: instance.id,
+                    name: `Bot ${instance.id.substring(0, 8)}`,
+                    url: instance.url,
+                    status: 'active',
+                    addedAt: instance.addedAt,
+                    enabled: instance.enabled
+                };
+            } else {
+                return {
+                    id: instance.id,
+                    name: `Bot ${instance.id.substring(0, 8)}`,
+                    status: 'active',
+                    addedAt: instance.addedAt,
+                    // Hide URL from normal users
+                    url: 'Hidden'
+                };
+            }
+        });
         
         res.json({ success: true, instances: safeInstances });
     } catch (error) {
@@ -124,7 +135,7 @@ app.get('/api/instances', verifyToken, (req, res) => {
     }
 });
 
-// Admin-only instance management
+// Admin only instance management
 app.post('/api/instances', verifyToken, requireAdmin, (req, res) => {
     try {
         const { url } = req.body;
@@ -190,7 +201,7 @@ app.delete('/api/instances/:id', verifyToken, requireAdmin, (req, res) => {
     }
 });
 
-// Bot Control APIs (Available to all authenticated users)
+// Bot control APIs (available to all authenticated users)
 app.post('/api/start-all', verifyToken, async (req, res) => {
     try {
         const { videoLink, targetViews } = req.body;
@@ -254,7 +265,7 @@ app.post('/api/stop-all', verifyToken, async (req, res) => {
             }
         }
         
-        res.json({ success: true, message: 'All bot instances stopped' });
+        res.json({ success: true, message: 'All instances stopped successfully' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
     }
@@ -270,9 +281,9 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
                 const response = await axios.get(`${instance.url}/status`, { timeout: 10000 });
                 allStatus.push({ 
                     id: instance.id,
-                    name: `Bot ${instance.id.substring(0, 6)}`,
-                    // Only admin can see URLs
-                    url: req.user.isAdmin ? instance.url : '🔒 Hidden',
+                    name: `Bot ${instance.id.substring(0, 8)}`,
+                    // Hide URL from normal users
+                    url: req.user.isAdmin ? instance.url : 'Hidden',
                     enabled: instance.enabled, 
                     status: response.data, 
                     online: true 
@@ -280,8 +291,8 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
             } catch (error) {
                 allStatus.push({ 
                     id: instance.id,
-                    name: `Bot ${instance.id.substring(0, 6)}`,
-                    url: req.user.isAdmin ? instance.url : '🔒 Hidden',
+                    name: `Bot ${instance.id.substring(0, 8)}`,
+                    url: req.user.isAdmin ? instance.url : 'Hidden',
                     enabled: instance.enabled, 
                     status: null, 
                     online: false 
@@ -315,31 +326,7 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
     }
 });
 
-// Logout endpoint
-app.post('/api/logout', verifyToken, async (req, res) => {
-    try {
-        const token = req.query.token || req.body.token;
-        
-        // Call auth server to invalidate token
-        await axios.post(`${AUTH_SERVER_URL}/api/logout`, {
-            token: token
-        });
-        
-        res.json({ 
-            success: true, 
-            message: 'Logout successful',
-            redirectUrl: AUTH_SERVER_URL + '/login'
-        });
-    } catch (error) {
-        res.json({ 
-            success: true, 
-            message: 'Logout successful',
-            redirectUrl: AUTH_SERVER_URL + '/login'
-        });
-    }
-});
-
-// Initialize instances file if not exists
+// Initialize instances file
 if (!fs.existsSync(instancesFile)) {
     writeInstances([]);
     console.log('📁 Instances file initialized');
@@ -348,6 +335,6 @@ if (!fs.existsSync(instancesFile)) {
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Main Controller running on port ${PORT}`);
     console.log(`🔐 Auth Server: ${AUTH_SERVER_URL}`);
-    console.log(`✅ Token protection: ENABLED`);
-    console.log(`🔧 Admin access: RESTRICTED`);
+    console.log(`👑 Admin Panel: /admin`);
+    console.log(`🎯 User Dashboard: /dashboard`);
 });
