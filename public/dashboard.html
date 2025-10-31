@@ -623,12 +623,6 @@
             background: var(--success);
             animation: pulse 2s infinite;
         }
-
-        .username-display {
-            color: var(--primary-light);
-            font-weight: bold;
-            font-size: 1.1em;
-        }
     </style>
 </head>
 <body>
@@ -649,7 +643,7 @@
     <div class="container">
         <div class="user-info">
             <h4><i class="fas fa-user"></i> Account Information</h4>
-            <div>Username: <strong class="username-display" id="userUsername">Loading...</strong></div>
+            <div>Username: <strong id="userUsername">Loading...</strong></div>
             <div class="system-status">
                 <div class="status-dot"></div>
                 <span>System Status: <strong>Operational</strong></span>
@@ -735,7 +729,6 @@
 
     <script>
         let refreshInterval;
-        let currentUsername = 'User';
         
         // Create floating particles
         function createParticles() {
@@ -750,23 +743,6 @@
                 particle.style.animationDelay = Math.random() * 8 + 's';
                 particle.style.background = `rgba(159, 122, 234, ${Math.random() * 0.1 + 0.03})`;
                 container.appendChild(particle);
-            }
-        }
-        
-        // ✅ GET REAL USERNAME FROM SERVER
-        async function loadUserInfo() {
-            try {
-                const token = new URLSearchParams(window.location.search).get('token');
-                const response = await fetch(`/api/user-info?token=${token}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    currentUsername = data.user.username;
-                    document.getElementById('username').textContent = currentUsername;
-                    document.getElementById('userUsername').textContent = currentUsername;
-                }
-            } catch (error) {
-                console.log('Error loading user info:', error);
             }
         }
         
@@ -976,7 +952,7 @@
             }
         }
         
-        // ✅ FIXED LOGOUT FUNCTION - Properly logout karega
+        // ✅ FIXED LOGOUT FUNCTION - Auth server pe redirect karega
         async function logout() {
             try {
                 const token = new URLSearchParams(window.location.search).get('token');
@@ -1017,9 +993,17 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             createParticles();
-            loadUserInfo(); // ✅ Load real username
             startStatusUpdates();
-            showMessage(`🎉 Welcome ${currentUsername} to TikTok View Bot! Start by pasting a TikTok link.`, 'info');
+            showMessage('🎉 Welcome to TikTok View Bot! Start by pasting a TikTok link.', 'info');
+            
+            // Set username from URL token
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            if (token) {
+                // Try to get username from token (you can add API for this)
+                document.getElementById('userUsername').textContent = 'User';
+                document.getElementById('username').textContent = 'User';
+            }
             
             // Add micro-interactions
             document.querySelectorAll('input').forEach(input => {
