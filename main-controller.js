@@ -6,7 +6,7 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Auth Server URL
+// ✅ CORRECT Auth Server URL 
 const AUTH_SERVER_URL = process.env.AUTH_SERVER_URL || 'https://tiktok-bot-auth.up.railway.app';
 
 // Middleware
@@ -38,28 +38,31 @@ function writeInstances(instances) {
     }
 }
 
-// Token verification middleware
+// ✅ STRICT Token verification middleware
 async function verifyToken(req, res, next) {
     try {
         const token = req.query.token || req.body.token;
         
+        // ✅ Agar token nahi hai to DIRECT auth server pe redirect
         if (!token) {
+            console.log('❌ No token found, redirecting to auth server');
             return res.redirect(AUTH_SERVER_URL);
         }
 
-        // Verify token with auth server
+        // ✅ Verify token with auth server
         const response = await axios.post(`${AUTH_SERVER_URL}/api/verify-token`, {
             token: token
-        });
+        }, { timeout: 5000 });
 
         if (response.data.success && response.data.valid) {
             req.user = { username: response.data.username };
             next();
         } else {
+            console.log('❌ Invalid token, redirecting to auth server');
             return res.redirect(AUTH_SERVER_URL);
         }
     } catch (error) {
-        console.log('Token verification error:', error);
+        console.log('❌ Token verification error, redirecting to auth server:', error.message);
         return res.redirect(AUTH_SERVER_URL);
     }
 }
@@ -71,8 +74,9 @@ function requireAdmin(req, res, next) {
     next();
 }
 
-// Routes
+// ✅ Routes Protection - All routes protected
 app.get('/', (req, res) => {
+    // ✅ Root page pe directly auth server pe redirect
     res.redirect(AUTH_SERVER_URL);
 });
 
@@ -82,6 +86,36 @@ app.get('/dashboard', verifyToken, (req, res) => {
 
 app.get('/admin', verifyToken, requireAdmin, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin-panel.html'));
+});
+
+// ✅ REMOVE LOGIN & REGISTER ROUTES FROM MAIN-CONTROLLER
+// app.get('/login', ...) - DELETE THIS
+// app.get('/register', ...) - DELETE THIS
+
+// ✅ Logout route - Auth server pe redirect karega
+app.post('/api/logout', verifyToken, async (req, res) => {
+    try {
+        const token = req.query.token || req.body.token;
+        
+        // ✅ Auth server ko logout notify karo
+        await axios.post(`${AUTH_SERVER_URL}/api/logout`, {
+            token: token
+        }).catch(err => {
+            console.log('Auth server logout notification failed:', err.message);
+        });
+        
+        // ✅ Direct auth server ke login page pe redirect
+        res.json({ 
+            success: true, 
+            redirectUrl: AUTH_SERVER_URL 
+        });
+    } catch (error) {
+        // ✅ Anyway auth server pe redirect karo
+        res.json({ 
+            success: true, 
+            redirectUrl: AUTH_SERVER_URL 
+        });
+    }
 });
 
 // Protected APIs
@@ -281,4 +315,5 @@ if (!fs.existsSync(instancesFile)) {
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🔧 Main Controller running on port ${PORT}`);
     console.log(`🔐 Auth Server: ${AUTH_SERVER_URL}`);
+    console.log(`✅ Protection: All routes require auth token`);
 });
