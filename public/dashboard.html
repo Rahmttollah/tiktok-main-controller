@@ -104,91 +104,6 @@
             padding: 30px;
         }
         
-        .user-info {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            border: 1px solid rgba(139, 95, 191, 0.3);
-            animation: slideUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s both;
-        }
-
-        @keyframes slideUp {
-            from { 
-                opacity: 0;
-                transform: translateY(30px) scale(0.95);
-            }
-            to { 
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        .user-info h4 {
-            color: var(--primary-light);
-            margin-bottom: 15px;
-            font-size: 1.3em;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .user-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 15px;
-        }
-
-        .user-detail-item {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid rgba(139, 95, 191, 0.2);
-        }
-
-        .detail-label {
-            font-size: 0.9em;
-            opacity: 0.8;
-            margin-bottom: 5px;
-        }
-
-        .detail-value {
-            font-size: 1.1em;
-            font-weight: 600;
-            color: var(--primary-light);
-        }
-
-        .system-status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 15px;
-            padding: 12px 15px;
-            background: rgba(72, 187, 120, 0.1);
-            border-radius: 8px;
-            border: 1px solid var(--success);
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: var(--success);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { 
-                transform: scale(1);
-                opacity: 1;
-            }
-            50% { 
-                transform: scale(1.2);
-                opacity: 0.8;
-            }
-        }
-        
         .control-panel {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(20px);
@@ -197,7 +112,7 @@
             margin-bottom: 30px;
             border: 1px solid rgba(139, 95, 191, 0.3);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            animation: slideUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.3s both;
+            animation: slideUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s both;
             position: relative;
             overflow: hidden;
         }
@@ -215,6 +130,17 @@
         
         .control-panel:hover::before {
             left: 100%;
+        }
+        
+        @keyframes slideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
         
         .panel-title {
@@ -389,6 +315,17 @@
             text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
         
+        @keyframes pulse {
+            0%, 100% { 
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% { 
+                transform: scale(1.05);
+                opacity: 0.9;
+            }
+        }
+        
         .stats-overview {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -404,7 +341,7 @@
             text-align: center;
             border: 1px solid rgba(139, 95, 191, 0.3);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            animation: slideUp 0.6s ease 0.5s both;
+            animation: slideUp 0.6s ease 0.6s both;
             position: relative;
             overflow: hidden;
         }
@@ -446,7 +383,7 @@
         }
         
         .instances-section {
-            animation: slideUp 0.8s ease 0.7s both;
+            animation: slideUp 0.8s ease 0.8s both;
         }
         
         .section-header {
@@ -658,6 +595,40 @@
             0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
             50% { transform: translateY(-30px) rotate(180deg) scale(1.1); }
         }
+
+        .user-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(139, 95, 191, 0.3);
+        }
+
+        .user-info h4 {
+            color: var(--primary-light);
+            margin-bottom: 10px;
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        .username-display {
+            color: var(--primary-light);
+            font-weight: bold;
+            font-size: 1.1em;
+        }
     </style>
 </head>
 <body>
@@ -676,23 +647,9 @@
     </div>
     
     <div class="container">
-        <!-- ✅ UPDATED USER INFO SECTION WITH REAL USERNAME -->
         <div class="user-info">
-            <h4><i class="fas fa-user-circle"></i> Account Information</h4>
-            <div class="user-details">
-                <div class="user-detail-item">
-                    <div class="detail-label">Username</div>
-                    <div class="detail-value" id="userUsername">Loading...</div>
-                </div>
-                <div class="user-detail-item">
-                    <div class="detail-label">Account Type</div>
-                    <div class="detail-value">Premium User</div>
-                </div>
-                <div class="user-detail-item">
-                    <div class="detail-label">Session Status</div>
-                    <div class="detail-value" id="sessionStatus">Active</div>
-                </div>
-            </div>
+            <h4><i class="fas fa-user"></i> Account Information</h4>
+            <div>Username: <strong class="username-display" id="userUsername">Loading...</strong></div>
             <div class="system-status">
                 <div class="status-dot"></div>
                 <span>System Status: <strong>Operational</strong></span>
@@ -778,6 +735,7 @@
 
     <script>
         let refreshInterval;
+        let currentUsername = 'User';
         
         // Create floating particles
         function createParticles() {
@@ -795,7 +753,7 @@
             }
         }
         
-        // ✅ LOAD USER INFO - Real username fetch karega
+        // ✅ GET REAL USERNAME FROM SERVER
         async function loadUserInfo() {
             try {
                 const token = new URLSearchParams(window.location.search).get('token');
@@ -803,13 +761,9 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // ✅ REAL USERNAME SET KARO
-                    const username = data.user.username;
-                    document.getElementById('username').textContent = username;
-                    document.getElementById('userUsername').textContent = username;
-                    
-                    // Welcome message with username
-                    showMessage(`🎉 Welcome ${username}! Ready to boost TikTok views.`, 'success');
+                    currentUsername = data.user.username;
+                    document.getElementById('username').textContent = currentUsername;
+                    document.getElementById('userUsername').textContent = currentUsername;
                 }
             } catch (error) {
                 console.log('Error loading user info:', error);
@@ -939,10 +893,6 @@
                     document.getElementById('totalRpsNum').textContent = data.totals.rps.toFixed(1);
                     document.getElementById('rpsValue').textContent = data.totals.rps.toFixed(1);
                     
-                    // Update session status
-                    document.getElementById('sessionStatus').textContent = data.totals.isRunning ? 'Bot Running' : 'Ready';
-                    document.getElementById('sessionStatus').style.color = data.totals.isRunning ? 'var(--success)' : 'var(--primary-light)';
-                    
                     // Update instances count
                     document.getElementById('instancesCount').textContent = 
                         `${data.totals.onlineBots} bots online`;
@@ -1067,8 +1017,9 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             createParticles();
-            loadUserInfo(); // ✅ User info load karo
+            loadUserInfo(); // ✅ Load real username
             startStatusUpdates();
+            showMessage(`🎉 Welcome ${currentUsername} to TikTok View Bot! Start by pasting a TikTok link.`, 'info');
             
             // Add micro-interactions
             document.querySelectorAll('input').forEach(input => {
