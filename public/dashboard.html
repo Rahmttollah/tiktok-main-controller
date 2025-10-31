@@ -48,18 +48,6 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid rgba(139, 95, 191, 0.3);
-            animation: slideDown 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-        
-        @keyframes slideDown {
-            from { 
-                opacity: 0;
-                transform: translateY(-50px);
-            }
-            to { 
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
         
         .logo h1 {
@@ -67,7 +55,6 @@
             background: linear-gradient(135deg, var(--primary-light), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
         
         .user-menu {
@@ -77,8 +64,8 @@
         }
         
         .welcome-text {
-            opacity: 0.9;
             font-size: 1.1em;
+            color: var(--primary-light);
         }
         
         .btn-logout {
@@ -88,18 +75,17 @@
             border: 1px solid var(--danger);
             border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s;
             font-weight: 600;
         }
         
         .btn-logout:hover {
             background: var(--danger);
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(245, 101, 101, 0.4);
         }
         
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 30px;
         }
@@ -111,36 +97,6 @@
             border-radius: 20px;
             margin-bottom: 30px;
             border: 1px solid rgba(139, 95, 191, 0.3);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            animation: slideUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s both;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .control-panel::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(159, 122, 234, 0.1), transparent);
-            transition: left 0.6s;
-        }
-        
-        .control-panel:hover::before {
-            left: 100%;
-        }
-        
-        @keyframes slideUp {
-            from { 
-                opacity: 0;
-                transform: translateY(30px) scale(0.95);
-            }
-            to { 
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
         }
         
         .panel-title {
@@ -151,18 +107,8 @@
             color: var(--primary-light);
         }
         
-        .panel-title i {
-            font-size: 1.5em;
-        }
-        
         .form-group {
             margin-bottom: 25px;
-            animation: fadeIn 0.6s ease 0.4s both;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
         }
         
         label {
@@ -170,13 +116,11 @@
             margin-bottom: 12px;
             font-weight: 600;
             color: var(--primary-light);
-            font-size: 1.1em;
         }
         
         .input-group {
             display: flex;
             gap: 15px;
-            align-items: center;
         }
         
         input {
@@ -187,19 +131,10 @@
             border-radius: 12px;
             font-size: 16px;
             color: var(--light);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         input::placeholder {
             color: rgba(237, 242, 247, 0.5);
-        }
-        
-        input:focus {
-            outline: none;
-            border-color: var(--primary-light);
-            box-shadow: 0 0 0 3px rgba(159, 122, 234, 0.3);
-            background: rgba(45, 55, 72, 1);
-            transform: translateY(-2px);
         }
         
         .btn-paste {
@@ -209,14 +144,7 @@
             border: none;
             border-radius: 12px;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             font-weight: 600;
-            white-space: nowrap;
-        }
-        
-        .btn-paste:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(139, 95, 191, 0.4);
         }
         
         .btn-group {
@@ -233,60 +161,15 @@
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 12px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
-        }
-        
-        button:hover::before {
-            left: 100%;
         }
         
         button:hover {
             transform: translateY(-3px);
-        }
-        
-        button:active {
-            transform: translateY(-1px);
-        }
-        
-        button.loading {
-            pointer-events: none;
-            opacity: 0.8;
-        }
-        
-        button.loading::after {
-            content: '';
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            top: 50%;
-            left: 50%;
-            margin: -10px 0 0 -10px;
-            border: 2px solid transparent;
-            border-top: 2px solid white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
         
         .btn-start {
@@ -304,11 +187,6 @@
             color: white;
         }
         
-        .btn-manage {
-            background: linear-gradient(135deg, var(--warning), #D69E2E);
-            color: white;
-        }
-        
         .speed-indicator {
             text-align: center;
             font-size: 2.2em;
@@ -316,19 +194,6 @@
             background: linear-gradient(135deg, var(--primary-light), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            animation: pulse 2s ease-in-out infinite;
-            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        }
-        
-        @keyframes pulse {
-            0%, 100% { 
-                transform: scale(1);
-                opacity: 1;
-            }
-            50% { 
-                transform: scale(1.05);
-                opacity: 0.9;
-            }
         }
         
         .stats-overview {
@@ -340,36 +205,10 @@
         
         .stat-card {
             background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
             padding: 25px;
             border-radius: 15px;
             text-align: center;
             border: 1px solid rgba(139, 95, 191, 0.3);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            animation: slideUp 0.6s ease 0.6s both;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(159, 122, 234, 0.1), transparent);
-            transition: left 0.5s;
-        }
-        
-        .stat-card:hover::before {
-            left: 100%;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--primary-light);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
         }
         
         .stat-number {
@@ -384,11 +223,10 @@
         .stat-label {
             font-size: 1em;
             opacity: 0.9;
-            font-weight: 600;
         }
         
         .instances-section {
-            animation: slideUp 0.8s ease 0.8s both;
+            margin-top: 30px;
         }
         
         .section-header {
@@ -405,152 +243,95 @@
         
         .instances-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 25px;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
         }
         
         .instance-card {
             background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            padding: 25px;
+            padding: 20px;
             border-radius: 15px;
             border: 1px solid rgba(139, 95, 191, 0.3);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            animation: fadeIn 0.6s ease both;
-        }
-        
-        .instance-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--primary-light);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
         }
         
         .instance-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         
-        .instance-title {
+        .instance-name {
             font-weight: 600;
             color: var(--primary-light);
         }
         
         .instance-status {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.85em;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
             font-weight: bold;
         }
         
         .status-online {
-            background: linear-gradient(135deg, var(--success), #38A169);
+            background: var(--success);
             color: white;
         }
         
         .status-offline {
-            background: linear-gradient(135deg, var(--danger), #E53E3E);
-            color: white;
-        }
-        
-        .status-disabled {
-            background: linear-gradient(135deg, #718096, #4A5568);
+            background: var(--danger);
             color: white;
         }
         
         .instance-stats {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
         }
         
         .mini-stat {
             text-align: center;
-            padding: 15px;
+            padding: 10px;
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            transition: all 0.3s ease;
-        }
-        
-        .mini-stat:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: scale(1.05);
+            border-radius: 8px;
         }
         
         .mini-number {
-            font-size: 1.4em;
+            font-size: 1.2em;
             font-weight: bold;
-            margin-bottom: 5px;
         }
         
         .mini-label {
-            font-size: 0.85em;
+            font-size: 0.8em;
             opacity: 0.8;
-        }
-        
-        .progress-container {
-            margin: 20px 0;
         }
         
         .progress-bar {
             width: 100%;
-            height: 12px;
+            height: 8px;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
+            border-radius: 4px;
             overflow: hidden;
-            position: relative;
+            margin: 10px 0;
         }
         
         .progress-fill {
             height: 100%;
             background: linear-gradient(135deg, var(--primary-light), var(--secondary));
-            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .progress-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: shimmer 2s infinite;
-        }
-        
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
         }
         
         .progress-text {
             text-align: center;
-            font-weight: 600;
-            margin-top: 10px;
+            font-size: 0.9em;
             color: var(--primary-light);
         }
         
         .alert {
-            padding: 20px;
-            border-radius: 12px;
-            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
             text-align: center;
-            animation: slideInRight 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-        }
-        
-        @keyframes slideInRight {
-            from { 
-                opacity: 0;
-                transform: translateX(30px);
-            }
-            to { 
-                opacity: 1;
-                transform: translateX(0);
-            }
         }
         
         .alert.success {
@@ -565,181 +346,24 @@
             color: var(--danger);
         }
         
-        .alert.info {
-            background: rgba(66, 153, 225, 0.2);
-            border: 1px solid var(--info);
-            color: var(--info);
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.3s ease;
-        }
-        
-        .modal-content {
-            background: rgba(26, 32, 44, 0.95);
-            backdrop-filter: blur(30px);
-            padding: 40px;
-            border-radius: 20px;
-            border: 1px solid rgba(139, 95, 191, 0.3);
-            width: 90%;
-            max-width: 600px;
-            color: var(--light);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
-            animation: modalSlideUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-        
-        @keyframes modalSlideUp {
-            from { 
-                opacity: 0;
-                transform: translateY(50px) scale(0.9);
-            }
-            to { 
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-        
-        .modal-header h3 {
-            color: var(--primary-light);
-            font-size: 1.5em;
-        }
-        
-        .close-modal {
-            background: none;
-            border: none;
-            color: var(--light);
-            font-size: 1.8em;
-            cursor: pointer;
-            transition: color 0.3s;
-            padding: 5px;
-        }
-        
-        .close-modal:hover {
-            color: var(--secondary);
-        }
-        
-        .instances-list {
-            max-height: 400px;
-            overflow-y: auto;
-            margin: 25px 0;
-        }
-        
-        .instance-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.05);
+        .admin-badge {
+            background: var(--warning);
+            color: var(--dark);
+            padding: 4px 8px;
             border-radius: 12px;
-            margin-bottom: 15px;
-            border: 1px solid rgba(139, 95, 191, 0.2);
-            transition: all 0.3s ease;
-        }
-        
-        .instance-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(139, 95, 191, 0.4);
-            transform: translateX(5px);
-        }
-        
-        .instance-info {
-            flex: 1;
-        }
-        
-        .instance-url {
-            font-weight: 600;
-            margin-bottom: 5px;
-            word-break: break-all;
-        }
-        
-        .instance-meta {
-            font-size: 0.9em;
-            opacity: 0.7;
-        }
-        
-        .instance-actions {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .btn-delete {
-            padding: 10px 16px;
-            background: linear-gradient(135deg, var(--danger), #E53E3E);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
-        }
-        
-        .btn-delete:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(245, 101, 101, 0.4);
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 60px 40px;
-            opacity: 0.7;
-        }
-        
-        .empty-state i {
-            font-size: 4em;
-            margin-bottom: 20px;
-            opacity: 0.5;
-        }
-        
-        .floating-particles {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: -1;
-        }
-        
-        .particle {
-            position: absolute;
-            background: rgba(159, 122, 234, 0.1);
-            border-radius: 50%;
-            animation: float 8s ease-in-out infinite;
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
-            50% { transform: translateY(-30px) rotate(180deg) scale(1.1); }
+            font-size: 0.7em;
+            font-weight: bold;
+            margin-left: 8px;
         }
     </style>
 </head>
 <body>
-    <div class="floating-particles" id="particles"></div>
-    
     <div class="header">
         <div class="logo">
-            <h1>🚀 TikTok Multi Bot Controller</h1>
+            <h1>🚀 TikTok Multi Bot</h1>
         </div>
         <div class="user-menu">
-            <span class="welcome-text">Welcome, <span id="username">User</span></span>
+            <span class="welcome-text">Welcome, <span id="username">User</span><span id="adminBadge" class="admin-badge" style="display: none;">ADMIN</span></span>
             <button class="btn-logout" onclick="logout()">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </button>
@@ -764,8 +388,8 @@
             </div>
             
             <div class="form-group">
-                <label for="targetViews">🎯 Target Views Per Bot</label>
-                <input type="number" id="targetViews" placeholder="Enter target views for each bot" value="1000">
+                <label for="targetViews">🎯 Target Views</label>
+                <input type="number" id="targetViews" placeholder="Enter target views" value="1000">
             </div>
             
             <div class="btn-group">
@@ -777,9 +401,6 @@
                 </button>
                 <button class="btn-refresh" onclick="refreshStatus()" id="refreshBtn">
                     <i class="fas fa-sync-alt"></i> REFRESH STATUS
-                </button>
-                <button class="btn-manage" onclick="showInstanceManager()">
-                    <i class="fas fa-cog"></i> MANAGE INSTANCES
                 </button>
             </div>
             
@@ -818,68 +439,56 @@
             </div>
             
             <div class="instances-grid" id="instancesContainer">
-                <div class="empty-state">
-                    <i class="fas fa-robot"></i>
-                    <h3>No Bot Instances Connected</h3>
-                    <p>Add bot instances to get started</p>
+                <div class="instance-card">
+                    <div class="instance-header">
+                        <div class="instance-name">Loading...</div>
+                        <div class="instance-status status-offline">OFFLINE</div>
+                    </div>
+                    <div style="text-align: center; padding: 20px;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <div>Loading instances...</div>
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Instance Manager Modal -->
-    <div class="modal" id="instanceModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-cog"></i> Manage Bot Instances</h3>
-                <button class="close-modal" onclick="hideInstanceManager()">&times;</button>
-            </div>
-            
-            <div class="form-group">
-                <label>Add New Instance URL</label>
-                <div class="input-group">
-                    <input type="text" id="newInstanceUrl" placeholder="https://tiktok-bot-instance.railway.app">
-                    <button class="btn-paste" onclick="addInstance()" id="addInstanceBtn">
-                        <i class="fas fa-plus"></i> Add Instance
-                    </button>
-                </div>
-            </div>
-            
-            <div class="instances-list" id="instancesList">
-                <div class="empty-state">
-                    <i class="fas fa-server"></i>
-                    <h3>No Instances Added</h3>
-                    <p>Add your first bot instance</p>
-                </div>
-            </div>
-            
-            <div class="btn-group">
-                <button class="btn-refresh" onclick="loadInstances()">
-                    <i class="fas fa-sync-alt"></i> Refresh List
-                </button>
-                <button class="btn-stop" onclick="hideInstanceManager()">
-                    <i class="fas fa-times"></i> Close
-                </button>
             </div>
         </div>
     </div>
 
     <script>
-        let refreshInterval;
+        let currentToken = new URLSearchParams(window.location.search).get('token');
+        let currentUser = null;
         
-        // Create floating particles
-        function createParticles() {
-            const container = document.getElementById('particles');
-            for (let i = 0; i < 20; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                particle.style.width = Math.random() * 80 + 20 + 'px';
-                particle.style.height = particle.style.width;
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.top = Math.random() * 100 + '%';
-                particle.style.animationDelay = Math.random() * 8 + 's';
-                particle.style.background = `rgba(159, 122, 234, ${Math.random() * 0.1 + 0.03})`;
-                container.appendChild(particle);
+        if (!currentToken) {
+            window.location.href = 'https://tiktok-view-bot.up.railway.app/login';
+        }
+        
+        async function loadUserInfo() {
+            try {
+                const response = await fetch('/api/user-info?token=' + currentToken);
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data.user;
+                    document.getElementById('username').textContent = currentUser.username;
+                    
+                    if (currentUser.isAdmin) {
+                        document.getElementById('adminBadge').style.display = 'inline';
+                    }
+                }
+            } catch (error) {
+                console.log('Error loading user info:', error);
+            }
+        }
+        
+        async function logout() {
+            try {
+                const response = await fetch('/api/logout?token=' + currentToken, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                window.location.href = data.redirectUrl;
+            } catch (error) {
+                window.location.href = 'https://tiktok-view-bot.up.railway.app/login';
             }
         }
         
@@ -891,29 +500,11 @@
             }, 5000);
         }
         
-        function setLoading(buttonId, isLoading) {
-            const btn = document.getElementById(buttonId);
-            if (isLoading) {
-                btn.classList.add('loading');
-                btn.disabled = true;
-            } else {
-                btn.classList.remove('loading');
-                btn.disabled = false;
-            }
-        }
-        
         async function pasteFromClipboard() {
             try {
                 const text = await navigator.clipboard.readText();
                 document.getElementById('videoLink').value = text;
                 showMessage('📋 Pasted from clipboard!', 'success');
-                
-                // Add micro animation
-                const input = document.getElementById('videoLink');
-                input.style.transform = 'scale(1.02)';
-                setTimeout(() => {
-                    input.style.transform = 'scale(1)';
-                }, 300);
             } catch (error) {
                 showMessage('Failed to paste from clipboard', 'error');
             }
@@ -928,11 +519,10 @@
                 return;
             }
             
-            setLoading('startBtn', true);
-            showMessage('🚀 Starting all bot instances...', 'info');
+            showMessage('🚀 Starting all bot instances...', 'success');
             
             try {
-                const response = await fetch('/api/start-all', {
+                const response = await fetch('/api/start-all?token=' + currentToken, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -945,23 +535,19 @@
                 
                 if (data.success) {
                     showMessage(`✅ ${data.message}`, 'success');
-                    startStatusUpdates();
                 } else {
                     showMessage(data.message, 'error');
                 }
             } catch (error) {
                 showMessage('Error starting bots: ' + error.message, 'error');
-            } finally {
-                setLoading('startBtn', false);
             }
         }
         
         async function stopAllBots() {
-            setLoading('stopBtn', true);
-            showMessage('🛑 Stopping all bot instances...', 'info');
+            showMessage('🛑 Stopping all bot instances...', 'success');
             
             try {
-                const response = await fetch('/api/stop-all', {
+                const response = await fetch('/api/stop-all?token=' + currentToken, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -970,21 +556,17 @@
                 showMessage('🛑 ' + data.message, 'success');
             } catch (error) {
                 showMessage('Error stopping bots', 'error');
-            } finally {
-                setLoading('stopBtn', false);
             }
         }
         
         async function refreshStatus() {
-            setLoading('refreshBtn', true);
             await updateStatus();
-            setTimeout(() => setLoading('refreshBtn', false), 1000);
             showMessage('🔄 Status refreshed!', 'success');
         }
         
         async function updateStatus() {
             try {
-                const response = await fetch('/api/status-all');
+                const response = await fetch('/api/status-all?token=' + currentToken);
                 const data = await response.json();
                 
                 if (data.success) {
@@ -1001,54 +583,24 @@
                     
                     // Update instances grid
                     const container = document.getElementById('instancesContainer');
-                    
-                    if (data.instances.length === 0) {
-                        container.innerHTML = `
-                            <div class="empty-state">
-                                <i class="fas fa-robot"></i>
-                                <h3>No Bot Instances Connected</h3>
-                                <p>Add bot instances to get started</p>
-                            </div>
-                        `;
-                        return;
-                    }
-                    
                     container.innerHTML = '';
                     
-                    data.instances.forEach((instance, index) => {
+                    data.instances.forEach(instance => {
                         const instanceCard = document.createElement('div');
                         instanceCard.className = 'instance-card';
-                        instanceCard.style.animationDelay = `${index * 0.1}s`;
                         
                         const status = instance.status;
                         const isOnline = instance.online;
-                        const isEnabled = instance.enabled;
-                        
-                        let statusClass = 'status-offline';
-                        let statusText = 'OFFLINE';
-                        
-                        if (isEnabled) {
-                            if (isOnline) {
-                                statusClass = 'status-online';
-                                statusText = 'ONLINE';
-                            } else {
-                                statusClass = 'status-offline';
-                                statusText = 'OFFLINE';
-                            }
-                        } else {
-                            statusClass = 'status-disabled';
-                            statusText = 'DISABLED';
-                        }
                         
                         instanceCard.innerHTML = `
                             <div class="instance-header">
-                                <div class="instance-title">🤖 ${instance.url.split('//')[1]}</div>
-                                <span class="instance-status ${statusClass}">
-                                    ${statusText}
-                                </span>
+                                <div class="instance-name">${instance.name}</div>
+                                <div class="instance-status ${isOnline ? 'status-online' : 'status-offline'}">
+                                    ${isOnline ? 'ONLINE' : 'OFFLINE'}
+                                </div>
                             </div>
                             
-                            ${isOnline && isEnabled ? `
+                            ${isOnline ? `
                                 <div class="instance-stats">
                                     <div class="mini-stat">
                                         <div class="mini-number" style="color: var(--success)">${status.success}</div>
@@ -1068,21 +620,20 @@
                                     </div>
                                 </div>
                                 
-                                <div class="progress-container">
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: ${status.targetViews > 0 ? (status.success / status.targetViews) * 100 : 0}%"></div>
-                                    </div>
-                                    <div class="progress-text">
-                                        ${status.targetViews > 0 ? 
-                                            `Progress: ${status.success}/${status.targetViews} (${((status.success / status.targetViews) * 100).toFixed(1)}%)` : 
-                                            `Views: ${status.success}`
-                                        }
-                                    </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${status.targetViews > 0 ? (status.success / status.targetViews) * 100 : 0}%"></div>
+                                </div>
+                                
+                                <div class="progress-text">
+                                    ${status.targetViews > 0 ? 
+                                        `Progress: ${status.success}/${status.targetViews} (${((status.success / status.targetViews) * 100).toFixed(1)}%)` : 
+                                        `Views: ${status.success}`
+                                    }
                                 </div>
                             ` : `
-                                <div style="text-align: center; padding: 30px; opacity: 0.7;">
-                                    <i class="fas fa-exclamation-triangle" style="font-size: 2em; margin-bottom: 15px;"></i>
-                                    <div>${!isEnabled ? 'Instance Disabled' : 'Instance Offline'}</div>
+                                <div style="text-align: center; padding: 20px; opacity: 0.7;">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <div>Instance Offline</div>
                                 </div>
                             `}
                         `;
@@ -1095,166 +646,12 @@
             }
         }
         
-        async function logout() {
-            try {
-                await fetch('/api/logout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                window.location.href = '/login';
-            } catch (error) {
-                window.location.href = '/login';
-            }
-        }
-        
-        // Instance Management
-        function showInstanceManager() {
-            document.getElementById('instanceModal').style.display = 'flex';
-            loadInstances();
-        }
-        
-        function hideInstanceManager() {
-            document.getElementById('instanceModal').style.display = 'none';
-        }
-        
-        async function loadInstances() {
-            try {
-                const response = await fetch('/api/instances');
-                const data = await response.json();
-                
-                const instancesList = document.getElementById('instancesList');
-                
-                if (!data.success || data.instances.length === 0) {
-                    instancesList.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-server"></i>
-                            <h3>No Instances Added</h3>
-                            <p>Add your first bot instance</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                instancesList.innerHTML = '';
-                
-                data.instances.forEach((instance, index) => {
-                    const instanceItem = document.createElement('div');
-                    instanceItem.className = 'instance-item';
-                    instanceItem.style.animationDelay = `${index * 0.1}s`;
-                    
-                    instanceItem.innerHTML = `
-                        <div class="instance-info">
-                            <div class="instance-url">${instance.url}</div>
-                            <div class="instance-meta">
-                                Added: ${new Date(instance.addedAt).toLocaleDateString()} | 
-                                Status: <span style="color: ${instance.enabled ? 'var(--success)' : 'var(--danger)'}">
-                                    ${instance.enabled ? 'Enabled' : 'Disabled'}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="instance-actions">
-                            <button class="btn-delete" onclick="deleteInstance('${instance.id}')">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </div>
-                    `;
-                    instancesList.appendChild(instanceItem);
-                });
-            } catch (error) {
-                console.log('Error loading instances:', error);
-            }
-        }
-        
-        async function addInstance() {
-            const url = document.getElementById('newInstanceUrl').value;
-            
-            if (!url) {
-                showMessage('Please enter instance URL!', 'error');
-                return;
-            }
-            
-            setLoading('addInstanceBtn', true);
-            
-            try {
-                const response = await fetch('/api/instances', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showMessage('Instance added successfully!', 'success');
-                    document.getElementById('newInstanceUrl').value = '';
-                    loadInstances();
-                    updateStatus();
-                } else {
-                    showMessage(data.message, 'error');
-                }
-            } catch (error) {
-                showMessage('Error adding instance: ' + error.message, 'error');
-            } finally {
-                setLoading('addInstanceBtn', false);
-            }
-        }
-        
-        async function deleteInstance(id) {
-            if (!confirm('Are you sure you want to delete this instance?')) {
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/instances/${id}`, {
-                    method: 'DELETE'
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showMessage('Instance deleted successfully!', 'success');
-                    loadInstances();
-                    updateStatus();
-                } else {
-                    showMessage(data.message, 'error');
-                }
-            } catch (error) {
-                showMessage('Error deleting instance: ' + error.message, 'error');
-            }
-        }
-        
-        function startStatusUpdates() {
-            if (refreshInterval) {
-                clearInterval(refreshInterval);
-            }
-            refreshInterval = setInterval(updateStatus, 2000);
-            updateStatus();
-        }
-        
         // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            createParticles();
-            startStatusUpdates();
-            showMessage('🎉 Welcome to TikTok Multi Bot Controller!', 'success');
-            
-            // Add micro-interactions
-            document.querySelectorAll('input').forEach(input => {
-                input.addEventListener('focus', function() {
-                    this.style.transform = 'scale(1.02)';
-                });
-                
-                input.addEventListener('blur', function() {
-                    this.style.transform = 'scale(1)';
-                });
-            });
-        });
+        loadUserInfo();
+        updateStatus();
+        setInterval(updateStatus, 5000);
         
-        // Close modal when clicking outside
-        document.getElementById('instanceModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                hideInstanceManager();
-            }
-        });
+        showMessage('🎉 Welcome to TikTok Multi Bot Controller!', 'success');
     </script>
 </body>
 </html>
