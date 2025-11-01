@@ -912,23 +912,33 @@
             }
         }
         
-        // ✅ FIXED LOGOUT FUNCTION - No more loops
+        // ✅ FIXED LOGOUT - No redirect loops
         async function logout() {
             try {
-                // Global logout - both servers
-                const data = await safeFetch('/api/logout', {
+                const token = userToken || getTokenFromURL();
+                
+                // Call main controller logout
+                const response = await fetch('/api/logout', {
                     method: 'POST',
-                    body: JSON.stringify({
-                        token: userToken
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: token })
                 });
                 
-                // Clear everything and redirect to auth login
+                const data = await response.json();
+                
+                // Clear everything locally
                 localStorage.removeItem('userToken');
-                window.location.href = data.redirectUrl || 'https://tiktok-bot-auth.up.railway.app/login';
+                sessionStorage.clear();
+                
+                // Direct redirect - no chains
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    window.location.href = 'https://tiktok-bot-auth.up.railway.app/login';
+                }
                 
             } catch (error) {
-                // Still redirect even on error
+                // Still redirect on error
                 localStorage.removeItem('userToken');
                 window.location.href = 'https://tiktok-bot-auth.up.railway.app/login';
             }
