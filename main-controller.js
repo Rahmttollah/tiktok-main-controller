@@ -14,16 +14,22 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// ✅ ENHANCED Token verification middleware
+// ✅ FIXED REDIRECT LOOP - Enhanced Token Verification
 async function verifyToken(req, res, next) {
     try {
+        // Skip verification for logout and health check
+        if (req.path === '/api/logout' || req.path === '/api/health') {
+            return next();
+        }
+
         const token = req.query.token || req.body.token;
         
         if (!token) {
+            console.log('❌ No token found - redirecting to auth');
             return res.redirect(AUTH_SERVER_URL);
         }
 
-        // ✅ BETTER ERROR HANDLING - No JSON parse issues
+        // Enhanced API call with timeout
         const response = await axios.post(`${AUTH_SERVER_URL}/api/verify-token`, {
             token: token
         }, { 
@@ -44,10 +50,11 @@ async function verifyToken(req, res, next) {
             };
             next();
         } else {
+            console.log('❌ Invalid token - redirecting to auth');
             return res.redirect(AUTH_SERVER_URL);
         }
     } catch (error) {
-        console.log('Token verification failed:', error.message);
+        console.log('❌ Token verification failed - redirecting to auth:', error.message);
         return res.redirect(AUTH_SERVER_URL);
     }
 }
@@ -94,42 +101,41 @@ app.get('/', (req, res) => {
     res.redirect(AUTH_SERVER_URL);
 });
 
+// ✅ FIXED DASHBOARD ROUTE
 app.get('/dashboard', verifyToken, (req, res) => {
+    // Add token to prevent redirect loops
+    const token = req.query.token;
+    if (!token) {
+        return res.redirect(AUTH_SERVER_URL);
+    }
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// ✅ FIXED LOGOUT API - No more loops
-app.post('/api/logout', verifyToken, async (req, res) => {
+// ✅ FIXED LOGOUT - No redirect loops
+app.post('/api/logout', async (req, res) => {
     try {
         const token = req.query.token || req.body.token;
         
-        // ✅ GLOBAL LOGOUT - Auth server se bhi logout
-        await axios.post(`${AUTH_SERVER_URL}/api/global-logout`, {
-            token: token
-        }, {
-            timeout: 3000,
-            transformResponse: [function (data) {
-                try {
-                    return JSON.parse(data);
-                } catch (e) {
-                    return { success: true }; // Even if error, consider successful
-                }
-            }]
-        }).catch(err => {
-            console.log('Auth server logout optional - continuing...');
-        });
+        // Call auth server logout (but don't wait for it)
+        if (token) {
+            axios.post(`${AUTH_SERVER_URL}/api/global-logout`, {
+                token: token
+            }, { timeout: 3000 }).catch(err => {
+                console.log('Auth logout optional - continuing');
+            });
+        }
 
-        // ✅ CLEAN RESPONSE - Direct auth login page redirect
+        // Immediate response - no redirect chains
         res.json({ 
             success: true, 
             message: 'Logged out successfully',
-            redirectUrl: `${AUTH_SERVER_URL}/login?message=logged_out`
+            redirect_url: `${AUTH_SERVER_URL}/login?message=logged_out`
         });
     } catch (error) {
-        // ✅ ALWAYS REDIRECT TO LOGIN even on error
+        // Still return success to break the loop
         res.json({ 
             success: true, 
-            redirectUrl: `${AUTH_SERVER_URL}/login` 
+            redirect_url: `${AUTH_SERVER_URL}/login`
         });
     }
 });
@@ -299,7 +305,7 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
     }
 });
 
-// ✅ Health check endpoint
+// ✅ HEALTH CHECK - No authentication required
 app.get('/api/health', (req, res) => {
     res.json({ 
         success: true, 
@@ -314,4 +320,5 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Enhanced Error Handling: Enabled`);
     console.log(`📱 Mobile Compatible: Yes`);
     console.log(`🚀 Fixed Logout System: Active`);
+    console.log(`🔄 Redirect Loop: FIXED`);
 });
