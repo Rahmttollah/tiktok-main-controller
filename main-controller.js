@@ -14,22 +14,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// ✅ FIXED REDIRECT LOOP - Enhanced Token Verification
+// ✅ FIXED TOKEN VERIFICATION - No redirect loops
 async function verifyToken(req, res, next) {
     try {
-        // Skip verification for logout and health check
-        if (req.path === '/api/logout' || req.path === '/api/health') {
-            return next();
-        }
-
         const token = req.query.token || req.body.token;
         
         if (!token) {
-            console.log('❌ No token found - redirecting to auth');
-            return res.redirect(AUTH_SERVER_URL);
+            console.log('❌ No token found');
+            return res.status(401).json({ success: false, message: 'Token required' });
         }
 
-        // Enhanced API call with timeout
         const response = await axios.post(`${AUTH_SERVER_URL}/api/verify-token`, {
             token: token
         }, { 
@@ -50,12 +44,12 @@ async function verifyToken(req, res, next) {
             };
             next();
         } else {
-            console.log('❌ Invalid token - redirecting to auth');
-            return res.redirect(AUTH_SERVER_URL);
+            console.log('❌ Invalid token');
+            return res.status(401).json({ success: false, message: 'Invalid token' });
         }
     } catch (error) {
-        console.log('❌ Token verification failed - redirecting to auth:', error.message);
-        return res.redirect(AUTH_SERVER_URL);
+        console.log('❌ Token verification failed:', error.message);
+        return res.status(401).json({ success: false, message: 'Token verification failed' });
     }
 }
 
@@ -102,37 +96,49 @@ app.get('/', (req, res) => {
 });
 
 // ✅ FIXED DASHBOARD ROUTE
-app.get('/dashboard', verifyToken, (req, res) => {
-    // Add token to prevent redirect loops
+app.get('/dashboard', async (req, res) => {
     const token = req.query.token;
+    
     if (!token) {
         return res.redirect(AUTH_SERVER_URL);
     }
-    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+    
+    // Verify token before showing dashboard
+    try {
+        const response = await axios.post(`${AUTH_SERVER_URL}/api/verify-token`, {
+            token: token
+        });
+        
+        if (response.data.success && response.data.valid) {
+            res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+        } else {
+            res.redirect(AUTH_SERVER_URL);
+        }
+    } catch (error) {
+        res.redirect(AUTH_SERVER_URL);
+    }
 });
 
-// ✅ FIXED LOGOUT - No redirect loops
+// ✅ FIXED LOGOUT - Simple and effective
 app.post('/api/logout', async (req, res) => {
     try {
-        const token = req.query.token || req.body.token;
+        const token = req.body.token;
         
-        // Call auth server logout (but don't wait for it)
+        // Notify auth server about logout
         if (token) {
             axios.post(`${AUTH_SERVER_URL}/api/global-logout`, {
                 token: token
             }, { timeout: 3000 }).catch(err => {
-                console.log('Auth logout optional - continuing');
+                // Ignore errors
             });
         }
-
-        // Immediate response - no redirect chains
+        
         res.json({ 
             success: true, 
             message: 'Logged out successfully',
             redirect_url: `${AUTH_SERVER_URL}/login?message=logged_out`
         });
     } catch (error) {
-        // Still return success to break the loop
         res.json({ 
             success: true, 
             redirect_url: `${AUTH_SERVER_URL}/login`
@@ -321,4 +327,5 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`📱 Mobile Compatible: Yes`);
     console.log(`🚀 Fixed Logout System: Active`);
     console.log(`🔄 Redirect Loop: FIXED`);
+    console.log(`🔐 Token Verification: FIXED`);
 });
