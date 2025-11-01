@@ -81,6 +81,30 @@
             font-size: 1.1em;
         }
         
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .role-admin {
+            background: linear-gradient(135deg, var(--danger), #E53E3E);
+            color: white;
+        }
+        
+        .role-subadmin {
+            background: linear-gradient(135deg, var(--warning), #D69E2E);
+            color: black;
+        }
+        
+        .role-user {
+            background: linear-gradient(135deg, var(--success), #38A169);
+            color: white;
+        }
+        
         .btn-logout {
             padding: 12px 24px;
             background: rgba(245, 101, 101, 0.2);
@@ -623,6 +647,15 @@
             background: var(--success);
             animation: pulse 2s infinite;
         }
+
+        .admin-view-note {
+            background: rgba(245, 101, 101, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--danger);
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -633,7 +666,7 @@
             <h1>🚀 TikTok Multi Bot</h1>
         </div>
         <div class="user-menu">
-            <span class="welcome-text">Welcome, <span id="username">User</span></span>
+            <span class="welcome-text">Welcome, <span id="username">User</span><span id="roleBadge" class="role-badge"></span></span>
             <button class="btn-logout" onclick="logout()">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </button>
@@ -644,10 +677,16 @@
         <div class="user-info">
             <h4><i class="fas fa-user"></i> Account Information</h4>
             <div>Username: <strong id="userUsername">Loading...</strong></div>
+            <div>Role: <strong id="userRole">Loading...</strong></div>
+            <div>Allocated Bots: <strong id="allocatedBotsCount">0</strong></div>
             <div class="system-status">
                 <div class="status-dot"></div>
                 <span>System Status: <strong>Operational</strong></span>
             </div>
+        </div>
+
+        <div id="adminViewNote" class="admin-view-note" style="display: none;">
+            <i class="fas fa-eye"></i> <strong>Admin View:</strong> You are viewing all system bots
         </div>
 
         <div class="control-panel">
@@ -711,7 +750,7 @@
         
         <div class="instances-section">
             <div class="section-header">
-                <h3><i class="fas fa-robot"></i> Bot System Status</h3>
+                <h3><i class="fas fa-robot"></i> <span id="instancesTitle">Bot System Status</span></h3>
                 <div class="instance-count">
                     <span id="instancesCount">0 bots active</span>
                 </div>
@@ -729,6 +768,8 @@
 
     <script>
         let refreshInterval;
+        let userRole = '';
+        let username = '';
         
         // Create floating particles
         function createParticles() {
@@ -765,13 +806,45 @@
             }
         }
         
+        async function loadUserInfo() {
+            try {
+                const token = new URLSearchParams(window.location.search).get('token');
+                const response = await fetch(`/api/user-info?token=${token}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    username = data.user.username;
+                    userRole = data.user.role;
+                    
+                    document.getElementById('username').textContent = username;
+                    document.getElementById('userUsername').textContent = username;
+                    document.getElementById('userRole').textContent = userRole;
+                    document.getElementById('allocatedBotsCount').textContent = data.allocatedBots.length;
+                    
+                    // Set role badge
+                    const roleBadge = document.getElementById('roleBadge');
+                    roleBadge.textContent = userRole.toUpperCase();
+                    roleBadge.className = `role-badge role-${userRole}`;
+                    
+                    // Update instances title for admin view
+                    if (userRole === 'admin' || userRole === 'subadmin') {
+                        document.getElementById('instancesTitle').textContent = 'All System Bots (Admin View)';
+                        document.getElementById('adminViewNote').style.display = 'block';
+                    } else {
+                        document.getElementById('instancesTitle').textContent = 'Your Allocated Bots';
+                    }
+                }
+            } catch (error) {
+                console.log('Error loading user info:', error);
+            }
+        }
+        
         async function pasteFromClipboard() {
             try {
                 const text = await navigator.clipboard.readText();
                 document.getElementById('videoLink').value = text;
                 showMessage('📋 Pasted from clipboard!', 'success');
                 
-                // Add micro animation
                 const input = document.getElementById('videoLink');
                 input.style.transform = 'scale(1.02)';
                 setTimeout(() => {
@@ -870,8 +943,11 @@
                     document.getElementById('rpsValue').textContent = data.totals.rps.toFixed(1);
                     
                     // Update instances count
-                    document.getElementById('instancesCount').textContent = 
-                        `${data.totals.onlineBots} bots online`;
+                    let instancesText = `${data.totals.onlineBots} bots online`;
+                    if (data.userRole === 'admin' || data.userRole === 'subadmin') {
+                        instancesText = `${data.totals.onlineBots}/${data.totals.totalBots} bots online (All System)`;
+                    }
+                    document.getElementById('instancesCount').textContent = instancesText;
                     
                     // Update instances grid
                     const container = document.getElementById('instancesContainer');
@@ -880,7 +956,7 @@
                         container.innerHTML = `
                             <div class="empty-state">
                                 <i class="fas fa-robot"></i>
-                                <h3>Bot System Ready</h3>
+                                <h3>No Bot Instances Available</h3>
                                 <p>Start the view bot to begin</p>
                             </div>
                         `;
@@ -896,6 +972,7 @@
                         
                         const status = instance.status;
                         const isOnline = instance.online;
+                        const isAllocated = instance.allocatedTo;
                         
                         instanceCard.innerHTML = `
                             <div class="instance-header">
@@ -904,6 +981,12 @@
                                     ${isOnline ? 'ONLINE' : 'OFFLINE'}
                                 </span>
                             </div>
+                            
+                            ${(userRole === 'admin' || userRole === 'subadmin') ? `
+                                <div style="margin-bottom: 15px; font-size: 0.9em; opacity: 0.8;">
+                                    Allocated to: <strong>${isAllocated || 'Not Allocated'}</strong>
+                                </div>
+                            ` : ''}
                             
                             ${isOnline ? `
                                 <div class="instance-stats">
@@ -940,6 +1023,11 @@
                                 <div style="text-align: center; padding: 30px; opacity: 0.7;">
                                     <i class="fas fa-exclamation-triangle" style="font-size: 2em; margin-bottom: 15px;"></i>
                                     <div>Bot Offline</div>
+                                    ${(userRole === 'admin' || userRole === 'subadmin') ? `
+                                        <div style="margin-top: 10px; font-size: 0.9em;">
+                                            ${instance.allocatedTo ? `Allocated to: ${instance.allocatedTo}` : 'Available for allocation'}
+                                        </div>
+                                    ` : ''}
                                 </div>
                             `}
                         `;
@@ -952,12 +1040,11 @@
             }
         }
         
-        // ✅ FIXED LOGOUT FUNCTION - Auth server pe redirect karega
+        // ✅ FIXED LOGOUT FUNCTION
         async function logout() {
             try {
                 const token = new URLSearchParams(window.location.search).get('token');
                 
-                // ✅ Main controller ko logout notify karo
                 const response = await fetch('/api/logout', {
                     method: 'POST',
                     headers: { 
@@ -970,14 +1057,12 @@
                 
                 const data = await response.json();
                 
-                // ✅ Auth server ke login page pe redirect
                 if (data.redirectUrl) {
                     window.location.href = data.redirectUrl;
                 } else {
                     window.location.href = 'https://tiktok-bot-auth.up.railway.app';
                 }
             } catch (error) {
-                // ✅ Anyway auth server pe redirect karo
                 window.location.href = 'https://tiktok-bot-auth.up.railway.app';
             }
         }
@@ -993,17 +1078,9 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             createParticles();
+            loadUserInfo();
             startStatusUpdates();
             showMessage('🎉 Welcome to TikTok View Bot! Start by pasting a TikTok link.', 'info');
-            
-            // Set username from URL token
-            const urlParams = new URLSearchParams(window.location.search);
-            const token = urlParams.get('token');
-            if (token) {
-                // Try to get username from token (you can add API for this)
-                document.getElementById('userUsername').textContent = 'User';
-                document.getElementById('username').textContent = 'User';
-            }
             
             // Add micro-interactions
             document.querySelectorAll('input').forEach(input => {
