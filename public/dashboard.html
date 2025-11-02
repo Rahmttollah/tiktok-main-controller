@@ -96,6 +96,23 @@
             font-family: monospace;
         }
         
+        .retry-button {
+            padding: 12px 24px;
+            background: white;
+            color: #ff0000;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.3s;
+        }
+        
+        .retry-button:hover {
+            background: #f0f0f0;
+            transform: scale(1.05);
+        }
+        
         /* 🔍 DEBUG PANEL */
         .debug-panel {
             position: fixed;
@@ -146,6 +163,10 @@
         
         .status-pending {
             color: var(--warning);
+        }
+        
+        .status-clean {
+            color: var(--success);
         }
         
         .header {
@@ -200,7 +221,7 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px 15px;
-            padding-bottom: 80px; /* Space for mobile menu */
+            padding-bottom: 80px;
         }
         
         .control-panel {
@@ -721,7 +742,10 @@
         <div class="security-details" id="securityDetails">
             Detecting security threats...
         </div>
-        <div style="font-size: 0.9em; opacity: 0.8;">
+        <button class="retry-button" onclick="retrySecurityCheck()">
+            🔄 Check Again
+        </button>
+        <div style="font-size: 0.9em; opacity: 0.8; margin-top: 15px;">
             This page will remain blocked until all security threats are removed.
         </div>
     </div>
@@ -953,76 +977,148 @@
         let userToken = '';
         let botStatus = 'stopped';
         let securityCheckComplete = false;
+        let securityThreatsDetected = false;
         
-        // 🔒 ADVANCED SECURITY DETECTION
+        // 🔒 IMPROVED SECURITY DETECTION - Only blocks when actually detected
         async function detectSecurityThreats() {
             const threats = [];
             const details = [];
             
-            // Detect AdGuard by checking for blocked resources
+            // Reset status indicators
+            document.getElementById('securityStatus').textContent = 'Checking...';
+            document.getElementById('securityStatus').className = 'status-pending';
+            document.getElementById('adguardStatus').textContent = 'Checking...';
+            document.getElementById('adguardStatus').className = 'status-pending';
+            document.getElementById('vpnStatus').textContent = 'Checking...';
+            document.getElementById('vpnStatus').className = 'status-pending';
+            
+            // 1. AdGuard Detection - More reliable method
+            let adguardDetected = false;
             try {
-                const testAd = await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', {
-                    method: 'HEAD',
-                    cache: 'no-cache'
-                });
-                if (!testAd.ok) threats.push('AdGuard');
-            } catch(e) {
-                threats.push('AdGuard');
-                details.push('Ad-blocker detected: Ads are being blocked');
+                // Test multiple ad domains
+                const adTests = [
+                    'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
+                    'https://googleads.g.doubleclick.net/pagead/id',
+                    'https://securepubads.g.doubleclick.net/gampad/ads'
+                ];
+                
+                let blockedCount = 0;
+                for (const adUrl of adTests) {
+                    try {
+                        const response = await fetch(adUrl, {
+                            method: 'HEAD',
+                            mode: 'no-cors',
+                            cache: 'no-cache'
+                        });
+                        // If we get here, the request wasn't blocked
+                        console.log(`Ad test passed: ${adUrl}`);
+                    } catch (error) {
+                        blockedCount++;
+                        console.log(`Ad test blocked: ${adUrl}`);
+                    }
+                }
+                
+                // If most ad tests are blocked, likely AdGuard
+                if (blockedCount >= 2) {
+                    adguardDetected = true;
+                    threats.push('AdGuard');
+                    details.push('Ad-blocker detected: Multiple ad domains blocked');
+                }
+                
+            } catch (e) {
+                console.log('Ad detection error:', e);
             }
             
-            // Detect VPN/Proxy by checking IP and location consistency
+            document.getElementById('adguardStatus').textContent = adguardDetected ? 'Detected' : 'Clean';
+            document.getElementById('adguardStatus').className = adguardDetected ? 'status-offline' : 'status-clean';
+            
+            // 2. VPN Detection - More accurate method
+            let vpnDetected = false;
             try {
                 const ipResponse = await fetch('https://api.ipify.org?format=json');
                 const ipData = await ipResponse.json();
-                document.getElementById('vpnStatus').textContent = 'Checking...';
                 
-                // Check if IP is from known VPN/proxy ranges
-                const knownVPNs = ['vpn', 'proxy', 'tor', 'anonymous'];
-                const ipCheck = await fetch(`https://ipapi.co/${ipData.ip}/json/`);
-                const ipInfo = await ipCheck.json();
+                // Check IP with multiple services for better accuracy
+                const ipCheckPromises = [
+                    fetch(`https://ipapi.co/${ipData.ip}/json/`).then(r => r.json()),
+                    fetch(`https://ipinfo.io/${ipData.ip}/json`).then(r => r.json())
+                ];
                 
-                if (ipInfo.org && knownVPNs.some(vpn => ipInfo.org.toLowerCase().includes(vpn))) {
-                    threats.push('VPN/Proxy');
-                    details.push(`VPN detected: ${ipInfo.org}`);
+                const results = await Promise.allSettled(ipCheckPromises);
+                
+                for (const result of results) {
+                    if (result.status === 'fulfilled') {
+                        const ipInfo = result.value;
+                        const vpnIndicators = [
+                            'vpn', 'proxy', 'tor', 'anonymous', 'hosting', 
+                            'datacenter', 'server', 'cloud'
+                        ];
+                        
+                        const org = ipInfo.org || ipInfo.asn || '';
+                        const isp = ipInfo.isp || '';
+                        
+                        if (vpnIndicators.some(indicator => 
+                            org.toLowerCase().includes(indicator) || 
+                            isp.toLowerCase().includes(indicator))) {
+                            vpnDetected = true;
+                            threats.push('VPN/Proxy');
+                            details.push(`VPN detected: ${org || isp}`);
+                            break;
+                        }
+                    }
                 }
                 
-                document.getElementById('vpnStatus').textContent = threats.includes('VPN/Proxy') ? 'Detected' : 'Clean';
-                document.getElementById('vpnStatus').className = threats.includes('VPN/Proxy') ? 'status-offline' : 'status-online';
-                
-            } catch(e) {
-                threats.push('Network Anomaly');
-                details.push('Unable to verify IP authenticity');
-                document.getElementById('vpnStatus').textContent = 'Suspicious';
-                document.getElementById('vpnStatus').className = 'status-offline';
+            } catch (error) {
+                console.log('VPN detection error:', error);
+                // Don't treat network errors as VPN detection
             }
             
-            // Detect developer tools
-            const devTools = /./;
-            devTools.toString = function() {
-                threats.push('Developer Tools');
-                details.push('Browser developer tools detected');
-                return '';
-            };
-            console.log('%c', devTools);
+            document.getElementById('vpnStatus').textContent = vpnDetected ? 'Detected' : 'Clean';
+            document.getElementById('vpnStatus').className = vpnDetected ? 'status-offline' : 'status-clean';
             
-            // Update security status
-            document.getElementById('securityStatus').textContent = threats.length > 0 ? 'Threats Found' : 'Secure';
-            document.getElementById('securityStatus').className = threats.length > 0 ? 'status-offline' : 'status-online';
+            // 3. Final Security Assessment
+            securityThreatsDetected = threats.length > 0;
             
-            document.getElementById('adguardStatus').textContent = threats.includes('AdGuard') ? 'Detected' : 'Clean';
-            document.getElementById('adguardStatus').className = threats.includes('AdGuard') ? 'status-offline' : 'status-online';
-            
-            // Activate blocker if threats found
-            if (threats.length > 0) {
+            if (securityThreatsDetected) {
+                document.getElementById('securityStatus').textContent = 'Threats Found';
+                document.getElementById('securityStatus').className = 'status-offline';
                 activateSecurityBlocker(threats, details);
             } else {
+                document.getElementById('securityStatus').textContent = 'Secure';
+                document.getElementById('securityStatus').className = 'status-clean';
                 securityCheckComplete = true;
                 document.getElementById('debugStatus').textContent = 'System Ready';
-                document.getElementById('debugStatus').className = 'status-online';
+                document.getElementById('debugStatus').className = 'status-clean';
+                
+                // Enable the application
+                enableApplication();
             }
             
-            return threats.length === 0;
+            updateLastAction(`Security check: ${securityThreatsDetected ? 'Threats found' : 'Clean'}`);
+            return !securityThreatsDetected;
+        }
+        
+        function enableApplication() {
+            // Remove any security blocks and enable functionality
+            const blocker = document.getElementById('securityBlocker');
+            blocker.classList.remove('active');
+            
+            // Re-enable all inputs and buttons
+            document.querySelectorAll('button, input, select').forEach(el => {
+                el.disabled = false;
+                el.style.opacity = '1';
+            });
+            
+            // Remove event blockers
+            document.removeEventListener('keydown', blockAllInputs);
+            document.removeEventListener('contextmenu', blockAllInputs);
+            document.removeEventListener('click', blockAllInputs);
+            document.removeEventListener('mousedown', blockAllInputs);
+            
+            // Start normal application functionality
+            startStatusUpdates();
+            showMessage('🎉 Welcome to TikTok View Bot!', 'info');
+            document.getElementById('username').textContent = 'User';
         }
         
         function activateSecurityBlocker(threats, details) {
@@ -1049,13 +1145,12 @@
                 el.disabled = true;
                 el.style.opacity = '0.3';
             });
-            
-            // Prevent right-click and F12
-            document.onkeydown = function(e) {
-                if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && e.keyCode == 73)) {
-                    return false;
-                }
-            };
+        }
+        
+        function retrySecurityCheck() {
+            updateLastAction('Retrying security check...');
+            document.getElementById('securityDetails').textContent = 'Re-checking security status...';
+            detectSecurityThreats();
         }
         
         function blockAllInputs(e) {
@@ -1085,7 +1180,6 @@
                     }
                 });
                 
-                // Check if response is HTML instead of JSON
                 const contentType = response.headers.get('content-type');
                 if (contentType && contentType.includes('text/html')) {
                     throw new Error('Server returned HTML instead of JSON');
@@ -1397,24 +1491,13 @@
             // Store token for later use
             localStorage.setItem('userToken', userToken);
             
-            // Start security check
-            detectSecurityThreats().then(isSecure => {
-                if (isSecure) {
-                    startStatusUpdates();
-                    showMessage('🎉 Welcome to TikTok View Bot!', 'info');
-                    
-                    // Set username from token (you can add API for this)
-                    document.getElementById('username').textContent = 'User';
-                    
-                    // Mobile responsive setup
-                    if (window.innerWidth <= 768) {
-                        document.body.style.paddingBottom = '70px';
-                    }
-                    
-                    // Auto-check for bot status every 30 seconds
-                    setInterval(updateStatus, 30000);
-                }
-            });
+            // Start security check - this will enable the app if clean
+            detectSecurityThreats();
+            
+            // Mobile responsive setup
+            if (window.innerWidth <= 768) {
+                document.body.style.paddingBottom = '70px';
+            }
         });
         
         // Window resize handler
