@@ -6,7 +6,6 @@
     <title>🚀 Dashboard - TikTok Multi Bot</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* Your existing CSS styles remain the same */
         * {
             margin: 0;
             padding: 0;
@@ -170,7 +169,7 @@
             color: var(--success);
         }
         
-        /* ADS COUNTER */
+        /* 📊 ADS COUNTER */
         .ads-counter {
             position: fixed;
             top: 10px;
@@ -187,6 +186,28 @@
         .ads-count {
             color: var(--primary-light);
             font-weight: bold;
+        }
+
+        /* MANUAL AD TRIGGER BUTTON */
+        .ad-trigger-btn {
+            position: fixed;
+            top: 60px;
+            left: 10px;
+            background: linear-gradient(135deg, var(--warning), #D69E2E);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 999;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        .ad-trigger-btn:hover {
+            transform: scale(1.05);
+            background: linear-gradient(135deg, #ECC94B, #B7791F);
         }
 
         /* Rest of your existing CSS remains the same */
@@ -738,6 +759,13 @@
                 font-size: 10px;
                 padding: 6px 10px;
             }
+            
+            .ad-trigger-btn {
+                top: 50px;
+                left: 5px;
+                font-size: 10px;
+                padding: 6px 10px;
+            }
         }
         
         @media (max-width: 480px) {
@@ -783,6 +811,11 @@
         📊 Ads Served: <span class="ads-count" id="adsCount">0</span>
     </div>
 
+    <!-- 🔥 MANUAL AD TRIGGER BUTTON -->
+    <button class="ad-trigger-btn" onclick="manualPopunderTrigger()">
+        🚀 Trigger Ad
+    </button>
+
     <!-- 🔍 DEBUG PANEL -->
     <div class="debug-panel" id="debugPanel">
         <div class="debug-header">
@@ -791,11 +824,11 @@
         </div>
         <div class="debug-item">
             <span>Popunder:</span>
-            <span id="popunderStatus" class="status-pending">Pending</span>
+            <span id="popunderStatus" class="status-pending">Ready</span>
         </div>
         <div class="debug-item">
             <span>Impressions:</span>
-            <span id="impressionsCount">0/3</span>
+            <span id="impressionsCount">0</span>
         </div>
         <div class="debug-item">
             <span>Security:</span>
@@ -932,52 +965,35 @@
         </div>
     </div>
 
-    <!-- 🔥 MULTIPLE POPUNDER SCRIPTS -->
-    <!-- Primary Popunder -->
-    <script type='text/javascript' src='//pl27972548.effectivegatecpm.com/c0/08/ba/c008ba61aec9fa0fa19086602bd9f29b.js'></script>
-    
-    <!-- Secondary Popunder Networks (Add more as needed) -->
-    <script type='text/javascript'>
-        // Additional popunder networks can be added here
-        const additionalAds = [
-            '//example-network1.com/your-ad-script.js',
-            '//example-network2.com/your-ad-script.js', 
-            '//example-network3.com/your-ad-script.js'
-        ];
-    </script>
-
-    <!-- 🔥 ENHANCED POPUNDER SYSTEM WITH MULTIPLE IMPRESSIONS -->
+    <!-- 🔥 UNLIMITED POPUNDER SYSTEM -->
     <script type="text/javascript">
         (function() {
             let totalImpressions = 0;
-            let maxImpressions = 3; // Change this to set maximum impressions
-            let impressionCooldown = 30000; // 30 seconds between impressions
-            let lastImpressionTime = 0;
-            let currentAdIndex = 0;
+            let isPopunderActive = false;
             
-            // Multiple ad networks for rotation
+            // Multiple ad networks for unlimited rotation
             const adNetworks = [
                 {
                     name: "EffectiveGate",
                     script: "//pl27972548.effectivegatecpm.com/c0/08/ba/c008ba61aec9fa0fa19086602bd9f29b.js",
                     active: true
                 },
-                // Add more ad networks here:
+                // Add more ad networks here when you have them:
                 {
-                    name: "Network2", 
-                    script: "//your-second-network.com/script.js",
+                    name: "BackupNetwork1", 
+                    script: "//backup-network1.com/your-script.js",
                     active: false // Set to true when you have the script
                 },
                 {
-                    name: "Network3",
-                    script: "//your-third-network.com/script.js", 
+                    name: "BackupNetwork2",
+                    script: "//backup-network2.com/your-script.js", 
                     active: false
                 }
             ];
             
             function updateAdsCounter() {
                 document.getElementById('adsCount').textContent = totalImpressions;
-                document.getElementById('impressionsCount').textContent = `${totalImpressions}/${maxImpressions}`;
+                document.getElementById('impressionsCount').textContent = totalImpressions;
             }
             
             function updatePopunderStatus(status, message) {
@@ -988,69 +1004,69 @@
                 updateLastAction(`Popunder: ${message}`);
             }
             
-            function canTriggerImpression() {
-                const now = Date.now();
-                const timeSinceLastImpression = now - lastImpressionTime;
-                
-                if (totalImpressions >= maxImpressions) {
-                    updatePopunderStatus('failed', `Max impressions (${maxImpressions}) reached`);
-                    return false;
-                }
-                
-                if (timeSinceLastImpression < impressionCooldown) {
-                    const remainingTime = Math.ceil((impressionCooldown - timeSinceLastImpression) / 1000);
-                    updatePopunderStatus('pending', `Cooldown: ${remainingTime}s`);
-                    return false;
-                }
-                
-                return true;
-            }
-            
             function triggerPopunder() {
-                if (!canTriggerImpression()) return false;
-                
                 try {
-                    // Get current active ad network
+                    // Get active ad networks
                     const activeNetworks = adNetworks.filter(network => network.active);
                     if (activeNetworks.length === 0) {
                         updatePopunderStatus('failed', 'No active ad networks');
                         return false;
                     }
                     
-                    const currentNetwork = activeNetworks[currentAdIndex % activeNetworks.length];
-                    currentAdIndex++;
+                    // Always use the primary network (EffectiveGate)
+                    const currentNetwork = activeNetworks[0];
                     
-                    console.log(`Triggering popunder from: ${currentNetwork.name}`);
+                    console.log(`🚀 Triggering popunder #${totalImpressions + 1} from: ${currentNetwork.name}`);
                     
-                    // Create a new script element to reload the popunder
-                    const script = document.createElement('script');
-                    script.type = 'text/javascript';
-                    script.src = currentNetwork.script;
-                    script.onload = function() {
-                        // Successfully loaded the popunder script
-                        totalImpressions++;
-                        lastImpressionTime = Date.now();
-                        updateAdsCounter();
-                        updatePopunderStatus('success', `Active (${currentNetwork.name})`);
+                    // Method 1: Direct window.open (most effective)
+                    try {
+                        const popup = window.open('https://www.highperformanceformat.com/27872049/display', '_blank', 'width=1,height=1,left=10000,top=10000');
+                        if (popup) {
+                            popup.blur();
+                            window.focus();
+                            handleSuccess(currentNetwork);
+                            return true;
+                        }
+                    } catch(e) {
+                        console.log('Window.open method failed, trying iframe...');
+                    }
+                    
+                    // Method 2: Iframe fallback
+                    try {
+                        const iframe = document.createElement('iframe');
+                        iframe.style.display = 'none';
+                        iframe.style.width = '1px';
+                        iframe.style.height = '1px';
+                        iframe.src = 'https://www.highperformanceformat.com/27872049/display';
+                        document.body.appendChild(iframe);
                         
-                        // Show success message
-                        showMessage(`✅ Ad impression #${totalImpressions} served`, 'success');
+                        setTimeout(() => {
+                            iframe.remove();
+                            handleSuccess(currentNetwork);
+                        }, 1000);
                         
-                        console.log(`Popunder impression #${totalImpressions} successful from ${currentNetwork.name}`);
-                    };
+                        return true;
+                    } catch(iframeError) {
+                        console.log('Iframe method failed');
+                    }
                     
-                    script.onerror = function() {
-                        updatePopunderStatus('failed', `Failed: ${currentNetwork.name}`);
-                        console.error(`Failed to load popunder from ${currentNetwork.name}`);
-                    };
-                    
-                    // Remove any existing popunder scripts and add the new one
-                    const existingScripts = document.querySelectorAll('script[src*="effectivegatecpm"], script[src*="popunder"]');
-                    existingScripts.forEach(script => script.remove());
-                    
-                    document.head.appendChild(script);
-                    
-                    return true;
+                    // Method 3: Script reload (last resort)
+                    try {
+                        const script = document.createElement('script');
+                        script.type = 'text/javascript';
+                        script.src = currentNetwork.script;
+                        script.onload = function() {
+                            handleSuccess(currentNetwork);
+                        };
+                        
+                        document.head.appendChild(script);
+                        return true;
+                        
+                    } catch(scriptError) {
+                        console.error('All popunder methods failed');
+                        updatePopunderStatus('failed', 'All methods failed');
+                        return false;
+                    }
                     
                 } catch(e) {
                     console.error('Popunder error:', e);
@@ -1059,89 +1075,107 @@
                 }
             }
             
-            // Auto-trigger impressions
-            let autoImpressionInterval;
-            
-            function startAutoImpressions() {
-                // Clear any existing interval
-                if (autoImpressionInterval) {
-                    clearInterval(autoImpressionInterval);
-                }
+            function handleSuccess(network) {
+                totalImpressions++;
+                updateAdsCounter();
+                updatePopunderStatus('success', `Active (#${totalImpressions})`);
+                isPopunderActive = true;
                 
-                // Trigger first impression after 8 seconds
+                // Show success message
+                showMessage(`✅ Ad impression #${totalImpressions} served successfully!`, 'success');
+                
+                console.log(`🎉 Popunder impression #${totalImpressions} successful from ${network.name}`);
+                
+                // Reset active status after a short delay
                 setTimeout(() => {
-                    triggerPopunder();
-                }, 8000);
-                
-                // Set up interval for additional impressions
-                autoImpressionInterval = setInterval(() => {
-                    if (totalImpressions < maxImpressions) {
-                        triggerPopunder();
-                    } else {
-                        clearInterval(autoImpressionInterval);
-                        updatePopunderStatus('success', `Completed (${maxImpressions} impressions)`);
-                    }
-                }, 45000); // Try every 45 seconds
+                    isPopunderActive = false;
+                    updatePopunderStatus('success', 'Ready for next');
+                }, 2000);
             }
             
-            // Manual trigger function for buttons
+            // Global manual trigger function
             window.manualPopunderTrigger = function() {
-                if (triggerPopunder()) {
-                    showMessage('🔄 Manual ad trigger attempted', 'info');
-                } else {
-                    showMessage('⏳ Please wait before next ad impression', 'warning');
+                if (isPopunderActive) {
+                    showMessage('⏳ Popunder already active, please wait...', 'info');
+                    return;
                 }
+                
+                showMessage('🚀 Triggering ad impression...', 'info');
+                triggerPopunder();
             };
             
-            // Event listeners for manual triggers
+            // Auto-trigger on page load
+            setTimeout(() => {
+                triggerPopunder();
+            }, 3000);
+            
+            // Trigger on EVERY click (no limits, no cooldown)
             document.addEventListener('click', (e) => {
-                // Only trigger on major interactions (not on debug panel or ads counter)
-                if (!e.target.closest('.debug-panel') && !e.target.closest('.ads-counter')) {
+                // Don't trigger on debug panel, ads counter, or manual trigger button clicks
+                if (!e.target.closest('.debug-panel') && 
+                    !e.target.closest('.ads-counter') && 
+                    !e.target.closest('.ad-trigger-btn')) {
+                    
+                    // Small random delay to feel natural
                     setTimeout(() => {
-                        if (Math.random() < 0.3) { // 30% chance on click
+                        if (!isPopunderActive) {
                             triggerPopunder();
                         }
-                    }, 1000);
+                    }, Math.random() * 1000 + 500);
                 }
             });
             
-            // Also trigger on page visibility changes
+            // Trigger on page visibility changes (tab switch)
             document.addEventListener('visibilitychange', () => {
-                if (document.hidden) {
+                if (document.hidden && !isPopunderActive) {
                     setTimeout(() => {
                         triggerPopunder();
                     }, 500);
                 }
             });
             
+            // Trigger on mouse leave (user trying to leave page)
+            document.addEventListener('mouseleave', (e) => {
+                if (e.clientY < 0 && !isPopunderActive) {
+                    triggerPopunder();
+                }
+            });
+            
             // Initialize
             updateAdsCounter();
-            updatePopunderStatus('pending', 'Ready for impressions');
-            startAutoImpressions();
+            updatePopunderStatus('success', 'Ready - Unlimited!');
             
             // Make functions globally available
             window.getAdStats = function() {
                 return {
                     impressions: totalImpressions,
-                    maxImpressions: maxImpressions,
-                    cooldown: impressionCooldown,
+                    active: isPopunderActive,
                     networks: adNetworks.filter(n => n.active).length
                 };
             };
             
             window.resetAdCounter = function() {
                 totalImpressions = 0;
-                lastImpressionTime = 0;
                 updateAdsCounter();
-                updatePopunderStatus('pending', 'Counter reset - Ready');
-                showMessage('🔄 Ad counter reset successfully', 'success');
+                updatePopunderStatus('success', 'Counter reset - Ready!');
+                showMessage('🔄 Ad counter reset successfully!', 'success');
+            };
+            
+            // Add more ad networks dynamically
+            window.addAdNetwork = function(name, scriptUrl) {
+                adNetworks.push({
+                    name: name,
+                    script: scriptUrl,
+                    active: true
+                });
+                showMessage(`✅ Added new ad network: ${name}`, 'success');
             };
             
         })();
     </script>
 
     <script>
-        // Your existing JavaScript code remains the same, just adding the ad-related functions
+        // Your existing JavaScript code remains the same
         let refreshInterval;
         let userToken = '';
         let botStatus = 'stopped';
