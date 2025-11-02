@@ -392,6 +392,11 @@
             color: white;
         }
         
+        .status-connecting {
+            background: linear-gradient(135deg, var(--warning), #D69E2E);
+            color: white;
+        }
+        
         .instance-stats {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -489,6 +494,58 @@
             font-size: 3em;
             margin-bottom: 15px;
             opacity: 0.5;
+        }
+        
+        .loading-dots {
+            display: inline-block;
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+        
+        .loading-dots div {
+            position: absolute;
+            top: 33px;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            animation-timing-function: cubic-bezier(0, 1, 1, 0);
+        }
+        
+        .loading-dots div:nth-child(1) {
+            left: 8px;
+            animation: loading-dots1 0.6s infinite;
+        }
+        
+        .loading-dots div:nth-child(2) {
+            left: 8px;
+            animation: loading-dots2 0.6s infinite;
+        }
+        
+        .loading-dots div:nth-child(3) {
+            left: 32px;
+            animation: loading-dots2 0.6s infinite;
+        }
+        
+        .loading-dots div:nth-child(4) {
+            left: 56px;
+            animation: loading-dots3 0.6s infinite;
+        }
+        
+        @keyframes loading-dots1 {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes loading-dots3 {
+            0% { transform: scale(1); }
+            100% { transform: scale(0); }
+        }
+        
+        @keyframes loading-dots2 {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(24px, 0); }
         }
         
         /* Mobile Bottom Menu */
@@ -672,15 +729,20 @@
             <div class="section-header">
                 <h3><i class="fas fa-robot"></i> Bot System Status</h3>
                 <div class="instance-count">
-                    <span id="instancesCount">0 bots active</span>
+                    <span id="instancesCount">Please wait...</span>
                 </div>
             </div>
             
             <div class="instances-grid" id="instancesContainer">
                 <div class="empty-state">
-                    <i class="fas fa-robot"></i>
-                    <h3>Bot System Ready</h3>
-                    <p>Start the view bot to see statistics</p>
+                    <div class="loading-dots">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                    </div>
+                    <h3>Allocating Bots</h3>
+                    <p>Please wait 1 minute to load all bots</p>
                 </div>
             </div>
         </div>
@@ -707,6 +769,7 @@
     <script>
         let refreshInterval;
         let userToken = '';
+        let userName = 'User';
         
         // Get token from URL
         function getTokenFromURL() {
@@ -817,6 +880,7 @@
             showMessage('🔄 Status refreshed!', 'success');
         }
         
+        // ✅ ENHANCED STATUS UPDATE - With bot distribution info
         async function updateStatus() {
             try {
                 const data = await safeFetch(`/api/status-all?token=${userToken}`);
@@ -829,9 +893,16 @@
                     document.getElementById('totalRpsNum').textContent = data.totals.rps.toFixed(1);
                     document.getElementById('rpsValue').textContent = data.totals.rps.toFixed(1);
                     
+                    // Show message if no bots allocated
+                    if (data.totals.totalBots === 0 && data.message) {
+                        showMessage(data.message, 'info');
+                    }
+                    
                     // Update instances count
                     document.getElementById('instancesCount').textContent = 
-                        `${data.totals.onlineBots} bots online`;
+                        data.totals.onlineBots > 0 ? 
+                        `${data.totals.onlineBots} bots online` : 
+                        "Please wait...";
                     
                     // Update instances grid
                     const container = document.getElementById('instancesContainer');
@@ -839,9 +910,17 @@
                     if (data.instances.length === 0) {
                         container.innerHTML = `
                             <div class="empty-state">
-                                <i class="fas fa-robot"></i>
-                                <h3>Bot System Ready</h3>
-                                <p>Start the view bot to begin</p>
+                                <div class="loading-dots">
+                                    <div></div>
+                                    <div></div>
+                                    <div></div>
+                                    <div></div>
+                                </div>
+                                <h3>Waiting for Bot Allocation</h3>
+                                <p>You will automatically receive bots when available</p>
+                                <p style="font-size: 0.8em; opacity: 0.7; margin-top: 10px;">
+                                    🔄 System checking for available bots...
+                                </p>
                             </div>
                         `;
                         return;
@@ -856,12 +935,13 @@
                         
                         const status = instance.status;
                         const isOnline = instance.online;
+                        const isConnecting = instance.connecting;
                         
                         instanceCard.innerHTML = `
                             <div class="instance-header">
                                 <div class="instance-title">${instance.name}</div>
-                                <span class="instance-status ${isOnline ? 'status-online' : 'status-offline'}">
-                                    ${isOnline ? 'ONLINE' : 'OFFLINE'}
+                                <span class="instance-status ${isOnline ? 'status-online' : isConnecting ? 'status-connecting' : 'status-offline'}">
+                                    ${isOnline ? 'ONLINE' : isConnecting ? 'CONNECTING' : 'OFFLINE'}
                                 </span>
                             </div>
                             
@@ -895,6 +975,16 @@
                                             `Views: ${status.success}`
                                         }
                                     </div>
+                                </div>
+                            ` : isConnecting ? `
+                                <div style="text-align: center; padding: 20px;">
+                                    <div class="loading-dots" style="width: 50px; height: 50px; margin: 0 auto 15px;">
+                                        <div></div>
+                                        <div></div>
+                                        <div></div>
+                                        <div></div>
+                                    </div>
+                                    <div>Connecting...</div>
                                 </div>
                             ` : `
                                 <div style="text-align: center; padding: 20px; opacity: 0.7;">
@@ -986,11 +1076,25 @@
             // Store token for later use
             localStorage.setItem('userToken', userToken);
             
-            startStatusUpdates();
-            showMessage('🎉 Welcome to TikTok View Bot!', 'info');
+            // Try to get username from token or API
+            try {
+                // Extract username from token if possible
+                const tokenParts = userToken.split('.');
+                if (tokenParts.length > 1) {
+                    const payload = JSON.parse(atob(tokenParts[1]));
+                    if (payload.username) {
+                        userName = payload.username;
+                    }
+                }
+            } catch (e) {
+                console.log('Could not extract username from token');
+            }
             
-            // Set username from token (you can add API for this)
-            document.getElementById('username').textContent = 'User';
+            // Update username display
+            document.getElementById('username').textContent = userName;
+            
+            startStatusUpdates();
+            showMessage(`🎉 Welcome ${userName} to TikTok View Bot!`, 'info');
             
             // Mobile responsive setup
             if (window.innerWidth <= 768) {
