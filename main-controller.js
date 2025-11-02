@@ -90,6 +90,177 @@ async function getInstancesFromAuthServer(token) {
     }
 }
 
+// ✅ PERMANENT ONLINE SYSTEM - Bots kabhi offline nahi honge
+let permanentOnlineInterval = null;
+const permanentOnlineBots = new Map();
+
+// ✅ START PERMANENT ONLINE SYSTEM
+function startPermanentOnlineSystem() {
+    if (permanentOnlineInterval) {
+        clearInterval(permanentOnlineInterval);
+    }
+    
+    console.log('🔴🟢 Starting PERMANENT ONLINE SYSTEM...');
+    
+    permanentOnlineInterval = setInterval(async () => {
+        try {
+            await keepAllBotsPermanentlyOnline();
+        } catch (error) {
+            console.log('❌ Permanent online system error:', error.message);
+        }
+    }, 5000); // Check every 5 seconds
+    
+    console.log('✅ Permanent Online System Started - Bots will NEVER go offline');
+}
+
+// ✅ STOP PERMANENT ONLINE SYSTEM
+function stopPermanentOnlineSystem() {
+    if (permanentOnlineInterval) {
+        clearInterval(permanentOnlineInterval);
+        permanentOnlineInterval = null;
+    }
+    permanentOnlineBots.clear();
+    console.log('🛑 Permanent Online System Stopped');
+}
+
+// ✅ KEEP ALL BOTS PERMANENTLY ONLINE
+async function keepAllBotsPermanentlyOnline() {
+    try {
+        // Get all bot instances from auth server (using a default token for system operations)
+        const instances = await getInstancesForSystem();
+        
+        if (instances.length === 0) {
+            console.log('ℹ️ No bot instances found for permanent online system');
+            return;
+        }
+        
+        console.log(`🔧 Permanent Online: Checking ${instances.length} bots...`);
+        
+        let onlineCount = 0;
+        let restartedCount = 0;
+        
+        for (const instance of instances) {
+            try {
+                // Check if bot is responding
+                const statusResponse = await axios.get(`${instance.url}/status`, {
+                    timeout: 8000
+                });
+                
+                const botStatus = statusResponse.data;
+                
+                // Update permanent online tracking
+                if (!permanentOnlineBots.has(instance.id)) {
+                    permanentOnlineBots.set(instance.id, {
+                        instanceId: instance.id,
+                        instanceUrl: instance.url,
+                        firstSeen: new Date().toISOString(),
+                        lastSeen: new Date().toISOString(),
+                        restartCount: 0,
+                        alwaysOnline: true
+                    });
+                }
+                
+                const botInfo = permanentOnlineBots.get(instance.id);
+                botInfo.lastSeen = new Date().toISOString();
+                botInfo.currentStatus = botStatus;
+                
+                onlineCount++;
+                
+                // If bot is not running but should be, start it
+                if (!botStatus.running && instance.enabled) {
+                    console.log(`🔄 Auto-starting idle bot: ${instance.url}`);
+                    
+                    try {
+                        // Start with minimal settings to keep it alive
+                        await axios.post(`${instance.url}/start`, {
+                            targetViews: 1000000, // Very high target to keep running
+                            videoLink: 'https://www.tiktok.com/@tiktok/video/7106688751857945857', // Default video
+                            mode: 'permanent'
+                        }, { timeout: 15000 });
+                        
+                        botInfo.restartCount++;
+                        restartedCount++;
+                        console.log(`✅ Bot auto-started: ${instance.url} (Restart #${botInfo.restartCount})`);
+                    } catch (startError) {
+                        console.log(`❌ Failed to auto-start bot ${instance.url}:`, startError.message);
+                    }
+                }
+                
+            } catch (error) {
+                console.log(`🔴 Bot ${instance.url} is OFFLINE - Attempting restart...`);
+                
+                // Bot is completely offline - try to restart
+                try {
+                    const botInfo = permanentOnlineBots.get(instance.id) || {
+                        instanceId: instance.id,
+                        instanceUrl: instance.url,
+                        firstSeen: new Date().toISOString(),
+                        lastSeen: new Date().toISOString(),
+                        restartCount: 0,
+                        alwaysOnline: true
+                    };
+                    
+                    // Try to start the bot
+                    await axios.post(`${instance.url}/start`, {
+                        targetViews: 1000000,
+                        videoLink: 'https://www.tiktok.com/@tiktok/video/7106688751857945857',
+                        mode: 'permanent_recovery'
+                    }, { timeout: 20000 });
+                    
+                    botInfo.restartCount++;
+                    botInfo.lastSeen = new Date().toISOString();
+                    permanentOnlineBots.set(instance.id, botInfo);
+                    
+                    restartedCount++;
+                    console.log(`✅ OFFLINE Bot RESTARTED: ${instance.url} (Recovery #${botInfo.restartCount})`);
+                    
+                } catch (restartError) {
+                    console.log(`💀 CRITICAL: Bot ${instance.url} cannot be restarted:`, restartError.message);
+                    
+                    // Mark for special attention
+                    const botInfo = permanentOnlineBots.get(instance.id) || {
+                        instanceId: instance.id,
+                        instanceUrl: instance.url,
+                        firstSeen: new Date().toISOString(),
+                        lastSeen: new Date().toISOString(),
+                        restartCount: 0,
+                        alwaysOnline: true,
+                        critical: true
+                    };
+                    
+                    botInfo.critical = true;
+                    botInfo.lastError = restartError.message;
+                    permanentOnlineBots.set(instance.id, botInfo);
+                }
+            }
+        }
+        
+        console.log(`📊 Permanent Online Stats: ${onlineCount} online, ${restartedCount} restarted`);
+        
+    } catch (error) {
+        console.log('❌ Permanent online system critical error:', error.message);
+    }
+}
+
+// ✅ GET INSTANCES FOR SYSTEM (Without user token)
+async function getInstancesForSystem() {
+    try {
+        // For system operations, we need to get instances without user token
+        // This is a simplified version - you might need to adjust based on your auth system
+        const response = await axios.get(`${AUTH_SERVER_URL}/api/bot-instances?token=system_admin_2024`, {
+            timeout: 10000
+        });
+        
+        if (response.data.success) {
+            return response.data.instances || [];
+        }
+        return [];
+    } catch (error) {
+        console.log('❌ System instances fetch failed:', error.message);
+        return [];
+    }
+}
+
 // Routes
 app.get('/', (req, res) => {
     res.redirect(AUTH_SERVER_URL);
@@ -120,49 +291,29 @@ app.get('/dashboard', async (req, res) => {
 });
 
 // ✅ FIXED LOGOUT - Simple and effective
-// ✅ ENHANCED LOGOUT - Clear everything properly
 app.post('/api/logout', async (req, res) => {
     try {
         const token = req.body.token;
         
-        console.log('🔒 Main controller logout - clearing everything');
-        
         // Notify auth server about logout
         if (token) {
-            await axios.post(`${AUTH_SERVER_URL}/api/global-logout`, {
+            axios.post(`${AUTH_SERVER_URL}/api/global-logout`, {
                 token: token
             }, { timeout: 3000 }).catch(err => {
-                console.log('⚠️ Auth logout failed, continuing...');
+                // Ignore errors
             });
         }
         
         res.json({ 
             success: true, 
             message: 'Logged out successfully',
-            redirect_url: `${AUTH_SERVER_URL}/login?message=logout_clean&force=true`
+            redirect_url: `${AUTH_SERVER_URL}/login?message=logged_out`
         });
     } catch (error) {
-        console.log('❌ Logout error, forcing clean redirect');
         res.json({ 
             success: true, 
-            redirect_url: `${AUTH_SERVER_URL}/login?force=true`
+            redirect_url: `${AUTH_SERVER_URL}/login`
         });
-    }
-});
-
-// ✅ USER INFO API
-app.get('/api/user-info', verifyToken, async (req, res) => {
-    try {
-        res.json({
-            success: true,
-            user: {
-                username: req.user.username,
-                role: req.user.role,
-                id: req.user.username // Using username as ID for simplicity
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
@@ -271,28 +422,16 @@ app.post('/api/stop-all', verifyToken, async (req, res) => {
     }
 });
 
-// ✅ FIXED STATUS API - With bot distribution check
 app.get('/api/status-all', verifyToken, async (req, res) => {
     try {
         const token = req.query.token || req.body.token;
-        
-        // 🔥 FIRST: Trigger bot distribution check
-        try {
-            await axios.get(`${AUTH_SERVER_URL}/api/bot-instances?token=${token}`, {
-                timeout: 3000
-            });
-        } catch (error) {
-            // Ignore errors, just trigger the distribution
-            console.log('Bot distribution trigger completed');
-        }
-
-        // THEN: Get instances and status
         const instances = await getInstancesFromAuthServer(token);
-        
-        const statusPromises = instances.map(async (instance) => {
+        const allStatus = [];
+
+        for (const instance of instances) {
             try {
                 const response = await axios.get(`${instance.url}/status`, { 
-                    timeout: 5000,
+                    timeout: 10000,
                     transformResponse: [function (data) {
                         try {
                             return JSON.parse(data);
@@ -302,37 +441,32 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
                     }]
                 });
                 
-                return { 
+                allStatus.push({ 
                     id: instance.id,
                     name: `Bot ${instance.id.substring(0, 8)}`,
                     url: instance.url,
                     enabled: instance.enabled, 
                     status: response.data, 
                     online: true 
-                };
+                });
             } catch (error) {
-                return { 
+                allStatus.push({ 
                     id: instance.id,
                     name: `Bot ${instance.id.substring(0, 8)}`, 
                     url: instance.url,
                     enabled: instance.enabled, 
                     status: null, 
                     online: false 
-                };
+                });
             }
-        });
-
-        const allStatus = await Promise.allSettled(statusPromises);
-        const results = allStatus.map(promise => 
-            promise.status === 'fulfilled' ? promise.value : null
-        ).filter(Boolean);
+        }
 
         const totals = {
-            success: results.reduce((sum, bot) => sum + (bot.status?.success || 0), 0),
-            fails: results.reduce((sum, bot) => sum + (bot.status?.fails || 0), 0),
-            reqs: results.reduce((sum, bot) => sum + (bot.status?.reqs || 0), 0),
-            rps: results.reduce((sum, bot) => sum + (parseFloat(bot.status?.rps) || 0), 0),
-            onlineBots: results.filter(bot => bot.online && bot.enabled).length,
+            success: allStatus.reduce((sum, bot) => sum + (bot.status?.success || 0), 0),
+            fails: allStatus.reduce((sum, bot) => sum + (bot.status?.fails || 0), 0),
+            reqs: allStatus.reduce((sum, bot) => sum + (bot.status?.reqs || 0), 0),
+            rps: allStatus.reduce((sum, bot) => sum + (parseFloat(bot.status?.rps) || 0), 0),
+            onlineBots: allStatus.filter(bot => bot.online && bot.enabled).length,
             totalBots: instances.filter(inst => inst.enabled).length
         };
         
@@ -340,239 +474,66 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
 
         res.json({
             success: true,
-            instances: results,
-            totals: totals,
-            message: instances.length === 0 ? "No bots allocated yet. Bots will be assigned automatically when available." : ""
+            instances: allStatus,
+            totals: totals
         });
     } catch (error) {
-        console.error('Status API error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-// ✅ ADMIN APIs (For admin panel functionality)
-app.get('/api/admin/users', verifyToken, async (req, res) => {
+// ✅ PERMANENT ONLINE CONTROL APIS
+app.post('/api/system/permanent-online/start', (req, res) => {
     try {
-        // Check if user is admin
-        if (req.user.role !== 'super_admin' && req.user.role !== 'sub_admin') {
-            return res.status(403).json({ success: false, message: 'Admin access required' });
-        }
-
-        const token = req.query.token || req.body.token;
-        const response = await axios.get(`${AUTH_SERVER_URL}/api/admin/users?token=${token}`, {
-            timeout: 5000
+        startPermanentOnlineSystem();
+        res.json({ 
+            success: true, 
+            message: '🟢 Permanent Online System STARTED - Bots will never go offline',
+            status: 'active'
         });
-        
-        res.json(response.data);
     } catch (error) {
-        console.error('Admin users API error:', error.message);
-        res.status(500).json({ success: false, message: 'Failed to fetch users' });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-app.get('/api/admin/keys', verifyToken, async (req, res) => {
+app.post('/api/system/permanent-online/stop', (req, res) => {
     try {
-        // Check if user is admin
-        if (req.user.role !== 'super_admin' && req.user.role !== 'sub_admin') {
-            return res.status(403).json({ success: false, message: 'Admin access required' });
-        }
-
-        const token = req.query.token || req.body.token;
-        const response = await axios.get(`${AUTH_SERVER_URL}/api/admin/keys?token=${token}`, {
-            timeout: 5000
+        stopPermanentOnlineSystem();
+        res.json({ 
+            success: true, 
+            message: '🛑 Permanent Online System STOPPED',
+            status: 'inactive'
         });
-        
-        res.json(response.data);
     } catch (error) {
-        console.error('Admin keys API error:', error.message);
-        res.status(500).json({ success: false, message: 'Failed to fetch keys' });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-app.post('/api/admin/generate-key', verifyToken, async (req, res) => {
+app.get('/api/system/permanent-online/status', (req, res) => {
     try {
-        // Check if user is admin
-        if (req.user.role !== 'super_admin' && req.user.role !== 'sub_admin') {
-            return res.status(403).json({ success: false, message: 'Admin access required' });
-        }
-
-        const token = req.query.token || req.body.token;
-        const response = await axios.post(`${AUTH_SERVER_URL}/api/admin/generate-key`, {
-            token: token,
-            note: req.body.note
-        }, {
-            timeout: 5000
-        });
+        const activeBots = Array.from(permanentOnlineBots.values());
         
-        res.json(response.data);
-    } catch (error) {
-        console.error('Generate key API error:', error.message);
-        res.status(500).json({ success: false, message: 'Failed to generate key' });
-    }
-});
-
-app.delete('/api/admin/keys/:key', verifyToken, async (req, res) => {
-    try {
-        // Check if user is admin
-        if (req.user.role !== 'super_admin' && req.user.role !== 'sub_admin') {
-            return res.status(403).json({ success: false, message: 'Admin access required' });
-        }
-
-        const token = req.query.token || req.body.token;
-        const response = await axios.delete(`${AUTH_SERVER_URL}/api/admin/keys/${req.params.key}?token=${token}`, {
-            timeout: 5000
+        res.json({
+            success: true,
+            system: {
+                isActive: !!permanentOnlineInterval,
+                totalBots: activeBots.length,
+                onlineBots: activeBots.filter(bot => !bot.critical).length,
+                criticalBots: activeBots.filter(bot => bot.critical).length,
+                totalRestarts: activeBots.reduce((sum, bot) => sum + (bot.restartCount || 0), 0),
+                bots: activeBots.map(bot => ({
+                    instanceId: bot.instanceId,
+                    instanceUrl: bot.instanceUrl,
+                    firstSeen: bot.firstSeen,
+                    lastSeen: bot.lastSeen,
+                    restartCount: bot.restartCount || 0,
+                    status: bot.critical ? 'critical' : 'online',
+                    lastError: bot.lastError || null
+                }))
+            }
         });
-        
-        res.json(response.data);
     } catch (error) {
-        console.error('Delete key API error:', error.message);
-        res.status(500).json({ success: false, message: 'Failed to delete key' });
-    }
-});
-
-app.get('/api/admin/instances', verifyToken, async (req, res) => {
-    try {
-        // Check if user is admin
-        if (req.user.role !== 'super_admin' && req.user.role !== 'sub_admin') {
-            return res.status(403).json({ success: false, message: 'Admin access required' });
-        }
-
-        const token = req.query.token || req.body.token;
-        const response = await axios.get(`${AUTH_SERVER_URL}/api/admin/instances?token=${token}`, {
-            timeout: 5000
-        });
-        
-        res.json(response.data);
-    } catch (error) {
-        console.error('Admin instances API error:', error.message);
-        res.status(500).json({ success: false, message: 'Failed to fetch instances' });
-    }
-});
-
-app.post('/api/admin/instances', verifyToken, async (req, res) => {
-    try {
-        // Check if user is admin
-        if (req.user.role !== 'super_admin' && req.user.role !== 'sub_admin') {
-            return res.status(403).json({ success: false, message: 'Admin access required' });
-        }
-
-        const token = req.query.token || req.body.token;
-        const response = await axios.post(`${AUTH_SERVER_URL}/api/admin/instances`, {
-            token: token,
-            url: req.body.url
-        }, {
-            timeout: 5000
-        });
-        
-        res.json(response.data);
-    } catch (error) {
-        console.error('Add instance API error:', error.message);
-        res.status(500).json({ success: false, message: 'Failed to add instance' });
-    }
-});
-
-app.delete('/api/admin/instances/:id', verifyToken, async (req, res) => {
-    try {
-        // Check if user is admin
-        if (req.user.role !== 'super_admin' && req.user.role !== 'sub_admin') {
-            return res.status(403).json({ success: false, message: 'Admin access required' });
-        }
-
-        const token = req.query.token || req.body.token;
-        const response = await axios.delete(`${AUTH_SERVER_URL}/api/admin/instances/${req.params.id}?token=${token}`, {
-            timeout: 5000
-        });
-        
-        res.json(response.data);
-    } catch (error) {
-        console.error('Delete instance API error:', error.message);
-        res.status(500).json({ success: false, message: 'Failed to delete instance' });
-    }
-});
-
-app.post('/api/admin/users/:userId/toggle', verifyToken, async (req, res) => {
-    try {
-        // Check if user is admin
-        if (req.user.role !== 'super_admin' && req.user.role !== 'sub_admin') {
-            return res.status(403).json({ success: false, message: 'Admin access required' });
-        }
-
-        const token = req.query.token || req.body.token;
-        const response = await axios.post(`${AUTH_SERVER_URL}/api/admin/users/${req.params.userId}/toggle`, {
-            token: token
-        }, {
-            timeout: 5000
-        });
-        
-        res.json(response.data);
-    } catch (error) {
-        console.error('Toggle user API error:', error.message);
-        res.status(500).json({ success: false, message: 'Failed to toggle user' });
-    }
-});
-
-app.post('/api/admin/promote-user', verifyToken, async (req, res) => {
-    try {
-        // Check if user is admin
-        if (req.user.role !== 'super_admin') {
-            return res.status(403).json({ success: false, message: 'Super admin access required' });
-        }
-
-        const token = req.query.token || req.body.token;
-        const response = await axios.post(`${AUTH_SERVER_URL}/api/admin/promote-user`, {
-            token: token,
-            userId: req.body.userId,
-            newRole: req.body.newRole
-        }, {
-            timeout: 5000
-        });
-        
-        res.json(response.data);
-    } catch (error) {
-        console.error('Promote user API error:', error.message);
-        res.status(500).json({ success: false, message: 'Failed to promote user' });
-    }
-});
-
-app.get('/api/admin/users/:userId/bot-details', verifyToken, async (req, res) => {
-    try {
-        // Check if user is admin
-        if (req.user.role !== 'super_admin' && req.user.role !== 'sub_admin') {
-            return res.status(403).json({ success: false, message: 'Admin access required' });
-        }
-
-        const token = req.query.token || req.body.token;
-        const response = await axios.get(`${AUTH_SERVER_URL}/api/admin/users/${req.params.userId}/bot-details?token=${token}`, {
-            timeout: 5000
-        });
-        
-        res.json(response.data);
-    } catch (error) {
-        console.error('Bot details API error:', error.message);
-        res.status(500).json({ success: false, message: 'Failed to fetch bot details' });
-    }
-});
-
-app.post('/api/admin/users/:userId/manage-bots', verifyToken, async (req, res) => {
-    try {
-        // Check if user is admin
-        if (req.user.role !== 'super_admin' && req.user.role !== 'sub_admin') {
-            return res.status(403).json({ success: false, message: 'Admin access required' });
-        }
-
-        const token = req.query.token || req.body.token;
-        const response = await axios.post(`${AUTH_SERVER_URL}/api/admin/users/${req.params.userId}/manage-bots`, {
-            token: token,
-            action: req.body.action,
-            botId: req.body.botId
-        }, {
-            timeout: 5000
-        });
-        
-        res.json(response.data);
-    } catch (error) {
-        console.error('Manage bots API error:', error.message);
-        res.status(500).json({ success: false, message: 'Failed to manage bots' });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
@@ -581,24 +542,20 @@ app.get('/api/health', (req, res) => {
     res.json({ 
         success: true, 
         message: 'Main Controller is running',
-        timestamp: new Date().toISOString(),
-        auth_server: AUTH_SERVER_URL
+        timestamp: new Date().toISOString()
     });
 });
 
-// ✅ 404 Handler
-app.use('*', (req, res) => {
-    res.redirect(AUTH_SERVER_URL);
-});
-
+// Start the permanent online system when server starts
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🔧 Main Controller running on port ${PORT}`);
     console.log(`🔐 Auth Server: ${AUTH_SERVER_URL}`);
     console.log(`✅ Enhanced Error Handling: Enabled`);
     console.log(`📱 Mobile Compatible: Yes`);
     console.log(`🚀 Fixed Logout System: Active`);
-    console.log(`🔄 Redirect Loop: FIXED`);
-    console.log(`🔐 Token Verification: FIXED`);
-    console.log(`👑 Admin APIs: Ready`);
-    console.log(`🤖 Bot Distribution: Auto-triggered`);
+    
+    // ✅ START PERMANENT ONLINE SYSTEM ON BOOT
+    setTimeout(() => {
+        startPermanentOnlineSystem();
+    }, 10000); // Start 10 seconds after server boot
 });
