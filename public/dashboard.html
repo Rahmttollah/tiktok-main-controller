@@ -1003,36 +1003,46 @@
         }
         
         // ✅ FIXED LOGOUT - No redirect loops
-        async function logout() {
-            try {
-                const token = userToken || getTokenFromURL();
-                
-                // Call main controller logout
-                const response = await fetch('/api/logout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: token })
-                });
-                
-                const data = await response.json();
-                
-                // Clear everything locally
-                localStorage.removeItem('userToken');
-                sessionStorage.clear();
-                
-                // Direct redirect - no chains
-                if (data.redirect_url) {
-                    window.location.href = data.redirect_url;
-                } else {
-                    window.location.href = 'https://tiktok-bot-auth.up.railway.app/login';
-                }
-                
-            } catch (error) {
-                // Still redirect on error
-                localStorage.removeItem('userToken');
+        // ✅ FIXED LOGOUT - Simple and direct from main controller
+async function logout() {
+    console.log('🚪 Logging out from main controller...');
+    
+    try {
+        const token = userToken || getTokenFromURL();
+        
+        // 1. Clear ALL local storage immediately
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // 2. Call logout API (but don't wait or care about response)
+        fetch('/api/logout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+        }).then(response => {
+            console.log('✅ Logout API called');
+            return response.json();
+        }).then(data => {
+            // Use the redirect URL from server if available
+            if (data.redirect_url) {
+                window.location.href = data.redirect_url;
+            } else {
                 window.location.href = 'https://tiktok-bot-auth.up.railway.app/login';
             }
-        }
+        }).catch(error => {
+            console.log('⚠️ Logout API failed, using direct redirect');
+            // 🔥 DIRECT REDIRECT ON ANY ERROR
+            window.location.href = 'https://tiktok-bot-auth.up.railway.app/login';
+        });
+        
+    } catch (error) {
+        console.log('❌ Logout error, nuclear redirect');
+        // 🔥 NUCLEAR OPTION - Always redirect
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = 'https://tiktok-bot-auth.up.railway.app/login';
+    }
+}
         
         function setLoading(buttonId, isLoading) {
             const btn = document.getElementById(buttonId);
