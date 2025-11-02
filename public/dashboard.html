@@ -41,6 +41,96 @@
             50% { background-position: 100% 50%; }
         }
         
+        /* AdGuard Blocker Styles */
+        .adguard-blocker {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .adguard-content {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid var(--danger);
+            max-width: 500px;
+            width: 90%;
+            backdrop-filter: blur(10px);
+        }
+        
+        .adguard-icon {
+            font-size: 4em;
+            color: var(--danger);
+            margin-bottom: 20px;
+            animation: shake 0.5s ease-in-out infinite alternate;
+        }
+        
+        @keyframes shake {
+            0% { transform: translateX(-5px); }
+            100% { transform: translateX(5px); }
+        }
+        
+        .adguard-title {
+            font-size: 2em;
+            color: var(--danger);
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        .adguard-message {
+            font-size: 1.1em;
+            margin-bottom: 25px;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+        
+        .adguard-steps {
+            text-align: left;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+        
+        .adguard-step {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .adguard-step i {
+            color: var(--warning);
+        }
+        
+        .btn-retry {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-retry:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        
         .header {
             background: rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(20px);
@@ -576,6 +666,14 @@
             .speed-indicator {
                 font-size: 1.4em;
             }
+            
+            .adguard-content {
+                padding: 25px;
+            }
+            
+            .adguard-title {
+                font-size: 1.6em;
+            }
         }
         
         @media (max-width: 480px) {
@@ -596,6 +694,36 @@
     </style>
 </head>
 <body>
+    <!-- AdGuard Blocker Screen -->
+    <div class="adguard-blocker" id="adguardBlocker">
+        <div class="adguard-content">
+            <div class="adguard-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div class="adguard-title">AdBlocker Detected!</div>
+            <div class="adguard-message">
+                We've detected that you're using an ad blocker (AdGuard). Our service relies on advertising to remain free. Please disable your ad blocker to continue using TikTok Multi Bot.
+            </div>
+            <div class="adguard-steps">
+                <div class="adguard-step">
+                    <i class="fas fa-mouse-pointer"></i>
+                    <span>Click on the AdGuard icon in your browser toolbar</span>
+                </div>
+                <div class="adguard-step">
+                    <i class="fas fa-toggle-off"></i>
+                    <span>Disable AdGuard for this website</span>
+                </div>
+                <div class="adguard-step">
+                    <i class="fas fa-sync"></i>
+                    <span>Refresh the page to continue</span>
+                </div>
+            </div>
+            <button class="btn-retry" onclick="checkAdGuard()">
+                <i class="fas fa-sync"></i> I've Disabled AdGuard - Continue
+            </button>
+        </div>
+    </div>
+
     <div class="header">
         <div class="logo">
             <h1>🚀 TikTok Multi Bot</h1>
@@ -713,13 +841,148 @@
         </div>
     </div>
 
-    <!-- AdsTerra Popunder Script -->
+    <!-- AdsTerra Popunder Scripts -->
     <script type='text/javascript' src='//pl27972548.effectivegatecpm.com/c0/08/ba/c008ba61aec9fa0fa19086602bd9f29b.js'></script>
+    <script type='text/javascript' src='//ancestorheadquarters.com/c0/08/ba/c008ba61aec9fa0fa19086602bd9f29b.js'></script>
 
     <script>
         let refreshInterval;
         let userToken = '';
         let botStatus = 'stopped';
+        let adGuardChecked = false;
+        
+        // REAL AdGuard Detection - Only shows when AdGuard is actually detected
+        function detectAdGuard() {
+            return new Promise((resolve) => {
+                let detectionCount = 0;
+                let totalTests = 5;
+                
+                // Test 1: Check for AdGuard specific objects (most reliable)
+                if (window.adguard || window.AdGuard) {
+                    console.log('AdGuard detected: Window objects found');
+                    detectionCount += 2; // Give more weight to this test
+                }
+                
+                // Test 2: Check for blocked ad requests (more reliable)
+                const adUrls = [
+                    'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
+                    'https://googleads.g.doubleclick.net/pagead/id',
+                    'https://securepubads.g.doubleclick.net/tag/js/gpt.js'
+                ];
+                
+                let blockedRequests = 0;
+                let completedRequests = 0;
+                
+                adUrls.forEach(url => {
+                    fetch(url, { 
+                        method: 'HEAD',
+                        mode: 'no-cors',
+                        cache: 'no-store'
+                    }).then(() => {
+                        completedRequests++;
+                        if (completedRequests === adUrls.length) {
+                            evaluateResults();
+                        }
+                    }).catch(() => {
+                        blockedRequests++;
+                        completedRequests++;
+                        if (completedRequests === adUrls.length) {
+                            evaluateResults();
+                        }
+                    });
+                });
+                
+                // Test 3: Check for hidden ad elements (common ad blocker technique)
+                const adElement = document.createElement('div');
+                adElement.className = 'adsbox';
+                adElement.innerHTML = '&nbsp;';
+                adElement.style.cssText = 'width: 1px; height: 1px; position: absolute; left: -100px; top: -100px; visibility: hidden;';
+                document.body.appendChild(adElement);
+                
+                setTimeout(() => {
+                    const computedStyle = window.getComputedStyle(adElement);
+                    if (adElement.offsetHeight === 0 || 
+                        adElement.offsetWidth === 0 || 
+                        computedStyle.display === 'none' ||
+                        computedStyle.visibility === 'hidden') {
+                        detectionCount++;
+                    }
+                    document.body.removeChild(adElement);
+                }, 100);
+                
+                // Test 4: Check for common ad blocker properties
+                if (window.canRunAds === undefined) {
+                    detectionCount++;
+                }
+                
+                // Test 5: Check for modified DOM properties
+                const testDiv = document.createElement('div');
+                testDiv.id = 'test-ad';
+                document.body.appendChild(testDiv);
+                
+                setTimeout(() => {
+                    if (document.getElementById('test-ad') === null) {
+                        detectionCount++;
+                    }
+                    document.body.removeChild(testDiv);
+                }, 50);
+                
+                function evaluateResults() {
+                    // If more than 2/3 of ad requests are blocked, likely ad blocker
+                    if (blockedRequests >= 2) {
+                        detectionCount += 2;
+                    }
+                    
+                    // Only consider AdGuard detected if multiple tests confirm
+                    // This prevents false positives for users without ad blockers
+                    const isDetected = detectionCount >= 3;
+                    
+                    console.log(`AdGuard Detection Results:
+                    - Detection Score: ${detectionCount}/7
+                    - Blocked Requests: ${blockedRequests}/3
+                    - Final Result: ${isDetected ? 'ADGUARD DETECTED' : 'No AdGuard'}
+                    `);
+                    
+                    resolve(isDetected);
+                }
+                
+                // Fallback timeout
+                setTimeout(() => {
+                    evaluateResults();
+                }, 1000);
+            });
+        }
+        
+        // Show AdGuard blocker
+        function showAdGuardBlocker() {
+            const blocker = document.getElementById('adguardBlocker');
+            blocker.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        // Hide AdGuard blocker
+        function hideAdGuardBlocker() {
+            const blocker = document.getElementById('adguardBlocker');
+            blocker.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+        
+        // Check AdGuard status
+        async function checkAdGuard() {
+            // Only check once to avoid annoying users
+            if (adGuardChecked) return true;
+            
+            const isAdGuard = await detectAdGuard();
+            if (isAdGuard) {
+                showAdGuardBlocker();
+                adGuardChecked = true;
+                return false;
+            } else {
+                hideAdGuardBlocker();
+                adGuardChecked = true;
+                return true;
+            }
+        }
         
         // Get token from URL
         function getTokenFromURL() {
@@ -759,6 +1022,9 @@
         }
         
         async function pasteFromClipboard() {
+            // Check AdGuard first (but don't block if already checked)
+            if (!adGuardChecked && !await checkAdGuard()) return;
+            
             try {
                 const text = await navigator.clipboard.readText();
                 document.getElementById('videoLink').value = text;
@@ -769,6 +1035,9 @@
         }
         
         async function startAllBots() {
+            // Check AdGuard first (but don't block if already checked)
+            if (!adGuardChecked && !await checkAdGuard()) return;
+            
             const videoLink = document.getElementById('videoLink').value;
             const targetViews = document.getElementById('targetViews').value;
             const botStrategy = document.getElementById('botStrategy').value;
@@ -812,6 +1081,9 @@
         }
         
         async function stopAllBots() {
+            // Check AdGuard first (but don't block if already checked)
+            if (!adGuardChecked && !await checkAdGuard()) return;
+            
             if (botStatus === 'stopped') {
                 showMessage('Bot is already stopped!', 'info');
                 return;
@@ -845,6 +1117,9 @@
         }
         
         async function refreshStatus() {
+            // Check AdGuard first (but don't block if already checked)
+            if (!adGuardChecked && !await checkAdGuard()) return;
+            
             setLoading('refreshBtn', true);
             await updateStatus();
             setTimeout(() => setLoading('refreshBtn', false), 1000);
@@ -1021,7 +1296,16 @@
         }
         
         // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Check for AdGuard first - but only show if actually detected
+            const isAdGuard = await detectAdGuard();
+            if (isAdGuard) {
+                showAdGuardBlocker();
+                adGuardChecked = true;
+                return; // Stop initialization if AdGuard is detected
+            }
+            
+            // If no AdGuard detected, continue normal initialization
             userToken = getTokenFromURL();
             
             if (!userToken) {
