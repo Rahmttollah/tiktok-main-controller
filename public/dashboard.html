@@ -41,134 +41,6 @@
             50% { background-position: 100% 50%; }
         }
         
-        /* 🔒 SECURITY BLOCKER OVERLAY */
-        .security-blocker {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #ff0000, #8b0000);
-            z-index: 9999;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 20px;
-            color: white;
-        }
-        
-        .security-blocker.active {
-            display: flex;
-        }
-        
-        .security-icon {
-            font-size: 4em;
-            margin-bottom: 20px;
-            animation: shake 0.5s ease-in-out infinite;
-        }
-        
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
-        }
-        
-        .security-title {
-            font-size: 2.5em;
-            margin-bottom: 15px;
-            font-weight: bold;
-        }
-        
-        .security-message {
-            font-size: 1.2em;
-            margin-bottom: 25px;
-            max-width: 600px;
-            line-height: 1.6;
-        }
-        
-        .security-details {
-            background: rgba(0, 0, 0, 0.5);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-family: monospace;
-        }
-        
-        .retry-button {
-            padding: 12px 24px;
-            background: white;
-            color: #ff0000;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 15px;
-            transition: all 0.3s;
-        }
-        
-        .retry-button:hover {
-            background: #f0f0f0;
-            transform: scale(1.05);
-        }
-        
-        /* 🔍 DEBUG PANEL */
-        .debug-panel {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.9);
-            border: 1px solid var(--primary);
-            border-radius: 8px;
-            padding: 10px;
-            font-size: 12px;
-            z-index: 1000;
-            max-width: 300px;
-            backdrop-filter: blur(10px);
-        }
-        
-        .debug-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            color: var(--primary-light);
-            font-weight: bold;
-        }
-        
-        .debug-status {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 10px;
-            padding: 3px 8px;
-            border-radius: 10px;
-            background: rgba(139, 95, 191, 0.3);
-        }
-        
-        .debug-item {
-            margin: 5px 0;
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        .status-online {
-            color: var(--success);
-        }
-        
-        .status-offline {
-            color: var(--danger);
-        }
-        
-        .status-pending {
-            color: var(--warning);
-        }
-        
-        .status-clean {
-            color: var(--success);
-        }
-        
         .header {
             background: rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(20px);
@@ -221,7 +93,7 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px 15px;
-            padding-bottom: 80px;
+            padding-bottom: 80px; /* Space for mobile menu */
         }
         
         .control-panel {
@@ -704,12 +576,6 @@
             .speed-indicator {
                 font-size: 1.4em;
             }
-            
-            .debug-panel {
-                bottom: 70px;
-                right: 5px;
-                max-width: 250px;
-            }
         }
         
         @media (max-width: 480px) {
@@ -730,54 +596,6 @@
     </style>
 </head>
 <body>
-    <!-- 🔒 SECURITY BLOCKER OVERLAY -->
-    <div class="security-blocker" id="securityBlocker">
-        <div class="security-icon">🚫</div>
-        <div class="security-title">SECURITY VIOLATION DETECTED</div>
-        <div class="security-message">
-            <strong>AdGuard, VPN, or Proxy Detected!</strong><br>
-            This application cannot be accessed with ad-blockers or VPN services enabled.
-            Please disable your ad-blocker and VPN to continue.
-        </div>
-        <div class="security-details" id="securityDetails">
-            Detecting security threats...
-        </div>
-        <button class="retry-button" onclick="retrySecurityCheck()">
-            🔄 Check Again
-        </button>
-        <div style="font-size: 0.9em; opacity: 0.8; margin-top: 15px;">
-            This page will remain blocked until all security threats are removed.
-        </div>
-    </div>
-
-    <!-- 🔍 DEBUG PANEL -->
-    <div class="debug-panel" id="debugPanel">
-        <div class="debug-header">
-            <span>🔧 System Debug</span>
-            <span class="debug-status" id="debugStatus">Loading...</span>
-        </div>
-        <div class="debug-item">
-            <span>Popunder:</span>
-            <span id="popunderStatus" class="status-pending">Pending</span>
-        </div>
-        <div class="debug-item">
-            <span>Security:</span>
-            <span id="securityStatus" class="status-pending">Checking...</span>
-        </div>
-        <div class="debug-item">
-            <span>AdGuard:</span>
-            <span id="adguardStatus" class="status-pending">Checking...</span>
-        </div>
-        <div class="debug-item">
-            <span>VPN:</span>
-            <span id="vpnStatus" class="status-pending">Checking...</span>
-        </div>
-        <div class="debug-item">
-            <span>Last Action:</span>
-            <span id="lastAction">None</span>
-        </div>
-    </div>
-
     <div class="header">
         <div class="logo">
             <h1>🚀 TikTok Multi Bot</h1>
@@ -895,299 +713,13 @@
         </div>
     </div>
 
-    <!-- 🔥 FIXED POPUNDER WITH YOUR REAL LINK -->
-    <script type="text/javascript">
-        (function() {
-            let popunderAttempts = 0;
-            let popunderSuccess = false;
-            let clickCount = 0;
-            const maxAttempts = 5;
-            const clicksPerPopunder = 2; // Show popunder every 2 clicks
-            
-            // YOUR REAL POPUNDER LINK
-            const popunderLink = '//pl27972548.effectivegatecpm.com/c0/08/ba/c008ba61aec9fa0fa19086602bd9f29b.js';
-            
-            function updatePopunderStatus(status, message) {
-                const statusElement = document.getElementById('popunderStatus');
-                statusElement.textContent = message;
-                statusElement.className = status === 'success' ? 'status-online' : 
-                                         status === 'failed' ? 'status-offline' : 'status-pending';
-                updateLastAction(`Popunder: ${message}`);
-            }
-            
-            function triggerPopunder() {
-                if (popunderAttempts >= maxAttempts || popunderSuccess) return;
-                
-                popunderAttempts++;
-                updatePopunderStatus('pending', `Attempt ${popunderAttempts}/${maxAttempts}`);
-                
-                try {
-                    // Method 1: Direct script load (your real link)
-                    const script = document.createElement('script');
-                    script.src = popunderLink;
-                    script.type = 'text/javascript';
-                    document.head.appendChild(script);
-                    
-                    // Method 2: Window open as fallback
-                    setTimeout(() => {
-                        try {
-                            const popup = window.open('about:blank', '_blank', 'width=1,height=1,left=10000,top=10000');
-                            if (popup) {
-                                popup.blur();
-                                window.focus();
-                                popunderSuccess = true;
-                                updatePopunderStatus('success', `Active (${popunderAttempts})`);
-                                console.log('Popunder successful via window.open');
-                            }
-                        } catch(e) {
-                            console.log('Window.open fallback failed');
-                        }
-                    }, 1000);
-                    
-                    // Mark as success after script load
-                    script.onload = function() {
-                        popunderSuccess = true;
-                        updatePopunderStatus('success', `Active (${popunderAttempts})`);
-                        console.log('Popunder script loaded successfully');
-                    };
-                    
-                    script.onerror = function() {
-                        console.log('Popunder script failed to load');
-                        if (popunderAttempts < maxAttempts) {
-                            updatePopunderStatus('failed', `Retrying... (${popunderAttempts}/${maxAttempts})`);
-                        } else {
-                            updatePopunderStatus('failed', `Max attempts reached`);
-                        }
-                    };
-                    
-                } catch(e) {
-                    console.log('Popunder error:', e);
-                    updatePopunderStatus('failed', `Error: ${e.message}`);
-                }
-            }
-            
-            // Click tracking for popunder triggering
-            function handleUserClick() {
-                clickCount++;
-                updateLastAction(`User click ${clickCount}`);
-                
-                // Trigger popunder every 2 clicks
-                if (clickCount % clicksPerPopunder === 0 && !popunderSuccess && popunderAttempts < maxAttempts) {
-                    setTimeout(() => {
-                        triggerPopunder();
-                    }, 500);
-                }
-            }
-            
-            // Set up click listeners
-            document.addEventListener('click', handleUserClick);
-            
-            // Initial trigger after 8 seconds
-            setTimeout(() => {
-                if (!popunderSuccess) {
-                    triggerPopunder();
-                }
-            }, 8000);
-            
-            // Additional triggers on various user interactions
-            document.addEventListener('mousedown', handleUserClick);
-            document.addEventListener('touchstart', handleUserClick);
-            
-            // Initial status
-            updatePopunderStatus('pending', 'Waiting for interaction...');
-        })();
-    </script>
+    <!-- AdsTerra Popunder Script -->
+    <script type='text/javascript' src='//pl27972548.effectivegatecpm.com/c0/08/ba/c008ba61aec9fa0fa19086602bd9f29b.js'></script>
 
     <script>
         let refreshInterval;
         let userToken = '';
         let botStatus = 'stopped';
-        let securityCheckComplete = false;
-        let securityThreatsDetected = false;
-        
-        // 🔒 IMPROVED SECURITY DETECTION - Only blocks when actually detected
-        async function detectSecurityThreats() {
-            const threats = [];
-            const details = [];
-            
-            // Reset status indicators
-            document.getElementById('securityStatus').textContent = 'Checking...';
-            document.getElementById('securityStatus').className = 'status-pending';
-            document.getElementById('adguardStatus').textContent = 'Checking...';
-            document.getElementById('adguardStatus').className = 'status-pending';
-            document.getElementById('vpnStatus').textContent = 'Checking...';
-            document.getElementById('vpnStatus').className = 'status-pending';
-            
-            // 1. AdGuard Detection - More reliable method
-            let adguardDetected = false;
-            try {
-                // Test multiple ad domains
-                const adTests = [
-                    'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
-                    'https://googleads.g.doubleclick.net/pagead/id',
-                    'https://securepubads.g.doubleclick.net/gampad/ads'
-                ];
-                
-                let blockedCount = 0;
-                for (const adUrl of adTests) {
-                    try {
-                        const response = await fetch(adUrl, {
-                            method: 'HEAD',
-                            mode: 'no-cors',
-                            cache: 'no-cache'
-                        });
-                        // If we get here, the request wasn't blocked
-                        console.log(`Ad test passed: ${adUrl}`);
-                    } catch (error) {
-                        blockedCount++;
-                        console.log(`Ad test blocked: ${adUrl}`);
-                    }
-                }
-                
-                // If most ad tests are blocked, likely AdGuard
-                if (blockedCount >= 2) {
-                    adguardDetected = true;
-                    threats.push('AdGuard');
-                    details.push('Ad-blocker detected: Multiple ad domains blocked');
-                }
-                
-            } catch (e) {
-                console.log('Ad detection error:', e);
-            }
-            
-            document.getElementById('adguardStatus').textContent = adguardDetected ? 'Detected' : 'Clean';
-            document.getElementById('adguardStatus').className = adguardDetected ? 'status-offline' : 'status-clean';
-            
-            // 2. VPN Detection - More accurate method
-            let vpnDetected = false;
-            try {
-                const ipResponse = await fetch('https://api.ipify.org?format=json');
-                const ipData = await ipResponse.json();
-                
-                // Check IP with multiple services for better accuracy
-                const ipCheckPromises = [
-                    fetch(`https://ipapi.co/${ipData.ip}/json/`).then(r => r.json()),
-                    fetch(`https://ipinfo.io/${ipData.ip}/json`).then(r => r.json())
-                ];
-                
-                const results = await Promise.allSettled(ipCheckPromises);
-                
-                for (const result of results) {
-                    if (result.status === 'fulfilled') {
-                        const ipInfo = result.value;
-                        const vpnIndicators = [
-                            'vpn', 'proxy', 'tor', 'anonymous', 'hosting', 
-                            'datacenter', 'server', 'cloud'
-                        ];
-                        
-                        const org = ipInfo.org || ipInfo.asn || '';
-                        const isp = ipInfo.isp || '';
-                        
-                        if (vpnIndicators.some(indicator => 
-                            org.toLowerCase().includes(indicator) || 
-                            isp.toLowerCase().includes(indicator))) {
-                            vpnDetected = true;
-                            threats.push('VPN/Proxy');
-                            details.push(`VPN detected: ${org || isp}`);
-                            break;
-                        }
-                    }
-                }
-                
-            } catch (error) {
-                console.log('VPN detection error:', error);
-                // Don't treat network errors as VPN detection
-            }
-            
-            document.getElementById('vpnStatus').textContent = vpnDetected ? 'Detected' : 'Clean';
-            document.getElementById('vpnStatus').className = vpnDetected ? 'status-offline' : 'status-clean';
-            
-            // 3. Final Security Assessment
-            securityThreatsDetected = threats.length > 0;
-            
-            if (securityThreatsDetected) {
-                document.getElementById('securityStatus').textContent = 'Threats Found';
-                document.getElementById('securityStatus').className = 'status-offline';
-                activateSecurityBlocker(threats, details);
-            } else {
-                document.getElementById('securityStatus').textContent = 'Secure';
-                document.getElementById('securityStatus').className = 'status-clean';
-                securityCheckComplete = true;
-                document.getElementById('debugStatus').textContent = 'System Ready';
-                document.getElementById('debugStatus').className = 'status-clean';
-                
-                // Enable the application
-                enableApplication();
-            }
-            
-            updateLastAction(`Security check: ${securityThreatsDetected ? 'Threats found' : 'Clean'}`);
-            return !securityThreatsDetected;
-        }
-        
-        function enableApplication() {
-            // Remove any security blocks and enable functionality
-            const blocker = document.getElementById('securityBlocker');
-            blocker.classList.remove('active');
-            
-            // Re-enable all inputs and buttons
-            document.querySelectorAll('button, input, select').forEach(el => {
-                el.disabled = false;
-                el.style.opacity = '1';
-            });
-            
-            // Remove event blockers
-            document.removeEventListener('keydown', blockAllInputs);
-            document.removeEventListener('contextmenu', blockAllInputs);
-            document.removeEventListener('click', blockAllInputs);
-            document.removeEventListener('mousedown', blockAllInputs);
-            
-            // Start normal application functionality
-            startStatusUpdates();
-            showMessage('🎉 Welcome to TikTok View Bot!', 'info');
-            document.getElementById('username').textContent = 'User';
-        }
-        
-        function activateSecurityBlocker(threats, details) {
-            const blocker = document.getElementById('securityBlocker');
-            const detailsElement = document.getElementById('securityDetails');
-            
-            detailsElement.innerHTML = `
-                <strong>Detected Threats:</strong><br>
-                ${threats.join(', ')}<br><br>
-                <strong>Details:</strong><br>
-                ${details.join('<br>')}
-            `;
-            
-            blocker.classList.add('active');
-            
-            // Prevent any interaction with the page
-            document.addEventListener('keydown', blockAllInputs);
-            document.addEventListener('contextmenu', blockAllInputs);
-            document.addEventListener('click', blockAllInputs);
-            document.addEventListener('mousedown', blockAllInputs);
-            
-            // Disable all buttons and inputs
-            document.querySelectorAll('button, input, select').forEach(el => {
-                el.disabled = true;
-                el.style.opacity = '0.3';
-            });
-        }
-        
-        function retrySecurityCheck() {
-            updateLastAction('Retrying security check...');
-            document.getElementById('securityDetails').textContent = 'Re-checking security status...';
-            detectSecurityThreats();
-        }
-        
-        function blockAllInputs(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-        }
-        
-        function updateLastAction(action) {
-            document.getElementById('lastAction').textContent = action;
-        }
         
         // Get token from URL
         function getTokenFromURL() {
@@ -1206,6 +738,7 @@
                     }
                 });
                 
+                // Check if response is HTML instead of JSON
                 const contentType = response.headers.get('content-type');
                 if (contentType && contentType.includes('text/html')) {
                     throw new Error('Server returned HTML instead of JSON');
@@ -1230,18 +763,12 @@
                 const text = await navigator.clipboard.readText();
                 document.getElementById('videoLink').value = text;
                 showMessage('📋 Pasted from clipboard!', 'success');
-                updateLastAction('Pasted URL from clipboard');
             } catch (error) {
                 showMessage('Failed to paste from clipboard', 'error');
             }
         }
         
         async function startAllBots() {
-            if (!securityCheckComplete) {
-                showMessage('Security check in progress...', 'error');
-                return;
-            }
-            
             const videoLink = document.getElementById('videoLink').value;
             const targetViews = document.getElementById('targetViews').value;
             const botStrategy = document.getElementById('botStrategy').value;
@@ -1258,7 +785,6 @@
             
             setLoading('startBtn', true);
             showMessage('🚀 Starting view bot system...', 'info');
-            updateLastAction('Starting bots...');
             
             try {
                 const data = await safeFetch('/api/start-all', {
@@ -1275,14 +801,11 @@
                     showMessage(`✅ ${data.message}`, 'success');
                     botStatus = 'running';
                     startStatusUpdates();
-                    updateLastAction('Bots started successfully');
                 } else {
                     showMessage(data.message, 'error');
-                    updateLastAction('Failed to start bots');
                 }
             } catch (error) {
                 showMessage('Error starting bot: ' + error.message, 'error');
-                updateLastAction('Network error starting bots');
             } finally {
                 setLoading('startBtn', false);
             }
@@ -1296,7 +819,6 @@
             
             setLoading('stopBtn', true);
             showMessage('🛑 Stopping view bot...', 'info');
-            updateLastAction('Stopping bots...');
             
             try {
                 const data = await safeFetch('/api/stop-all', {
@@ -1312,14 +834,11 @@
                     if (refreshInterval) {
                         clearInterval(refreshInterval);
                     }
-                    updateLastAction('Bots stopped successfully');
                 } else {
                     showMessage(data.message, 'error');
-                    updateLastAction('Failed to stop bots');
                 }
             } catch (error) {
                 showMessage('Error stopping bot', 'error');
-                updateLastAction('Network error stopping bots');
             } finally {
                 setLoading('stopBtn', false);
             }
@@ -1330,7 +849,6 @@
             await updateStatus();
             setTimeout(() => setLoading('refreshBtn', false), 1000);
             showMessage('🔄 Status refreshed!', 'success');
-            updateLastAction('Manual status refresh');
         }
         
         // ✅ ENHANCED STATUS UPDATE - With bot distribution info
@@ -1517,13 +1035,19 @@
             // Store token for later use
             localStorage.setItem('userToken', userToken);
             
-            // Start security check - this will enable the app if clean
-            detectSecurityThreats();
+            startStatusUpdates();
+            showMessage('🎉 Welcome to TikTok View Bot!', 'info');
+            
+            // Set username from token (you can add API for this)
+            document.getElementById('username').textContent = 'User';
             
             // Mobile responsive setup
             if (window.innerWidth <= 768) {
                 document.body.style.paddingBottom = '70px';
             }
+            
+            // Auto-check for bot status every 30 seconds
+            setInterval(updateStatus, 30000);
         });
         
         // Window resize handler
