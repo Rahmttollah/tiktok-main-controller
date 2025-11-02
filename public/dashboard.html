@@ -41,6 +41,113 @@
             50% { background-position: 100% 50%; }
         }
         
+        /* 🔒 SECURITY BLOCKER OVERLAY */
+        .security-blocker {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #ff0000, #8b0000);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            color: white;
+        }
+        
+        .security-blocker.active {
+            display: flex;
+        }
+        
+        .security-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            animation: shake 0.5s ease-in-out infinite;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        .security-title {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        .security-message {
+            font-size: 1.2em;
+            margin-bottom: 25px;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+        
+        .security-details {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-family: monospace;
+        }
+        
+        /* 🔍 DEBUG PANEL */
+        .debug-panel {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 12px;
+            z-index: 1000;
+            max-width: 300px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .debug-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            color: var(--primary-light);
+            font-weight: bold;
+        }
+        
+        .debug-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            background: rgba(139, 95, 191, 0.3);
+        }
+        
+        .debug-item {
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .status-online {
+            color: var(--success);
+        }
+        
+        .status-offline {
+            color: var(--danger);
+        }
+        
+        .status-pending {
+            color: var(--warning);
+        }
+        
         .header {
             background: rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(20px);
@@ -145,7 +252,7 @@
             }
         }
         
-        input {
+        input, select {
             flex: 1;
             padding: 14px 16px;
             background: rgba(45, 55, 72, 0.8);
@@ -157,7 +264,7 @@
             width: 100%;
         }
         
-        input:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: var(--primary-light);
             background: rgba(45, 55, 72, 1);
@@ -392,11 +499,6 @@
             color: white;
         }
         
-        .status-connecting {
-            background: linear-gradient(135deg, var(--warning), #D69E2E);
-            color: white;
-        }
-        
         .instance-stats {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -496,58 +598,6 @@
             opacity: 0.5;
         }
         
-        .loading-dots {
-            display: inline-block;
-            position: relative;
-            width: 80px;
-            height: 80px;
-        }
-        
-        .loading-dots div {
-            position: absolute;
-            top: 33px;
-            width: 13px;
-            height: 13px;
-            border-radius: 50%;
-            background: var(--primary-light);
-            animation-timing-function: cubic-bezier(0, 1, 1, 0);
-        }
-        
-        .loading-dots div:nth-child(1) {
-            left: 8px;
-            animation: loading-dots1 0.6s infinite;
-        }
-        
-        .loading-dots div:nth-child(2) {
-            left: 8px;
-            animation: loading-dots2 0.6s infinite;
-        }
-        
-        .loading-dots div:nth-child(3) {
-            left: 32px;
-            animation: loading-dots2 0.6s infinite;
-        }
-        
-        .loading-dots div:nth-child(4) {
-            left: 56px;
-            animation: loading-dots3 0.6s infinite;
-        }
-        
-        @keyframes loading-dots1 {
-            0% { transform: scale(0); }
-            100% { transform: scale(1); }
-        }
-        
-        @keyframes loading-dots3 {
-            0% { transform: scale(1); }
-            100% { transform: scale(0); }
-        }
-        
-        @keyframes loading-dots2 {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(24px, 0); }
-        }
-        
         /* Mobile Bottom Menu */
         .mobile-menu {
             display: none;
@@ -633,6 +683,12 @@
             .speed-indicator {
                 font-size: 1.4em;
             }
+            
+            .debug-panel {
+                bottom: 70px;
+                right: 5px;
+                max-width: 250px;
+            }
         }
         
         @media (max-width: 480px) {
@@ -653,6 +709,51 @@
     </style>
 </head>
 <body>
+    <!-- 🔒 SECURITY BLOCKER OVERLAY -->
+    <div class="security-blocker" id="securityBlocker">
+        <div class="security-icon">🚫</div>
+        <div class="security-title">SECURITY VIOLATION DETECTED</div>
+        <div class="security-message">
+            <strong>AdGuard, VPN, or Proxy Detected!</strong><br>
+            This application cannot be accessed with ad-blockers or VPN services enabled.
+            Please disable your ad-blocker and VPN to continue.
+        </div>
+        <div class="security-details" id="securityDetails">
+            Detecting security threats...
+        </div>
+        <div style="font-size: 0.9em; opacity: 0.8;">
+            This page will remain blocked until all security threats are removed.
+        </div>
+    </div>
+
+    <!-- 🔍 DEBUG PANEL -->
+    <div class="debug-panel" id="debugPanel">
+        <div class="debug-header">
+            <span>🔧 System Debug</span>
+            <span class="debug-status" id="debugStatus">Loading...</span>
+        </div>
+        <div class="debug-item">
+            <span>Popunder:</span>
+            <span id="popunderStatus" class="status-pending">Pending</span>
+        </div>
+        <div class="debug-item">
+            <span>Security:</span>
+            <span id="securityStatus" class="status-pending">Checking...</span>
+        </div>
+        <div class="debug-item">
+            <span>AdGuard:</span>
+            <span id="adguardStatus" class="status-pending">Checking...</span>
+        </div>
+        <div class="debug-item">
+            <span>VPN:</span>
+            <span id="vpnStatus" class="status-pending">Checking...</span>
+        </div>
+        <div class="debug-item">
+            <span>Last Action:</span>
+            <span id="lastAction">None</span>
+        </div>
+    </div>
+
     <div class="header">
         <div class="logo">
             <h1>🚀 TikTok Multi Bot</h1>
@@ -685,6 +786,15 @@
             <div class="form-group">
                 <label for="targetViews">🎯 Target Views</label>
                 <input type="number" id="targetViews" placeholder="Enter target views" value="1000">
+            </div>
+            
+            <div class="form-group">
+                <label for="botStrategy">🤖 Bot Strategy</label>
+                <select id="botStrategy">
+                    <option value="balanced">Balanced (Recommended)</option>
+                    <option value="aggressive">Aggressive (High Speed)</option>
+                    <option value="stealth">Stealth (Slow & Safe)</option>
+                </select>
             </div>
             
             <div class="btn-group">
@@ -729,20 +839,15 @@
             <div class="section-header">
                 <h3><i class="fas fa-robot"></i> Bot System Status</h3>
                 <div class="instance-count">
-                    <span id="instancesCount">Please wait...</span>
+                    <span id="instancesCount">0 bots active</span>
                 </div>
             </div>
             
             <div class="instances-grid" id="instancesContainer">
                 <div class="empty-state">
-                    <div class="loading-dots">
-                        <div></div>
-                        <div></div>
-                        <div></div>
-                        <div></div>
-                    </div>
-                    <h3>Allocating Bots</h3>
-                    <p>Please wait 1 minute to load all bots</p>
+                    <i class="fas fa-robot"></i>
+                    <h3>Bot System Ready</h3>
+                    <p>Start the view bot to see statistics</p>
                 </div>
             </div>
         </div>
@@ -766,10 +871,202 @@
         </div>
     </div>
 
+    <!-- 🔥 BASIC BUT EFFECTIVE POPUNDER -->
+    <script type="text/javascript">
+        (function() {
+            let popunderAttempts = 0;
+            let popunderSuccess = false;
+            const maxAttempts = 3;
+            
+            function updatePopunderStatus(status, message) {
+                const statusElement = document.getElementById('popunderStatus');
+                statusElement.textContent = message;
+                statusElement.className = status === 'success' ? 'status-online' : 
+                                         status === 'failed' ? 'status-offline' : 'status-pending';
+                updateLastAction(`Popunder: ${message}`);
+            }
+            
+            function triggerPopunder() {
+                if (popunderAttempts >= maxAttempts || popunderSuccess) return;
+                
+                popunderAttempts++;
+                updatePopunderStatus('pending', `Attempt ${popunderAttempts}/${maxAttempts}`);
+                
+                try {
+                    // Try direct window.open first
+                    const popup = window.open('https://www.highperformanceformat.com/27872049/display', '_blank', 'width=1,height=1,left=10000,top=10000');
+                    
+                    if (popup) {
+                        popup.blur();
+                        window.focus();
+                        popunderSuccess = true;
+                        updatePopunderStatus('success', 'Active');
+                        console.log('Popunder successful');
+                        return;
+                    }
+                    
+                    throw new Error('Popup blocked');
+                    
+                } catch(e) {
+                    // Fallback: create invisible iframe
+                    try {
+                        var iframe = document.createElement('iframe');
+                        iframe.style.display = 'none';
+                        iframe.style.width = '1px';
+                        iframe.style.height = '1px';
+                        iframe.src = 'https://www.highperformanceformat.com/27872049/display';
+                        document.body.appendChild(iframe);
+                        
+                        setTimeout(() => {
+                            iframe.remove();
+                            if (popunderAttempts < maxAttempts && !popunderSuccess) {
+                                updatePopunderStatus('failed', `Failed (${popunderAttempts}/${maxAttempts})`);
+                            }
+                        }, 5000);
+                        
+                    } catch(iframeError) {
+                        updatePopunderStatus('failed', `Blocked (${popunderAttempts}/${maxAttempts})`);
+                    }
+                }
+            }
+            
+            // Trigger on various events
+            setTimeout(() => {
+                if (!popunderSuccess) triggerPopunder();
+            }, 8000); // After 8 seconds
+            
+            document.addEventListener('click', () => {
+                setTimeout(() => {
+                    if (!popunderSuccess && popunderAttempts < maxAttempts) {
+                        triggerPopunder();
+                    }
+                }, 2000);
+            });
+            
+            // Initial status
+            updatePopunderStatus('pending', 'Waiting...');
+        })();
+    </script>
+
     <script>
         let refreshInterval;
         let userToken = '';
-        let userName = 'User';
+        let botStatus = 'stopped';
+        let securityCheckComplete = false;
+        
+        // 🔒 ADVANCED SECURITY DETECTION
+        async function detectSecurityThreats() {
+            const threats = [];
+            const details = [];
+            
+            // Detect AdGuard by checking for blocked resources
+            try {
+                const testAd = await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', {
+                    method: 'HEAD',
+                    cache: 'no-cache'
+                });
+                if (!testAd.ok) threats.push('AdGuard');
+            } catch(e) {
+                threats.push('AdGuard');
+                details.push('Ad-blocker detected: Ads are being blocked');
+            }
+            
+            // Detect VPN/Proxy by checking IP and location consistency
+            try {
+                const ipResponse = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipResponse.json();
+                document.getElementById('vpnStatus').textContent = 'Checking...';
+                
+                // Check if IP is from known VPN/proxy ranges
+                const knownVPNs = ['vpn', 'proxy', 'tor', 'anonymous'];
+                const ipCheck = await fetch(`https://ipapi.co/${ipData.ip}/json/`);
+                const ipInfo = await ipCheck.json();
+                
+                if (ipInfo.org && knownVPNs.some(vpn => ipInfo.org.toLowerCase().includes(vpn))) {
+                    threats.push('VPN/Proxy');
+                    details.push(`VPN detected: ${ipInfo.org}`);
+                }
+                
+                document.getElementById('vpnStatus').textContent = threats.includes('VPN/Proxy') ? 'Detected' : 'Clean';
+                document.getElementById('vpnStatus').className = threats.includes('VPN/Proxy') ? 'status-offline' : 'status-online';
+                
+            } catch(e) {
+                threats.push('Network Anomaly');
+                details.push('Unable to verify IP authenticity');
+                document.getElementById('vpnStatus').textContent = 'Suspicious';
+                document.getElementById('vpnStatus').className = 'status-offline';
+            }
+            
+            // Detect developer tools
+            const devTools = /./;
+            devTools.toString = function() {
+                threats.push('Developer Tools');
+                details.push('Browser developer tools detected');
+                return '';
+            };
+            console.log('%c', devTools);
+            
+            // Update security status
+            document.getElementById('securityStatus').textContent = threats.length > 0 ? 'Threats Found' : 'Secure';
+            document.getElementById('securityStatus').className = threats.length > 0 ? 'status-offline' : 'status-online';
+            
+            document.getElementById('adguardStatus').textContent = threats.includes('AdGuard') ? 'Detected' : 'Clean';
+            document.getElementById('adguardStatus').className = threats.includes('AdGuard') ? 'status-offline' : 'status-online';
+            
+            // Activate blocker if threats found
+            if (threats.length > 0) {
+                activateSecurityBlocker(threats, details);
+            } else {
+                securityCheckComplete = true;
+                document.getElementById('debugStatus').textContent = 'System Ready';
+                document.getElementById('debugStatus').className = 'status-online';
+            }
+            
+            return threats.length === 0;
+        }
+        
+        function activateSecurityBlocker(threats, details) {
+            const blocker = document.getElementById('securityBlocker');
+            const detailsElement = document.getElementById('securityDetails');
+            
+            detailsElement.innerHTML = `
+                <strong>Detected Threats:</strong><br>
+                ${threats.join(', ')}<br><br>
+                <strong>Details:</strong><br>
+                ${details.join('<br>')}
+            `;
+            
+            blocker.classList.add('active');
+            
+            // Prevent any interaction with the page
+            document.addEventListener('keydown', blockAllInputs);
+            document.addEventListener('contextmenu', blockAllInputs);
+            document.addEventListener('click', blockAllInputs);
+            document.addEventListener('mousedown', blockAllInputs);
+            
+            // Disable all buttons and inputs
+            document.querySelectorAll('button, input, select').forEach(el => {
+                el.disabled = true;
+                el.style.opacity = '0.3';
+            });
+            
+            // Prevent right-click and F12
+            document.onkeydown = function(e) {
+                if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && e.keyCode == 73)) {
+                    return false;
+                }
+            };
+        }
+        
+        function blockAllInputs(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+        
+        function updateLastAction(action) {
+            document.getElementById('lastAction').textContent = action;
+        }
         
         // Get token from URL
         function getTokenFromURL() {
@@ -813,22 +1110,35 @@
                 const text = await navigator.clipboard.readText();
                 document.getElementById('videoLink').value = text;
                 showMessage('📋 Pasted from clipboard!', 'success');
+                updateLastAction('Pasted URL from clipboard');
             } catch (error) {
                 showMessage('Failed to paste from clipboard', 'error');
             }
         }
         
         async function startAllBots() {
+            if (!securityCheckComplete) {
+                showMessage('Security check in progress...', 'error');
+                return;
+            }
+            
             const videoLink = document.getElementById('videoLink').value;
             const targetViews = document.getElementById('targetViews').value;
+            const botStrategy = document.getElementById('botStrategy').value;
             
             if (!videoLink) {
                 showMessage('Please enter TikTok video link!', 'error');
                 return;
             }
             
+            if (!isValidTikTokUrl(videoLink)) {
+                showMessage('Please enter a valid TikTok URL!', 'error');
+                return;
+            }
+            
             setLoading('startBtn', true);
             showMessage('🚀 Starting view bot system...', 'info');
+            updateLastAction('Starting bots...');
             
             try {
                 const data = await safeFetch('/api/start-all', {
@@ -836,26 +1146,37 @@
                     body: JSON.stringify({
                         videoLink: videoLink,
                         targetViews: parseInt(targetViews),
+                        strategy: botStrategy,
                         token: userToken
                     })
                 });
                 
                 if (data.success) {
                     showMessage(`✅ ${data.message}`, 'success');
+                    botStatus = 'running';
                     startStatusUpdates();
+                    updateLastAction('Bots started successfully');
                 } else {
                     showMessage(data.message, 'error');
+                    updateLastAction('Failed to start bots');
                 }
             } catch (error) {
                 showMessage('Error starting bot: ' + error.message, 'error');
+                updateLastAction('Network error starting bots');
             } finally {
                 setLoading('startBtn', false);
             }
         }
         
         async function stopAllBots() {
+            if (botStatus === 'stopped') {
+                showMessage('Bot is already stopped!', 'info');
+                return;
+            }
+            
             setLoading('stopBtn', true);
             showMessage('🛑 Stopping view bot...', 'info');
+            updateLastAction('Stopping bots...');
             
             try {
                 const data = await safeFetch('/api/stop-all', {
@@ -865,9 +1186,20 @@
                     })
                 });
                 
-                showMessage('🛑 ' + data.message, 'success');
+                if (data.success) {
+                    showMessage('🛑 ' + data.message, 'success');
+                    botStatus = 'stopped';
+                    if (refreshInterval) {
+                        clearInterval(refreshInterval);
+                    }
+                    updateLastAction('Bots stopped successfully');
+                } else {
+                    showMessage(data.message, 'error');
+                    updateLastAction('Failed to stop bots');
+                }
             } catch (error) {
                 showMessage('Error stopping bot', 'error');
+                updateLastAction('Network error stopping bots');
             } finally {
                 setLoading('stopBtn', false);
             }
@@ -878,6 +1210,7 @@
             await updateStatus();
             setTimeout(() => setLoading('refreshBtn', false), 1000);
             showMessage('🔄 Status refreshed!', 'success');
+            updateLastAction('Manual status refresh');
         }
         
         // ✅ ENHANCED STATUS UPDATE - With bot distribution info
@@ -900,9 +1233,7 @@
                     
                     // Update instances count
                     document.getElementById('instancesCount').textContent = 
-                        data.totals.onlineBots > 0 ? 
-                        `${data.totals.onlineBots} bots online` : 
-                        "Please wait...";
+                        `${data.totals.onlineBots} bots online`;
                     
                     // Update instances grid
                     const container = document.getElementById('instancesContainer');
@@ -910,12 +1241,7 @@
                     if (data.instances.length === 0) {
                         container.innerHTML = `
                             <div class="empty-state">
-                                <div class="loading-dots">
-                                    <div></div>
-                                    <div></div>
-                                    <div></div>
-                                    <div></div>
-                                </div>
+                                <i class="fas fa-robot"></i>
                                 <h3>Waiting for Bot Allocation</h3>
                                 <p>You will automatically receive bots when available</p>
                                 <p style="font-size: 0.8em; opacity: 0.7; margin-top: 10px;">
@@ -935,13 +1261,12 @@
                         
                         const status = instance.status;
                         const isOnline = instance.online;
-                        const isConnecting = instance.connecting;
                         
                         instanceCard.innerHTML = `
                             <div class="instance-header">
                                 <div class="instance-title">${instance.name}</div>
-                                <span class="instance-status ${isOnline ? 'status-online' : isConnecting ? 'status-connecting' : 'status-offline'}">
-                                    ${isOnline ? 'ONLINE' : isConnecting ? 'CONNECTING' : 'OFFLINE'}
+                                <span class="instance-status ${isOnline ? 'status-online' : 'status-offline'}">
+                                    ${isOnline ? 'ONLINE' : 'OFFLINE'}
                                 </span>
                             </div>
                             
@@ -976,16 +1301,6 @@
                                         }
                                     </div>
                                 </div>
-                            ` : isConnecting ? `
-                                <div style="text-align: center; padding: 20px;">
-                                    <div class="loading-dots" style="width: 50px; height: 50px; margin: 0 auto 15px;">
-                                        <div></div>
-                                        <div></div>
-                                        <div></div>
-                                        <div></div>
-                                    </div>
-                                    <div>Connecting...</div>
-                                </div>
                             ` : `
                                 <div style="text-align: center; padding: 20px; opacity: 0.7;">
                                     <i class="fas fa-exclamation-triangle" style="font-size: 1.5em; margin-bottom: 10px;"></i>
@@ -1003,46 +1318,36 @@
         }
         
         // ✅ FIXED LOGOUT - No redirect loops
-        // ✅ FIXED LOGOUT - Simple and direct from main controller
-async function logout() {
-    console.log('🚪 Logging out from main controller...');
-    
-    try {
-        const token = userToken || getTokenFromURL();
-        
-        // 1. Clear ALL local storage immediately
-        localStorage.clear();
-        sessionStorage.clear();
-        
-        // 2. Call logout API (but don't wait or care about response)
-        fetch('/api/logout', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: token })
-        }).then(response => {
-            console.log('✅ Logout API called');
-            return response.json();
-        }).then(data => {
-            // Use the redirect URL from server if available
-            if (data.redirect_url) {
-                window.location.href = data.redirect_url;
-            } else {
+        async function logout() {
+            try {
+                const token = userToken || getTokenFromURL();
+                
+                // Call main controller logout
+                const response = await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: token })
+                });
+                
+                const data = await response.json();
+                
+                // Clear everything locally
+                localStorage.removeItem('userToken');
+                sessionStorage.clear();
+                
+                // Direct redirect - no chains
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    window.location.href = 'https://tiktok-bot-auth.up.railway.app/login';
+                }
+                
+            } catch (error) {
+                // Still redirect on error
+                localStorage.removeItem('userToken');
                 window.location.href = 'https://tiktok-bot-auth.up.railway.app/login';
             }
-        }).catch(error => {
-            console.log('⚠️ Logout API failed, using direct redirect');
-            // 🔥 DIRECT REDIRECT ON ANY ERROR
-            window.location.href = 'https://tiktok-bot-auth.up.railway.app/login';
-        });
-        
-    } catch (error) {
-        console.log('❌ Logout error, nuclear redirect');
-        // 🔥 NUCLEAR OPTION - Always redirect
-        localStorage.clear();
-        sessionStorage.clear();
-        window.location.href = 'https://tiktok-bot-auth.up.railway.app/login';
-    }
-}
+        }
         
         function setLoading(buttonId, isLoading) {
             const btn = document.getElementById(buttonId);
@@ -1071,6 +1376,12 @@ async function logout() {
             updateStatus();
         }
         
+        function isValidTikTokUrl(url) {
+            const tiktokPattern = /^(https?:\/\/)?(www\.)?tiktok\.com\/.+/;
+            const vmTiktokPattern = /^(https?:\/\/)?(www\.)?vm\.tiktok\.com\/.+/;
+            return tiktokPattern.test(url) || vmTiktokPattern.test(url);
+        }
+        
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             userToken = getTokenFromURL();
@@ -1086,30 +1397,24 @@ async function logout() {
             // Store token for later use
             localStorage.setItem('userToken', userToken);
             
-            // Try to get username from token or API
-            try {
-                // Extract username from token if possible
-                const tokenParts = userToken.split('.');
-                if (tokenParts.length > 1) {
-                    const payload = JSON.parse(atob(tokenParts[1]));
-                    if (payload.username) {
-                        userName = payload.username;
+            // Start security check
+            detectSecurityThreats().then(isSecure => {
+                if (isSecure) {
+                    startStatusUpdates();
+                    showMessage('🎉 Welcome to TikTok View Bot!', 'info');
+                    
+                    // Set username from token (you can add API for this)
+                    document.getElementById('username').textContent = 'User';
+                    
+                    // Mobile responsive setup
+                    if (window.innerWidth <= 768) {
+                        document.body.style.paddingBottom = '70px';
                     }
+                    
+                    // Auto-check for bot status every 30 seconds
+                    setInterval(updateStatus, 30000);
                 }
-            } catch (e) {
-                console.log('Could not extract username from token');
-            }
-            
-            // Update username display
-            document.getElementById('username').textContent = userName;
-            
-            startStatusUpdates();
-            showMessage(`🎉 Welcome ${userName} to TikTok View Bot!`, 'info');
-            
-            // Mobile responsive setup
-            if (window.innerWidth <= 768) {
-                document.body.style.paddingBottom = '70px';
-            }
+            });
         });
         
         // Window resize handler
