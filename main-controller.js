@@ -120,28 +120,32 @@ app.get('/dashboard', async (req, res) => {
 });
 
 // ✅ FIXED LOGOUT - Simple and effective
+// ✅ ENHANCED LOGOUT - Clear everything properly
 app.post('/api/logout', async (req, res) => {
     try {
         const token = req.body.token;
         
+        console.log('🔒 Main controller logout - clearing everything');
+        
         // Notify auth server about logout
         if (token) {
-            axios.post(`${AUTH_SERVER_URL}/api/global-logout`, {
+            await axios.post(`${AUTH_SERVER_URL}/api/global-logout`, {
                 token: token
             }, { timeout: 3000 }).catch(err => {
-                // Ignore errors
+                console.log('⚠️ Auth logout failed, continuing...');
             });
         }
         
         res.json({ 
             success: true, 
             message: 'Logged out successfully',
-            redirect_url: `${AUTH_SERVER_URL}/login?message=logged_out`
+            redirect_url: `${AUTH_SERVER_URL}/login?message=logout_clean&force=true`
         });
     } catch (error) {
+        console.log('❌ Logout error, forcing clean redirect');
         res.json({ 
             success: true, 
-            redirect_url: `${AUTH_SERVER_URL}/login`
+            redirect_url: `${AUTH_SERVER_URL}/login?force=true`
         });
     }
 });
