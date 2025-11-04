@@ -636,8 +636,12 @@ function resolveShortUrl(shortCode) {
 
 // ✅ COMPLETE: Start Video Monitoring with Auto-Restart
 // ✅ REAL VIEWS LOCK MODE - Never stop until target is hit or manual stop
-function startVideoMonitoring(videoId, targetViews, originalVideoLink) {
-    console.log(`🔒 REAL VIEWS LOCK: Monitoring ${videoId} until ${targetViews} real views reached`);
+// ✅ BOT TARGET COMPLETE KARE, LEKIN REAL VIEWS KAM HAI? RESTART KARO BAR-BAR
+function startVideoMonitoring(videoId, userTarget, originalVideoLink, startViews) {
+    const finalRealTarget = startViews + userTarget;
+    let lastRealViews = startViews;
+
+    console.log(`🎯 BOT SENT TARGET: +${userTarget} | REAL START: ${startViews} | REAL TARGET: ${finalRealTarget}`);
 
     const checkInterval = setInterval(async () => {
         try {
@@ -649,33 +653,27 @@ function startVideoMonitoring(videoId, targetViews, originalVideoLink) {
 
             const job = global.runningJobs[videoId];
 
-            // ✅ Get REAL views from TikTok
+            // ✅ REAL VIEWS CHECK KARO
             const currentStats = await getTikTokVideoStats({ id: videoId, type: 'MONITORING' });
-            const currentViews = currentStats.views;
-            const progress = currentViews - job.startViews;
+            const currentRealViews = currentStats.views;
 
-            console.log(`📊 REAL VIEWS: ${currentViews} | Target: ${targetViews} | Progress: ${progress}`);
+            console.log(`📊 REAL VIEWS NOW: ${currentRealViews} | TARGET: ${finalRealTarget}`);
 
-            job.currentViews = currentViews;
-            job.progress = progress;
-            job.remaining = targetViews - currentViews;
-
-            // ✅ TARGET REACHED?
-            if (currentViews >= targetViews) {
-                console.log(`🎯 TARGET REACHED! Real views: ${currentViews}`);
+            // ✅ AGAR REAL VIEWS TARGET KO TOUCH KIYA → STOP
+            if (currentRealViews >= finalRealTarget) {
+                console.log(`✅ REAL VIEWS TARGET COMPLETED: ${currentRealViews}/${finalRealTarget}`);
                 job.isRunning = false;
-                job.status = 'TARGET_COMPLETED';
+                job.status = 'REAL_TARGET_COMPLETED';
                 job.completedAt = new Date();
                 clearInterval(checkInterval);
                 return;
             }
 
-            // ✅ BOTS STOPPED? RESTART IMMEDIATELY
+            // ✅ BOT NE TARGET BHEJ DIYA, LEKIN REAL VIEWS KAM HAI → RESTART KARO
             const instances = await getInstancesForSystem();
             const enabledInstances = instances.filter(inst => inst.enabled);
 
             let runningBots = 0;
-
             for (const instance of enabledInstances) {
                 try {
                     const status = await axios.get(`${instance.url}/status`, { timeout: 5000 });
@@ -683,15 +681,15 @@ function startVideoMonitoring(videoId, targetViews, originalVideoLink) {
                 } catch {}
             }
 
+            // ✅ AGAR BOT BAND HAI → PHIR SE START KARO
             if (runningBots === 0 && job.isRunning) {
-                console.log(`🔄 BOTS OFFLINE - RESTARTING ALL...`);
-
+                console.log(`🔄 BOT BAND HAI, LEKIN REAL VIEWS KAM HAI → RESTART KARO`);
                 for (const instance of enabledInstances) {
                     try {
                         await axios.post(`${instance.url}/start`, {
-                            targetViews: targetViews,
+                            targetViews: finalRealTarget - currentRealViews,
                             videoLink: originalVideoLink,
-                            mode: 'real_views_lock'
+                            mode: 'real_views_missing_restart'
                         }, { timeout: 10000 });
                     } catch {}
                 }
@@ -700,8 +698,9 @@ function startVideoMonitoring(videoId, targetViews, originalVideoLink) {
         } catch (error) {
             console.log('❌ Monitoring error:', error.message);
         }
-    }, 5000); // Check every 5 seconds
+    }, 5000); // Har 5 second check karo
 }
+
 
 
 // Routes
@@ -891,7 +890,8 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
 
         // Start monitoring for this video
         // Start monitoring for this video WITH AUTO-RESTART
-startVideoMonitoring(finalVideoId, finalTarget, finalVideoLink);
+startVideoMonitoring(finalVideoId, targetViewsNum, finalVideoLink, currentViewsNum);
+
 
 
         const successful = results.filter(r => r.success).length;
