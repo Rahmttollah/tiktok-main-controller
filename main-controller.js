@@ -267,41 +267,138 @@ async function getInstancesForSystem() {
 
 // ✅ HELPER FUNCTIONS - Add these to your main-controller.js
 
+// ✅ UPDATED: Extract Video Info with Short URL Resolution
 function extractVideoInfo(url) {
     let cleanUrl = url.split('?')[0].trim();
     
-    // Standard TikTok URL
+    console.log('🔍 Analyzing URL:', cleanUrl);
+    
+    // TYPE 1: Standard TikTok URL with video ID (19 digits)
     const standardMatch = cleanUrl.match(/tiktok\.com\/@[^\/]+\/video\/(\d{19})/);
     if (standardMatch) {
+        console.log('✅ Standard URL detected, Video ID:', standardMatch[1]);
         return { id: standardMatch[1], type: 'STANDARD' };
     }
     
-    // Short URL
+    // TYPE 2: Short URL (vm.tiktok.com, vt.tiktok.com) - NEED RESOLUTION
     const shortUrlMatch = cleanUrl.match(/(vm|vt)\.tiktok\.com\/([A-Za-z0-9]+)/);
     if (shortUrlMatch) {
-        return { id: shortUrlMatch[2], type: 'SHORT_URL' };
+        console.log('🔄 Short URL detected, code:', shortUrlMatch[2]);
+        return { 
+            id: shortUrlMatch[2], 
+            type: 'SHORT_URL',
+            shortCode: shortUrlMatch[2],
+            originalUrl: cleanUrl
+        };
     }
     
-    // Video ID only
+    // TYPE 3: Just the 19-digit video ID in the URL
     const videoIdMatch = cleanUrl.match(/\/(\d{19})(\/|$)/);
     if (videoIdMatch) {
+        console.log('✅ Video ID detected:', videoIdMatch[1]);
         return { id: videoIdMatch[1], type: 'VIDEO_ID_ONLY' };
     }
     
+    console.log('❌ No video ID found in URL');
     return { id: null, type: 'UNKNOWN' };
 }
 
-function getTikTokVideoStats(videoId) {
+// ✅ NEW: Resolve Short URL to get actual Video ID
+function resolveShortUrl(shortCode) {
     return new Promise((resolve) => {
+        console.log('🔄 Resolving short URL:', shortCode);
+        
         const options = {
-            hostname: 'www.tiktok.com',
-            path: `/@tiktok/video/${videoId}`,
+            hostname: 'vm.tiktok.com',
+            path: `/${shortCode}/`,
             method: 'GET',
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             }
         };
+
+        const req = https.request(options, (res) => {
+            console.log('📡 Short URL response status:', res.statusCode);
+            
+            // Follow redirect to get final URL
+            const finalUrl = res.headers.location;
+            console.log('🔗 Redirect URL:', finalUrl);
+            
+            if (finalUrl) {
+                // Extract video ID from final URL
+                const videoIdMatch = finalUrl.match(/\/(\d{19})/);
+                if (videoIdMatch) {
+                    console.log('✅ Resolved to Video ID:', videoIdMatch[1]);
+                    resolve(videoIdMatch[1]);
+                } else {
+                    console.log('❌ No video ID in redirect URL');
+                    resolve(null);
+                }
+            } else {
+                console.log('❌ No redirect location found');
+                resolve(null);
+            }
+            
+            // Consume the response body
+            res.on('data', () => {});
+            res.on('end', () => {});
+        });
+
+        req.on('error', (error) => {
+            console.log('❌ Short URL resolve error:', error.message);
+            resolve(null);
+        });
+        
+        req.setTimeout(8000, () => {
+            console.log('❌ Short URL resolve timeout');
+            req.destroy();
+            resolve(null);
+        });
+        
+        req.end();
+    });
+}
+
+// ✅ UPDATED: Get TikTok Video Stats with Short URL Support
+function getTikTokVideoStats(videoInfo) {
+    return new Promise((resolve) => {
+        // If it's a short URL, resolve it first
+        if (videoInfo.type === 'SHORT_URL') {
+            console.log('🔄 Short URL detected, resolving...');
+            
+            resolveShortUrl(videoInfo.shortCode)
+                .then(resolvedVideoId => {
+                    if (resolvedVideoId) {
+                        console.log('✅ Short URL resolved to:', resolvedVideoId);
+                        // Now get stats with the resolved video ID
+                        getTikTokVideoStats({ id: resolvedVideoId, type: 'RESOLVED' })
+                            .then(stats => resolve(stats))
+                            .catch(() => resolve(getFallbackStats()));
+                    } else {
+                        console.log('❌ Short URL resolution failed');
+                        resolve(getFallbackStats());
+                    }
+                })
+                .catch(() => {
+                    console.log('❌ Short URL resolution error');
+                    resolve(getFallbackStats());
+                });
+            return;
+        }
+
+        // For standard video IDs, directly get stats
+        const options = {
+            hostname: 'www.tiktok.com',
+            path: `/@tiktok/video/${videoInfo.id}`,
+            method: 'GET',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            }
+        };
+
+        console.log('📡 Fetching stats for Video ID:', videoInfo.id);
 
         const req = https.request(options, (res) => {
             let data = '';
@@ -311,42 +408,37 @@ function getTikTokVideoStats(videoId) {
             });
 
             res.on('end', () => {
+                console.log('✅ Stats fetched successfully, data length:', data.length);
                 const stats = extractStatsFromHTML(data);
                 resolve(stats);
             });
         });
 
-        req.on('error', () => resolve({ 
-            views: 0, 
-            likes: 0, 
-            comments: 0, 
-            author: 'Unknown', 
-            title: 'No Title' 
-        }));
+        req.on('error', (error) => {
+            console.log('❌ Stats fetch error:', error.message);
+            resolve(getFallbackStats());
+        });
         
-        req.setTimeout(8000, () => {
+        req.setTimeout(10000, () => {
+            console.log('❌ Stats fetch timeout');
             req.destroy();
-            resolve({ 
-                views: 0, 
-                likes: 0, 
-                comments: 0, 
-                author: 'Unknown', 
-                title: 'No Title' 
-            });
+            resolve(getFallbackStats());
         });
         
         req.end();
     });
 }
 
-function extractStatsFromHTML(html) {
-    const stats = {
+// ✅ NEW: Fallback stats when everything fails
+function getFallbackStats() {
+    return {
         views: 0,
         likes: 0,
         comments: 0,
         author: 'Unknown',
         title: 'No Title'
     };
+}
 
     // Extract views
     const viewMatch = html.match(/"playCount":(\d+)/) || html.match(/"viewCount":(\d+)/);
@@ -459,6 +551,7 @@ app.post('/api/logout', async (req, res) => {
 });
 
 // ✅ Route 1: Get Video Information
+// ✅ UPDATED: Get Video Information with Short URL Support
 app.post('/api/get-video-info', verifyToken, async (req, res) => {
     try {
         const { videoLink, token } = req.body;
@@ -467,28 +560,40 @@ app.post('/api/get-video-info', verifyToken, async (req, res) => {
             return res.json({ success: false, message: 'Video link required' });
         }
 
+        console.log('🎯 Processing video link:', videoLink);
         const videoInfo = extractVideoInfo(videoLink);
+        
         if (!videoInfo.id) {
-            return res.json({ success: false, message: 'Invalid TikTok link' });
+            return res.json({ success: false, message: 'Invalid TikTok link!' });
         }
 
-        // Get current video stats
-        const currentStats = await getTikTokVideoStats(videoInfo.id);
+        console.log('📊 Video Info:', videoInfo);
+        
+        // Get current video stats (with short URL resolution)
+        const currentStats = await getTikTokVideoStats(videoInfo);
+        
+        console.log('📈 Stats retrieved:', currentStats);
         
         res.json({
             success: true,
             videoInfo: {
                 id: videoInfo.id,
+                type: videoInfo.type,
                 currentViews: currentStats.views,
                 currentLikes: currentStats.likes,
                 currentComments: currentStats.comments,
                 author: currentStats.author,
-                title: currentStats.title
+                title: currentStats.title,
+                resolved: videoInfo.type === 'SHORT_URL' ? 'pending' : 'direct'
             }
         });
+        
     } catch (error) {
-        console.log('Video info error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
+        console.log('❌ Video info error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Server error: ' + error.message 
+        });
     }
 });
 
