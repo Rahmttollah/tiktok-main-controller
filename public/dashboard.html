@@ -183,7 +183,7 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px 15px;
-            padding-bottom: 80px; /* Space for mobile menu */
+            padding-bottom: 80px;
         }
         
         .control-panel {
@@ -403,6 +403,110 @@
             opacity: 0.9;
         }
         
+        /* Video Info Card Styles */
+        .video-info-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(139, 95, 191, 0.3);
+            margin: 15px 0;
+            animation: slideIn 0.5s ease;
+        }
+        
+        .video-info-card h4 {
+            color: var(--primary-light);
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .video-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+        
+        .stat-label {
+            font-weight: 600;
+            color: var(--primary-light);
+            font-size: 0.9em;
+        }
+        
+        .stat-value {
+            font-weight: bold;
+            color: var(--light);
+            font-size: 1em;
+        }
+        
+        /* Progress Card Styles */
+        .progress-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(139, 95, 191, 0.3);
+            margin: 15px 0;
+            animation: slideIn 0.5s ease;
+        }
+        
+        .progress-card h4 {
+            color: var(--primary-light);
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .progress-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .progress-stats div {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            transition: width 0.5s ease;
+            border-radius: 6px;
+        }
+        
         .instances-section {
             margin-top: 25px;
         }
@@ -510,32 +614,6 @@
         .mini-label {
             font-size: 0.8em;
             opacity: 0.8;
-        }
-        
-        .progress-container {
-            margin: 15px 0;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
-            transition: width 0.5s ease;
-        }
-        
-        .progress-text {
-            text-align: center;
-            font-weight: 600;
-            margin-top: 8px;
-            color: var(--primary-light);
-            font-size: 0.9em;
         }
         
         .alert {
@@ -674,6 +752,10 @@
             .adguard-title {
                 font-size: 1.6em;
             }
+            
+            .video-stats, .progress-stats {
+                grid-template-columns: 1fr;
+            }
         }
         
         @media (max-width: 480px) {
@@ -748,14 +830,23 @@
                 <div class="input-group">
                     <input type="text" id="videoLink" placeholder="Paste TikTok video URL here">
                     <button class="btn-paste" onclick="pasteFromClipboard()">
-                        <i class="fas fa-paste"></i> Paste
+                        <i class="fas fa-paste"></i> Paste & Analyze
                     </button>
                 </div>
             </div>
             
+            <!-- Video Info Display -->
+            <div id="videoInfo"></div>
+            
+            <!-- Progress Tracking Display -->
+            <div id="progressInfo"></div>
+            
             <div class="form-group">
-                <label for="targetViews">🎯 Target Views</label>
-                <input type="number" id="targetViews" placeholder="Enter target views" value="1000">
+                <label for="targetViews">🎯 Target Additional Views</label>
+                <input type="number" id="targetViews" placeholder="Enter additional views wanted" value="1000" min="1">
+                <small style="opacity: 0.7; font-size: 0.9em; margin-top: 5px; display: block;">
+                    This will be added to current views for final target
+                </small>
             </div>
             
             <div class="form-group">
@@ -846,11 +937,16 @@
     <script type='text/javascript' src='//ancestorheadquarters.com/c0/08/ba/c008ba61aec9fa0fa19086602bd9f29b.js'></script>
 
     <script>
+        // Global variables
         let refreshInterval;
         let userToken = '';
         let botStatus = 'stopped';
         let adGuardChecked = false;
-        
+        let currentVideoInfo = null;
+        let liveUpdateInterval = null;
+        let monitoringInterval = null;
+        let videoAnalysisInterval = null;
+
         // REAL AdGuard Detection - Only shows when AdGuard is actually detected
         function detectAdGuard() {
             return new Promise((resolve) => {
@@ -934,7 +1030,6 @@
                     }
                     
                     // Only consider AdGuard detected if multiple tests confirm
-                    // This prevents false positives for users without ad blockers
                     const isDetected = detectionCount >= 3;
                     
                     console.log(`AdGuard Detection Results:
@@ -1021,62 +1116,308 @@
             }
         }
         
+        // IMPROVISED: Enhanced paste function with live updates
         async function pasteFromClipboard() {
             // Check AdGuard first (but don't block if already checked)
             if (!adGuardChecked && !await checkAdGuard()) return;
             
             try {
                 const text = await navigator.clipboard.readText();
-                document.getElementById('videoLink').value = text;
-                showMessage('📋 Pasted from clipboard!', 'success');
+                const videoLinkInput = document.getElementById('videoLink');
+                videoLinkInput.value = text;
+                
+                showMessage('📋 Link pasted! Analyzing video...', 'info');
+                
+                // Clear any existing intervals
+                stopLiveUpdates();
+                
+                // Get video info immediately
+                await fetchVideoInfo(text);
+                
             } catch (error) {
                 showMessage('Failed to paste from clipboard', 'error');
             }
         }
         
-        async function startAllBots() {
-            // Check AdGuard first (but don't block if already checked)
-            if (!adGuardChecked && !await checkAdGuard()) return;
-            
-            const videoLink = document.getElementById('videoLink').value;
-            const targetViews = document.getElementById('targetViews').value;
-            const botStrategy = document.getElementById('botStrategy').value;
-            
-            if (!videoLink) {
-                showMessage('Please enter TikTok video link!', 'error');
-                return;
-            }
-            
-            if (!isValidTikTokUrl(videoLink)) {
+        // IMPROVISED: New function to fetch video info
+        async function fetchVideoInfo(videoLink) {
+            if (!videoLink || !isValidTikTokUrl(videoLink)) {
                 showMessage('Please enter a valid TikTok URL!', 'error');
                 return;
             }
             
-            setLoading('startBtn', true);
-            showMessage('🚀 Starting view bot system...', 'info');
-            
             try {
-                const data = await safeFetch('/api/start-all', {
+                const response = await safeFetch('/api/get-video-info', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         videoLink: videoLink,
-                        targetViews: parseInt(targetViews),
-                        strategy: botStrategy,
                         token: userToken
                     })
                 });
                 
+                const data = await response.json();
+                
                 if (data.success) {
-                    showMessage(`✅ ${data.message}`, 'success');
-                    botStatus = 'running';
-                    startStatusUpdates();
+                    currentVideoInfo = data.videoInfo;
+                    displayVideoInfo(currentVideoInfo);
+                    
+                    // Start live updates every 500ms (reduced from 200ms for better performance)
+                    startLiveUpdates(videoLink);
+                    
+                    showMessage('✅ Video analysis complete! Ready to start bots.', 'success');
+                    
                 } else {
                     showMessage(data.message, 'error');
                 }
             } catch (error) {
-                showMessage('Error starting bot: ' + error.message, 'error');
+                showMessage('Error fetching video info', 'error');
+            }
+        }
+        
+        // IMPROVISED: Enhanced video info display
+        function displayVideoInfo(videoInfo) {
+            const videoInfoDiv = document.getElementById('videoInfo');
+            
+            videoInfoDiv.innerHTML = `
+                <div class="video-info-card">
+                    <h4><i class="fas fa-chart-line"></i> Video Information</h4>
+                    <div class="video-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Video ID:</span>
+                            <span class="stat-value">${videoInfo.id}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Author:</span>
+                            <span class="stat-value">@${videoInfo.author}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Current Views:</span>
+                            <span class="stat-value" id="currentViews">${videoInfo.currentViews.toLocaleString()}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Likes:</span>
+                            <span class="stat-value" id="currentLikes">${videoInfo.currentLikes.toLocaleString()}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Comments:</span>
+                            <span class="stat-value" id="currentComments">${videoInfo.currentComments.toLocaleString()}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Shares:</span>
+                            <span class="stat-value" id="currentShares">${videoInfo.currentShares.toLocaleString()}</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
+                        <i class="fas fa-sync-alt fa-spin"></i> Live updates active
+                    </div>
+                </div>
+            `;
+        }
+        
+        // IMPROVISED: Enhanced live updates with error handling
+        function startLiveUpdates(videoLink) {
+            // Clear existing interval
+            if (liveUpdateInterval) {
+                clearInterval(liveUpdateInterval);
+            }
+            
+            let errorCount = 0;
+            const maxErrors = 3;
+            
+            liveUpdateInterval = setInterval(async () => {
+                try {
+                    const response = await safeFetch('/api/get-video-info', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            videoLink: videoLink,
+                            token: userToken
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        currentVideoInfo = data.videoInfo;
+                        updateLiveStats(currentVideoInfo);
+                        errorCount = 0; // Reset error count on success
+                    } else {
+                        errorCount++;
+                        if (errorCount >= maxErrors) {
+                            showMessage('❌ Failed to update video stats. Check your connection.', 'error');
+                            stopLiveUpdates();
+                        }
+                    }
+                } catch (error) {
+                    errorCount++;
+                    if (errorCount >= maxErrors) {
+                        showMessage('❌ Connection error. Stopping live updates.', 'error');
+                        stopLiveUpdates();
+                    }
+                }
+            }, 500); // Reduced to 500ms for better performance
+        }
+        
+        // IMPROVISED: Update live stats without full DOM rebuild
+        function updateLiveStats(videoInfo) {
+            const viewsElement = document.getElementById('currentViews');
+            const likesElement = document.getElementById('currentLikes');
+            const commentsElement = document.getElementById('currentComments');
+            const sharesElement = document.getElementById('currentShares');
+            
+            if (viewsElement) viewsElement.textContent = videoInfo.currentViews.toLocaleString();
+            if (likesElement) likesElement.textContent = videoInfo.currentLikes.toLocaleString();
+            if (commentsElement) commentsElement.textContent = videoInfo.currentComments.toLocaleString();
+            if (sharesElement) sharesElement.textContent = videoInfo.currentShares.toLocaleString();
+        }
+        
+        // IMPROVISED: Enhanced start function with new logic
+        async function startAllBots() {
+            // Check AdGuard first (but don't block if already checked)
+            if (!adGuardChecked && !await checkAdGuard()) return;
+            
+            if (!currentVideoInfo) {
+                showMessage('Please paste and analyze a TikTok link first!', 'error');
+                return;
+            }
+            
+            const targetViews = document.getElementById('targetViews').value;
+            if (!targetViews || targetViews < 1) {
+                showMessage('Please enter target additional views!', 'error');
+                return;
+            }
+            
+            const currentViews = currentVideoInfo.currentViews;
+            const additionalViews = parseInt(targetViews);
+            const finalTarget = currentViews + additionalViews;
+            
+            setLoading('startBtn', true);
+            showMessage(`🚀 Starting bots... Target: ${currentViews.toLocaleString()} + ${additionalViews.toLocaleString()} = ${finalTarget.toLocaleString()}`, 'info');
+            
+            try {
+                const response = await safeFetch('/api/start-all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        videoLink: document.getElementById('videoLink').value,
+                        targetViews: additionalViews,
+                        currentViews: currentViews,
+                        finalTarget: finalTarget,
+                        strategy: document.getElementById('botStrategy').value,
+                        token: userToken
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage(`✅ ${data.message} | Final Target: ${data.finalTarget.toLocaleString()}`, 'success');
+                    botStatus = 'running';
+                    
+                    // Start monitoring
+                    startMonitoring(currentVideoInfo.id, data.finalTarget, currentViews);
+                    
+                    // Start status updates
+                    startStatusUpdates();
+                    
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Error starting bots: ' + error.message, 'error');
             } finally {
                 setLoading('startBtn', false);
+            }
+        }
+        
+        // IMPROVISED: Enhanced monitoring with progress tracking
+        function startMonitoring(videoId, targetViews, startViews) {
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+            }
+            
+            monitoringInterval = setInterval(async () => {
+                try {
+                    const response = await safeFetch(`/api/monitoring-status?videoId=${videoId}&token=${userToken}`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.isRunning) {
+                        updateProgressDisplay(data, startViews, targetViews);
+                    } else {
+                        clearInterval(monitoringInterval);
+                        showMessage('🎯 Target completed! Bots stopped automatically.', 'success');
+                        botStatus = 'stopped';
+                    }
+                } catch (error) {
+                    console.log('Monitoring error:', error);
+                }
+            }, 2000);
+        }
+        
+        // IMPROVISED: Enhanced progress display
+        function updateProgressDisplay(monitoringData, startViews, targetViews) {
+            const progressElement = document.getElementById('progressInfo');
+            const progress = monitoringData.progress || 0;
+            const remaining = monitoringData.remaining || (targetViews - startViews - progress);
+            const percentage = Math.min(100, ((progress / (targetViews - startViews)) * 100).toFixed(1));
+            
+            const progressCard = `
+                <div class="progress-card">
+                    <h4><i class="fas fa-tachometer-alt"></i> Progress Tracking</h4>
+                    <div class="progress-stats">
+                        <div>Progress: ${progress.toLocaleString()} views</div>
+                        <div>Remaining: ${remaining.toLocaleString()} views</div>
+                        <div>Completion: ${percentage}%</div>
+                        <div>Estimated Time: ${calculateEstimatedTime(remaining, monitoringData.currentRps)}</div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${percentage}%"></div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
+                        <i class="fas fa-bolt"></i> Current Speed: ${monitoringData.currentRps || 0} RPS
+                    </div>
+                </div>
+            `;
+            
+            if (!progressElement.innerHTML.includes('progress-card')) {
+                progressElement.innerHTML = progressCard;
+            } else {
+                // Update existing progress card efficiently
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = progressCard;
+                progressElement.innerHTML = tempDiv.innerHTML;
+            }
+        }
+        
+        // IMPROVISED: Calculate estimated time remaining
+        function calculateEstimatedTime(remainingViews, currentRps) {
+            if (!currentRps || currentRps === 0) return 'Calculating...';
+            
+            const seconds = Math.ceil(remainingViews / currentRps);
+            const minutes = Math.ceil(seconds / 60);
+            
+            if (minutes < 1) return 'Less than 1 minute';
+            if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''}`;
+            
+            const hours = Math.floor(minutes / 60);
+            const remainingMinutes = minutes % 60;
+            return `${hours}h ${remainingMinutes}m`;
+        }
+        
+        // IMPROVISED: Stop all updates
+        function stopLiveUpdates() {
+            if (liveUpdateInterval) {
+                clearInterval(liveUpdateInterval);
+                liveUpdateInterval = null;
+            }
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+                monitoringInterval = null;
+            }
+            if (videoAnalysisInterval) {
+                clearInterval(videoAnalysisInterval);
+                videoAnalysisInterval = null;
             }
         }
         
@@ -1103,6 +1444,7 @@
                 if (data.success) {
                     showMessage('🛑 ' + data.message, 'success');
                     botStatus = 'stopped';
+                    stopLiveUpdates();
                     if (refreshInterval) {
                         clearInterval(refreshInterval);
                     }
@@ -1248,6 +1590,9 @@
                 localStorage.removeItem('userToken');
                 sessionStorage.clear();
                 
+                // Stop all intervals
+                stopLiveUpdates();
+                
                 // Direct redirect - no chains
                 if (data.redirect_url) {
                     window.location.href = data.redirect_url;
@@ -1320,7 +1665,7 @@
             localStorage.setItem('userToken', userToken);
             
             startStatusUpdates();
-            showMessage('🎉 Welcome to TikTok View Bot!', 'info');
+            showMessage('🎉 Welcome to TikTok View Bot! Paste a TikTok link to begin.', 'info');
             
             // Set username from token (you can add API for this)
             document.getElementById('username').textContent = 'User';
