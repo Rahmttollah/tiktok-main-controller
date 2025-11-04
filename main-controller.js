@@ -891,7 +891,8 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
 
         // Start monitoring for this video
         // Start monitoring for this video WITH AUTO-RESTART
-startVideoMonitoring(finalVideoId, finalTarget, videoLink);
+startVideoMonitoring(finalVideoId, finalTarget, finalVideoLink);
+
 
         const successful = results.filter(r => r.success).length;
         res.json({
