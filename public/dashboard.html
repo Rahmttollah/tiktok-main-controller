@@ -1146,6 +1146,7 @@
 
     // ✅ NEW: Display video information
     // ✅ UPDATED: Display video information with better formatting
+// ✅ UPDATED: Display video information with resolved ID
 function displayVideoInfo(videoInfo) {
     // Remove existing video info
     const existingInfo = document.getElementById('videoInfo');
@@ -1158,10 +1159,13 @@ function displayVideoInfo(videoInfo) {
     videoInfoDiv.className = 'video-info-card';
     
     let statusBadge = '';
-    if (videoInfo.type === 'SHORT_URL') {
-        statusBadge = '<span style="color: orange; font-size: 0.8em;">🔄 Resolving Short URL...</span>';
-    } else if (videoInfo.type === 'RESOLVED_STANDARD') {
+    let finalIdDisplay = videoInfo.id;
+    
+    if (videoInfo.resolvedVideoId) {
         statusBadge = '<span style="color: green; font-size: 0.8em;">✅ Resolved</span>';
+        finalIdDisplay = videoInfo.resolvedVideoId;
+    } else if (videoInfo.type === 'SHORT_URL') {
+        statusBadge = '<span style="color: orange; font-size: 0.8em;">🔄 Resolving...</span>';
     }
     
     videoInfoDiv.innerHTML = `
@@ -1171,6 +1175,12 @@ function displayVideoInfo(videoInfo) {
                 <span class="stat-label">Video ID:</span>
                 <span class="stat-value">${videoInfo.id}</span>
             </div>
+            ${videoInfo.resolvedVideoId ? `
+            <div class="stat-item">
+                <span class="stat-label">Resolved ID:</span>
+                <span class="stat-value" style="color: green;">${videoInfo.resolvedVideoId}</span>
+            </div>
+            ` : ''}
             <div class="stat-item">
                 <span class="stat-label">Type:</span>
                 <span class="stat-value">${videoInfo.type}</span>
@@ -1194,7 +1204,9 @@ function displayVideoInfo(videoInfo) {
         </div>
         <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
             🔄 Live updating every 500ms
-            ${videoInfo.type === 'SHORT_URL' ? '<br>⏳ Short URL resolution may take a few seconds' : ''}
+            ${videoInfo.type === 'SHORT_URL' && !videoInfo.resolvedVideoId ? 
+            '<br>⏳ Resolving to real Video ID...' : 
+            videoInfo.resolvedVideoId ? '<br>✅ Using real Video ID for bots' : ''}
         </div>
     `;
     
