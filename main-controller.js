@@ -430,15 +430,15 @@ function getTikTokVideoStats(videoInfo) {
 }
 
 // ✅ NEW: Fallback stats when everything fails
-function getFallbackStats() {
-    return {
+// ✅ ADD THIS FUNCTION
+function extractStatsFromHTML(html) {
+    const stats = {
         views: 0,
         likes: 0,
         comments: 0,
         author: 'Unknown',
         title: 'No Title'
     };
-
 
     // Extract views
     const viewMatch = html.match(/"playCount":(\d+)/) || html.match(/"viewCount":(\d+)/);
@@ -461,6 +461,52 @@ function getFallbackStats() {
     if (titleMatch && titleMatch[1] !== 'Company') stats.title = titleMatch[1];
 
     return stats;
+}
+
+// ✅ ADD THIS FUNCTION  
+function getFallbackStats() {
+    return {
+        views: 0,
+        likes: 0,
+        comments: 0,
+        author: 'Unknown',
+        title: 'No Title'
+    };
+}
+
+// ✅ ADD THIS FUNCTION
+function getTikTokVideoStatsDirect(videoId) {
+    return new Promise((resolve) => {
+        const options = {
+            hostname: 'www.tiktok.com',
+            path: `/@tiktok/video/${videoId}`,
+            method: 'GET',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            }
+        };
+
+        const req = https.request(options, (res) => {
+            let data = '';
+
+            res.on('data', (chunk) => {
+                data += chunk.toString();
+            });
+
+            res.on('end', () => {
+                const stats = extractStatsFromHTML(data);
+                resolve(stats);
+            });
+        });
+
+        req.on('error', () => resolve(getFallbackStats()));
+        req.setTimeout(10000, () => {
+            req.destroy();
+            resolve(getFallbackStats());
+        });
+        req.end();
+    });
 }
 
 function startVideoMonitoring(videoId, targetViews) {
