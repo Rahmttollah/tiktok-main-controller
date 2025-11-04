@@ -1145,50 +1145,63 @@
     }
 
     // ✅ NEW: Display video information
-    function displayVideoInfo(videoInfo) {
-        // Remove existing video info
-        const existingInfo = document.getElementById('videoInfo');
-        if (existingInfo) {
-            existingInfo.remove();
-        }
-        
-        const videoInfoDiv = document.createElement('div');
-        videoInfoDiv.id = 'videoInfo';
-        videoInfoDiv.className = 'video-info-card';
-        
-        videoInfoDiv.innerHTML = `
-            <h4>🎯 Video Information</h4>
-            <div class="video-stats">
-                <div class="stat-item">
-                    <span class="stat-label">Video ID:</span>
-                    <span class="stat-value">${videoInfo.id}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Author:</span>
-                    <span class="stat-value">@${videoInfo.author}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Current Views:</span>
-                    <span class="stat-value" id="currentViews">${videoInfo.currentViews.toLocaleString()}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Likes:</span>
-                    <span class="stat-value">${videoInfo.currentLikes.toLocaleString()}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Comments:</span>
-                    <span class="stat-value">${videoInfo.currentComments.toLocaleString()}</span>
-                </div>
-            </div>
-            <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
-                🔄 Live updating every 500ms
-            </div>
-        `;
-        
-        // Insert after control panel
-        const controlPanel = document.querySelector('.control-panel');
-        controlPanel.appendChild(videoInfoDiv);
+    // ✅ UPDATED: Display video information with better formatting
+function displayVideoInfo(videoInfo) {
+    // Remove existing video info
+    const existingInfo = document.getElementById('videoInfo');
+    if (existingInfo) {
+        existingInfo.remove();
     }
+    
+    const videoInfoDiv = document.createElement('div');
+    videoInfoDiv.id = 'videoInfo';
+    videoInfoDiv.className = 'video-info-card';
+    
+    let statusBadge = '';
+    if (videoInfo.type === 'SHORT_URL') {
+        statusBadge = '<span style="color: orange; font-size: 0.8em;">🔄 Resolving Short URL...</span>';
+    } else if (videoInfo.type === 'RESOLVED_STANDARD') {
+        statusBadge = '<span style="color: green; font-size: 0.8em;">✅ Resolved</span>';
+    }
+    
+    videoInfoDiv.innerHTML = `
+        <h4>🎯 Video Information ${statusBadge}</h4>
+        <div class="video-stats">
+            <div class="stat-item">
+                <span class="stat-label">Video ID:</span>
+                <span class="stat-value">${videoInfo.id}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Type:</span>
+                <span class="stat-value">${videoInfo.type}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Author:</span>
+                <span class="stat-value">@${videoInfo.author}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Current Views:</span>
+                <span class="stat-value" id="currentViews">${videoInfo.currentViews.toLocaleString()}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Likes:</span>
+                <span class="stat-value">${videoInfo.currentLikes.toLocaleString()}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Comments:</span>
+                <span class="stat-value">${videoInfo.currentComments.toLocaleString()}</span>
+            </div>
+        </div>
+        <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
+            🔄 Live updating every 500ms
+            ${videoInfo.type === 'SHORT_URL' ? '<br>⏳ Short URL resolution may take a few seconds' : ''}
+        </div>
+    `;
+    
+    // Insert after control panel
+    const controlPanel = document.querySelector('.control-panel');
+    controlPanel.appendChild(videoInfoDiv);
+}
 
     // ✅ NEW: Start live updates
     function startLiveUpdates(videoLink) {
