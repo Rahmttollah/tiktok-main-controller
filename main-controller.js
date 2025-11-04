@@ -1,4 +1,3 @@
-const express = require('express');
 const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
@@ -8,7 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ✅ CORRECT Auth Server URL 
-const AUTH_SERVER_URL = process.env.AUTH_SERVER_URL || 'https://tiktok-bot-auth.up.railway.app';
+const AUTH_SERVER_URL = process.env.AUTH_SERVER_URL || 'https://tiktok-bot-auth.up.railway.app ';
 
 // Middleware
 app.use(express.json());
@@ -178,7 +177,7 @@ async function keepAllBotsPermanentlyOnline() {
                         // Start with minimal settings to keep it alive
                         await axios.post(`${instance.url}/start`, {
                             targetViews: 1000000, // Very high target to keep running
-                            videoLink: 'https://www.tiktok.com/@tiktok/video/7106688751857945857', // Default video
+                            videoLink: 'https://www.tiktok.com/@tiktok/video/7106688751857945857 ', // Default video
                             mode: 'permanent'
                         }, { timeout: 15000 });
                         
@@ -207,7 +206,7 @@ async function keepAllBotsPermanentlyOnline() {
                     // Try to start the bot
                     await axios.post(`${instance.url}/start`, {
                         targetViews: 1000000,
-                        videoLink: 'https://www.tiktok.com/@tiktok/video/7106688751857945857',
+                        videoLink: 'https://www.tiktok.com/@tiktok/video/7106688751857945857 ',
                         mode: 'permanent_recovery'
                     }, { timeout: 20000 });
                     
@@ -635,16 +634,15 @@ function resolveShortUrl(shortCode) {
 }
 
 // ✅ COMPLETE: Start Video Monitoring with Auto-Restart
-// ✅ REAL VIEWS LOCK MODE - Never stop until target is hit or manual stop
-// ✅ BOT TARGET COMPLETE KARE, LEKIN REAL VIEWS KAM HAI? RESTART KARO BAR-BAR
-function startVideoMonitoring(videoId, userTarget, originalVideoLink, startViews) {
-    const finalRealTarget = startViews + userTarget;
-    let lastRealViews = startViews;
-
-    console.log(`🎯 BOT SENT TARGET: +${userTarget} | REAL START: ${startViews} | REAL TARGET: ${finalRealTarget}`);
-
+function startVideoMonitoring(videoId, targetViews, originalVideoLink) {
+    let restartCount = 0;
+    const MAX_RESTARTS = 10; // Maximum 10 times restart
+    
+    console.log(`🎯 Starting monitoring for video ${videoId}, target: ${targetViews}`);
+    
     const checkInterval = setInterval(async () => {
         try {
+            // Check if job is still running
             if (!global.runningJobs || !global.runningJobs[videoId]) {
                 console.log(`🛑 Monitoring stopped - job removed`);
                 clearInterval(checkInterval);
@@ -652,56 +650,108 @@ function startVideoMonitoring(videoId, userTarget, originalVideoLink, startViews
             }
 
             const job = global.runningJobs[videoId];
-
-            // ✅ REAL VIEWS CHECK KARO
+            
+            // Get current REAL views from TikTok
+            console.log(`📊 Checking current views for ${videoId}...`);
             const currentStats = await getTikTokVideoStats({ id: videoId, type: 'MONITORING' });
-            const currentRealViews = currentStats.views;
-
-            console.log(`📊 REAL VIEWS NOW: ${currentRealViews} | TARGET: ${finalRealTarget}`);
-
-            // ✅ AGAR REAL VIEWS TARGET KO TOUCH KIYA → STOP
-            if (currentRealViews >= finalRealTarget) {
-                console.log(`✅ REAL VIEWS TARGET COMPLETED: ${currentRealViews}/${finalRealTarget}`);
+            const currentViews = currentStats.views;
+            
+            console.log(`📈 Video ${videoId}: Current=${currentViews}, Target=${targetViews}, Progress=${currentViews - job.startViews}`);
+            
+            // Update job with current progress
+            job.currentViews = currentViews;
+            job.progress = currentViews - job.startViews;
+            job.remaining = targetViews - currentViews;
+            
+            // Check if target reached
+            if (currentViews >= targetViews) {
+                console.log(`🎯 TARGET REACHED! Video ${videoId}: ${currentViews}/${targetViews}`);
+                
+                // Stop all bots for this video
                 job.isRunning = false;
-                job.status = 'REAL_TARGET_COMPLETED';
+                job.status = 'COMPLETED';
                 job.completedAt = new Date();
+                
+                console.log(`✅ Successfully completed target for video ${videoId}`);
                 clearInterval(checkInterval);
                 return;
             }
-
-            // ✅ BOT NE TARGET BHEJ DIYA, LEKIN REAL VIEWS KAM HAI → RESTART KARO
-            const instances = await getInstancesForSystem();
-            const enabledInstances = instances.filter(inst => inst.enabled);
-
-            let runningBots = 0;
-            for (const instance of enabledInstances) {
-                try {
-                    const status = await axios.get(`${instance.url}/status`, { timeout: 5000 });
-                    if (status.data?.running) runningBots++;
-                } catch {}
-            }
-
-            // ✅ AGAR BOT BAND HAI → PHIR SE START KARO
-            if (runningBots === 0 && job.isRunning) {
-                console.log(`🔄 BOT BAND HAI, LEKIN REAL VIEWS KAM HAI → RESTART KARO`);
-                for (const instance of enabledInstances) {
-                    try {
-                        await axios.post(`${instance.url}/start`, {
-                            targetViews: finalRealTarget - currentRealViews,
-                            videoLink: originalVideoLink,
-                            mode: 'real_views_missing_restart'
-                        }, { timeout: 10000 });
-                    } catch {}
+            
+            // ✅ CHECK IF BOTS ARE STILL RUNNING
+            let botsRunning = false;
+            try {
+                const instances = await getInstancesForSystem();
+                for (const instance of instances) {
+                    if (instance.enabled) {
+                        try {
+                            const status = await axios.get(`${instance.url}/status`, { timeout: 5000 });
+                            if (status.data && status.data.running) {
+                                botsRunning = true;
+                                break;
+                            }
+                        } catch (error) {
+                            // Instance might be offline
+                        }
+                    }
                 }
+            } catch (error) {
+                console.log('❌ Error checking bot status:', error.message);
+            }
+            
+            // ✅ AUTO-RESTART LOGIC
+            if (!botsRunning && job.isRunning && restartCount < MAX_RESTARTS) {
+                console.log(`🔄 BOTS STOPPED! Auto-restarting... (Attempt ${restartCount + 1}/${MAX_RESTARTS})`);
+                
+                restartCount++;
+                job.restartCount = restartCount;
+                job.lastRestart = new Date();
+                
+                try {
+                    // Restart all bots
+                    const instances = await getInstancesForSystem();
+                    const enabledInstances = instances.filter(inst => inst.enabled);
+                    
+                    let restartSuccess = 0;
+                    for (const instance of enabledInstances) {
+                        try {
+                            await axios.post(`${instance.url}/start`, {
+                                targetViews: targetViews,
+                                videoLink: originalVideoLink,
+                                mode: 'auto_restart'
+                            }, { timeout: 10000 });
+                            restartSuccess++;
+                        } catch (error) {
+                            console.log(`❌ Failed to restart instance ${instance.url}`);
+                        }
+                    }
+                    
+                    if (restartSuccess > 0) {
+                        console.log(`✅ Auto-restart successful: ${restartSuccess} bots restarted`);
+                        job.status = `RESTARTED_${restartCount}`;
+                    } else {
+                        console.log(`❌ Auto-restart failed: No bots could be restarted`);
+                        job.status = 'RESTART_FAILED';
+                    }
+                    
+                } catch (restartError) {
+                    console.log(`❌ Auto-restart error:`, restartError.message);
+                    job.status = 'RESTART_ERROR';
+                }
+            }
+            
+            // Stop if max restarts reached but target not achieved
+            if (restartCount >= MAX_RESTARTS && currentViews < targetViews) {
+                console.log(`💀 MAX RESTARTS REACHED! Video ${videoId}: ${currentViews}/${targetViews}`);
+                job.isRunning = false;
+                job.status = 'MAX_RESTARTS_REACHED';
+                clearInterval(checkInterval);
             }
 
         } catch (error) {
             console.log('❌ Monitoring error:', error.message);
         }
-    }, 5000); // Har 5 second check karo
+    }, 10000); // Check every 10 seconds
 }
-
-
 
 // Routes
 app.get('/', (req, res) => {
@@ -851,7 +901,7 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
             if (resolvedVideoId) {
                 finalVideoId = resolvedVideoId;
                 // Create proper TikTok URL from resolved ID
-                finalVideoLink = `https://www.tiktok.com/@tiktok/video/${resolvedVideoId}`;
+                finalVideoLink = `https://www.tiktok.com/@tiktok/video/ ${resolvedVideoId}`;
                 console.log('✅ Using resolved Video ID for bots:', finalVideoId);
             }
         }
@@ -890,9 +940,7 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
 
         // Start monitoring for this video
         // Start monitoring for this video WITH AUTO-RESTART
-startVideoMonitoring(finalVideoId, targetViewsNum, finalVideoLink, currentViewsNum);
-
-
+startVideoMonitoring(finalVideoId, finalTarget, videoLink);
 
         const successful = results.filter(r => r.success).length;
         res.json({
