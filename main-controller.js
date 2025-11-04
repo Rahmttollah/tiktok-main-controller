@@ -438,7 +438,7 @@ function getFallbackStats() {
         author: 'Unknown',
         title: 'No Title'
     };
-}
+
 
     // Extract views
     const viewMatch = html.match(/"playCount":(\d+)/) || html.match(/"viewCount":(\d+)/);
