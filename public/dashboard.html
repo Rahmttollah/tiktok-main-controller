@@ -1336,46 +1336,30 @@ function displayVideoInfo(videoInfo) {
 
     // ✅ NEW: Update progress display
     // ✅ UPDATED: Update progress display with restart info
+// ✅ UPDATED: Turbo Mode Progress Display
 function updateProgressDisplay(monitoringData) {
     const progressElement = document.getElementById('progressInfo') || createProgressElement();
     
     const progress = monitoringData.progress;
     const remaining = monitoringData.remaining;
-    const totalNeeded = monitoringData.targetViews - monitoringData.startViews;
-    const percentage = totalNeeded > 0 ? ((progress / totalNeeded) * 100).toFixed(1) : 0;
-    
-    let restartInfo = '';
-    if (monitoringData.restartCount > 0) {
-        restartInfo = `<div style="color: orange; font-size: 0.9em; margin-top: 5px;">
-            🔄 Auto-restarted: ${monitoringData.restartCount} times
-        </div>`;
-    }
-    
-    let statusBadge = '';
-    if (monitoringData.status === 'COMPLETED') {
-        statusBadge = '<span style="color: green;">✅ COMPLETED</span>';
-    } else if (monitoringData.status.includes('RESTART')) {
-        statusBadge = '<span style="color: orange;">🔄 RESTARTING</span>';
-    } else {
-        statusBadge = '<span style="color: blue;">▶️ RUNNING</span>';
-    }
+    const percentage = monitoringData.userTarget > 0 ? ((progress / monitoringData.userTarget) * 100).toFixed(1) : 0;
     
     progressElement.innerHTML = `
         <div class="progress-card">
-            <h4>📈 Progress Tracking ${statusBadge}</h4>
+            <h4>🚀 TURBO MODE ACTIVATED</h4>
             <div class="progress-stats">
-                <div>Progress: ${progress.toLocaleString()} views</div>
-                <div>Remaining: ${remaining.toLocaleString()} views</div>
+                <div>Progress: ${progress}/${monitoringData.userTarget}</div>
+                <div>Remaining: ${remaining}</div>
                 <div>Completion: ${percentage}%</div>
-                ${monitoringData.restartCount > 0 ? 
-                    `<div>Restarts: ${monitoringData.restartCount}</div>` : ''}
+                <div style="color: orange;">Checks: ${monitoringData.checkCount || 0}</div>
+                <div style="color: green;">Total Sent: ${monitoringData.totalSent || 0}</div>
             </div>
             <div class="progress-bar">
                 <div class="progress-fill" style="width: ${percentage}%"></div>
             </div>
-            ${restartInfo}
             <div style="font-size: 0.8em; opacity: 0.7; margin-top: 5px;">
-                🔄 Auto-restart enabled (Max 10 times)
+                ⚡ Every 200ms: Check Real Views → Send 20x<br>
+                🎯 Target: +${monitoringData.userTarget} | 🚀 Multiplier: 20x
             </div>
         </div>
     `;
