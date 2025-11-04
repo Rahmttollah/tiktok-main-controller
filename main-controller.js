@@ -634,35 +634,124 @@ function resolveShortUrl(shortCode) {
     });
 }
 
-function startVideoMonitoring(videoId, targetViews) {
+// ✅ COMPLETE: Start Video Monitoring with Auto-Restart
+function startVideoMonitoring(videoId, targetViews, originalVideoLink) {
+    let restartCount = 0;
+    const MAX_RESTARTS = 10; // Maximum 10 times restart
+    
+    console.log(`🎯 Starting monitoring for video ${videoId}, target: ${targetViews}`);
+    
     const checkInterval = setInterval(async () => {
         try {
             // Check if job is still running
-            if (!global.runningJobs || !global.runningJobs[videoId] || !global.runningJobs[videoId].isRunning) {
+            if (!global.runningJobs || !global.runningJobs[videoId]) {
+                console.log(`🛑 Monitoring stopped - job removed`);
                 clearInterval(checkInterval);
                 return;
             }
 
-            // Get current views
-            const currentStats = await getTikTokVideoStats(videoId);
+            const job = global.runningJobs[videoId];
+            
+            // Get current REAL views from TikTok
+            console.log(`📊 Checking current views for ${videoId}...`);
+            const currentStats = await getTikTokVideoStats({ id: videoId, type: 'MONITORING' });
             const currentViews = currentStats.views;
-
+            
+            console.log(`📈 Video ${videoId}: Current=${currentViews}, Target=${targetViews}, Progress=${currentViews - job.startViews}`);
+            
+            // Update job with current progress
+            job.currentViews = currentViews;
+            job.progress = currentViews - job.startViews;
+            job.remaining = targetViews - currentViews;
+            
             // Check if target reached
             if (currentViews >= targetViews) {
-                console.log(`🎯 Target reached for video ${videoId}! Stopping bots...`);
+                console.log(`🎯 TARGET REACHED! Video ${videoId}: ${currentViews}/${targetViews}`);
                 
                 // Stop all bots for this video
-                if (global.runningJobs[videoId]) {
-                    global.runningJobs[videoId].isRunning = false;
-                }
+                job.isRunning = false;
+                job.status = 'COMPLETED';
+                job.completedAt = new Date();
                 
+                console.log(`✅ Successfully completed target for video ${videoId}`);
+                clearInterval(checkInterval);
+                return;
+            }
+            
+            // ✅ CHECK IF BOTS ARE STILL RUNNING
+            let botsRunning = false;
+            try {
+                const instances = await getInstancesForSystem();
+                for (const instance of instances) {
+                    if (instance.enabled) {
+                        try {
+                            const status = await axios.get(`${instance.url}/status`, { timeout: 5000 });
+                            if (status.data && status.data.running) {
+                                botsRunning = true;
+                                break;
+                            }
+                        } catch (error) {
+                            // Instance might be offline
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('❌ Error checking bot status:', error.message);
+            }
+            
+            // ✅ AUTO-RESTART LOGIC
+            if (!botsRunning && job.isRunning && restartCount < MAX_RESTARTS) {
+                console.log(`🔄 BOTS STOPPED! Auto-restarting... (Attempt ${restartCount + 1}/${MAX_RESTARTS})`);
+                
+                restartCount++;
+                job.restartCount = restartCount;
+                job.lastRestart = new Date();
+                
+                try {
+                    // Restart all bots
+                    const instances = await getInstancesForSystem();
+                    const enabledInstances = instances.filter(inst => inst.enabled);
+                    
+                    let restartSuccess = 0;
+                    for (const instance of enabledInstances) {
+                        try {
+                            await axios.post(`${instance.url}/start`, {
+                                targetViews: targetViews,
+                                videoLink: originalVideoLink,
+                                mode: 'auto_restart'
+                            }, { timeout: 10000 });
+                            restartSuccess++;
+                        } catch (error) {
+                            console.log(`❌ Failed to restart instance ${instance.url}`);
+                        }
+                    }
+                    
+                    if (restartSuccess > 0) {
+                        console.log(`✅ Auto-restart successful: ${restartSuccess} bots restarted`);
+                        job.status = `RESTARTED_${restartCount}`;
+                    } else {
+                        console.log(`❌ Auto-restart failed: No bots could be restarted`);
+                        job.status = 'RESTART_FAILED';
+                    }
+                    
+                } catch (restartError) {
+                    console.log(`❌ Auto-restart error:`, restartError.message);
+                    job.status = 'RESTART_ERROR';
+                }
+            }
+            
+            // Stop if max restarts reached but target not achieved
+            if (restartCount >= MAX_RESTARTS && currentViews < targetViews) {
+                console.log(`💀 MAX RESTARTS REACHED! Video ${videoId}: ${currentViews}/${targetViews}`);
+                job.isRunning = false;
+                job.status = 'MAX_RESTARTS_REACHED';
                 clearInterval(checkInterval);
             }
 
         } catch (error) {
-            console.log('Monitoring error:', error.message);
+            console.log('❌ Monitoring error:', error.message);
         }
-    }, 5000); // Check every 5 seconds
+    }, 10000); // Check every 10 seconds
 }
 
 // Routes
@@ -851,7 +940,8 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
         }
 
         // Start monitoring for this video
-        startVideoMonitoring(finalVideoId, finalTarget);
+        // Start monitoring for this video WITH AUTO-RESTART
+startVideoMonitoring(finalVideoId, finalTarget, videoLink);
 
         const successful = results.filter(r => r.success).length;
         res.json({
@@ -868,6 +958,7 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
 });
 
 // ✅ Route 3: Monitoring Status
+// ✅ UPDATED: Monitoring Status with Restart Info
 app.get('/api/monitoring-status', verifyToken, async (req, res) => {
     try {
         const { videoId } = req.query;
@@ -877,17 +968,23 @@ app.get('/api/monitoring-status', verifyToken, async (req, res) => {
         }
 
         const job = global.runningJobs[videoId];
-        const currentStats = await getTikTokVideoStats(videoId);
+        
+        // Get current REAL views
+        const currentStats = await getTikTokVideoStats({ id: videoId, type: 'MONITORING' });
+        const currentViews = currentStats.views;
 
         res.json({
             success: true,
             isRunning: job.isRunning,
             startViews: job.startViews,
             targetViews: job.targetViews,
-            currentViews: currentStats.views,
-            progress: currentStats.views - job.startViews,
-            remaining: job.targetViews - currentStats.views,
-            startTime: job.startTime
+            currentViews: currentViews,
+            progress: currentViews - job.startViews,
+            remaining: job.targetViews - currentViews,
+            startTime: job.startTime,
+            restartCount: job.restartCount || 0,
+            status: job.status || 'RUNNING',
+            lastRestart: job.lastRestart || null
         });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
