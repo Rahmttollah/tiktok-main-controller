@@ -362,8 +362,11 @@ function resolveShortUrl(shortCode) {
 
 // ✅ UPDATED: Get TikTok Video Stats with Short URL Support
 // ✅ UPDATED: Get TikTok Video Stats with Auto Resolution
+// ✅ COMPLETE: Get TikTok Video Stats with Auto Resolution
 function getTikTokVideoStats(videoInfo) {
     return new Promise((resolve) => {
+        console.log('📊 Getting stats for:', videoInfo);
+        
         // If it's a short URL, resolve it first and get stats with real ID
         if (videoInfo.type === 'SHORT_URL') {
             console.log('🔄 Short URL detected, resolving...');
@@ -378,40 +381,63 @@ function getTikTokVideoStats(videoInfo) {
                                 // Add resolved ID to stats
                                 stats.resolvedVideoId = resolvedVideoId;
                                 stats.originalShortCode = videoInfo.shortCode;
+                                stats.resolved = true;
+                                console.log('🎯 Stats with resolved ID:', stats);
                                 resolve(stats);
                             })
-                            .catch(() => resolve(getFallbackStats()));
+                            .catch((error) => {
+                                console.log('❌ Error getting stats with resolved ID:', error);
+                                resolve(getFallbackStats());
+                            });
                     } else {
                         console.log('❌ Short URL resolution failed');
-                        resolve(getFallbackStats());
+                        const fallbackStats = getFallbackStats();
+                        fallbackStats.resolved = false;
+                        resolve(fallbackStats);
                     }
                 })
-                .catch(() => {
-                    console.log('❌ Short URL resolution error');
-                    resolve(getFallbackStats());
+                .catch((error) => {
+                    console.log('❌ Short URL resolution error:', error);
+                    const fallbackStats = getFallbackStats();
+                    fallbackStats.resolved = false;
+                    resolve(fallbackStats);
                 });
             return;
         }
 
         // For standard video IDs, directly get stats
+        console.log('🎯 Getting stats for standard Video ID:', videoInfo.id);
         getTikTokVideoStatsDirect(videoInfo.id)
-            .then(stats => resolve(stats))
-            .catch(() => resolve(getFallbackStats()));
+            .then(stats => {
+                stats.resolved = true;
+                stats.resolvedVideoId = videoInfo.id;
+                console.log('✅ Stats for standard ID:', stats);
+                resolve(stats);
+            })
+            .catch((error) => {
+                console.log('❌ Error getting stats for standard ID:', error);
+                const fallbackStats = getFallbackStats();
+                fallbackStats.resolved = false;
+                resolve(fallbackStats);
+            });
     });
+}
 
-
-        // For standard video IDs, directly get stats
+// ✅ COMPLETE: Get TikTok Video Stats Direct (for resolved IDs)
+function getTikTokVideoStatsDirect(videoId) {
+    return new Promise((resolve, reject) => {
+        console.log('🎯 Fetching stats directly for Video ID:', videoId);
+        
         const options = {
             hostname: 'www.tiktok.com',
-            path: `/@tiktok/video/${videoInfo.id}`,
+            path: `/@tiktok/video/${videoId}`,
             method: 'GET',
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
             }
         };
-
-        console.log('📡 Fetching stats for Video ID:', videoInfo.id);
 
         const req = https.request(options, (res) => {
             let data = '';
@@ -421,78 +447,143 @@ function getTikTokVideoStats(videoInfo) {
             });
 
             res.on('end', () => {
-                console.log('✅ Stats fetched successfully, data length:', data.length);
-                const stats = extractStatsFromHTML(data);
-                resolve(stats);
+                console.log('✅ Received data length:', data.length);
+                
+                if (data.length < 1000) {
+                    console.log('❌ Response too short, likely blocked');
+                    reject(new Error('Response too short'));
+                    return;
+                }
+                
+                try {
+                    const stats = extractStatsFromHTML(data);
+                    console.log('📈 Extracted stats:', stats);
+                    resolve(stats);
+                } catch (error) {
+                    console.log('❌ Error parsing stats:', error);
+                    reject(error);
+                }
             });
         });
 
         req.on('error', (error) => {
-            console.log('❌ Stats fetch error:', error.message);
-            resolve(getFallbackStats());
+            console.log('❌ Request error:', error.message);
+            reject(error);
         });
         
-        req.setTimeout(10000, () => {
-            console.log('❌ Stats fetch timeout');
+        req.setTimeout(15000, () => {
+            console.log('❌ Request timeout');
             req.destroy();
-            resolve(getFallbackStats());
+            reject(new Error('Request timeout'));
         });
         
         req.end();
     });
 }
 
-// ✅ NEW: Fallback stats when everything fails
-// ✅ ADD THIS FUNCTION
+// ✅ COMPLETE: Extract Stats from HTML
 function extractStatsFromHTML(html) {
     const stats = {
         views: 0,
         likes: 0,
         comments: 0,
         author: 'Unknown',
-        title: 'No Title'
+        title: 'No Title',
+        resolved: false,
+        resolvedVideoId: null
     };
 
-    // Extract views
-    const viewMatch = html.match(/"playCount":(\d+)/) || html.match(/"viewCount":(\d+)/);
-    if (viewMatch) stats.views = parseInt(viewMatch[1]);
+    console.log('🔍 Extracting stats from HTML...');
 
-    // Extract likes
-    const likeMatch = html.match(/"diggCount":(\d+)/) || html.match(/"likeCount":(\d+)/);
-    if (likeMatch) stats.likes = parseInt(likeMatch[1]);
+    try {
+        // Method 1: Extract from JSON-LD
+        const jsonLdMatch = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+        if (jsonLdMatch) {
+            try {
+                const jsonData = JSON.parse(jsonLdMatch[1]);
+                console.log('✅ JSON-LD found:', jsonData);
+                
+                if (jsonData.interactionStatistic) {
+                    stats.views = parseInt(jsonData.interactionStatistic.userInteractionCount) || 0;
+                }
+                if (jsonData.name && jsonData.name !== 'Company') {
+                    stats.title = jsonData.name;
+                }
+                if (jsonData.author && jsonData.author.name) {
+                    stats.author = jsonData.author.name;
+                }
+            } catch (e) {
+                console.log('❌ JSON-LD parse error');
+            }
+        }
 
-    // Extract comments
-    const commentMatch = html.match(/"commentCount":(\d+)/);
-    if (commentMatch) stats.comments = parseInt(commentMatch[1]);
+        // Method 2: Extract from meta tags
+        const viewMatch = html.match(/"playCount":(\d+)/) || html.match(/"viewCount":(\d+)/);
+        if (viewMatch) {
+            stats.views = parseInt(viewMatch[1]) || 0;
+            console.log('✅ Views from meta:', stats.views);
+        }
 
-    // Extract author
-    const authorMatch = html.match(/"author":"([^"]*)"/) || html.match(/"uniqueId":"([^"]*)"/);
-    if (authorMatch) stats.author = authorMatch[1];
+        const likeMatch = html.match(/"diggCount":(\d+)/) || html.match(/"likeCount":(\d+)/);
+        if (likeMatch) {
+            stats.likes = parseInt(likeMatch[1]) || 0;
+            console.log('✅ Likes from meta:', stats.likes);
+        }
 
-    // Extract title
-    const titleMatch = html.match(/"title":"([^"]*)"/) || html.match(/"description":"([^"]*)"/);
-    if (titleMatch && titleMatch[1] !== 'Company') stats.title = titleMatch[1];
+        const commentMatch = html.match(/"commentCount":(\d+)/);
+        if (commentMatch) {
+            stats.comments = parseInt(commentMatch[1]) || 0;
+            console.log('✅ Comments from meta:', stats.comments);
+        }
 
+        const authorMatch = html.match(/"author":"([^"]*)"/) || html.match(/"uniqueId":"([^"]*)"/);
+        if (authorMatch) {
+            stats.author = authorMatch[1] || 'Unknown';
+            console.log('✅ Author from meta:', stats.author);
+        }
+
+        const titleMatch = html.match(/"title":"([^"]*)"/) || html.match(/"description":"([^"]*)"/);
+        if (titleMatch && titleMatch[1] !== 'Company') {
+            stats.title = titleMatch[1] || 'No Title';
+            console.log('✅ Title from meta:', stats.title);
+        }
+
+        // Method 3: Try to find video ID in the HTML
+        const videoIdMatch = html.match(/"videoId":"(\d+)"/);
+        if (videoIdMatch) {
+            stats.resolvedVideoId = videoIdMatch[1];
+            console.log('✅ Video ID found in HTML:', stats.resolvedVideoId);
+        }
+
+    } catch (error) {
+        console.log('❌ Error in extractStatsFromHTML:', error);
+    }
+
+    console.log('📊 Final stats:', stats);
     return stats;
 }
 
-// ✅ ADD THIS FUNCTION  
+// ✅ COMPLETE: Get Fallback Stats
 function getFallbackStats() {
     return {
         views: 0,
         likes: 0,
         comments: 0,
         author: 'Unknown',
-        title: 'No Title'
+        title: 'No Title',
+        resolved: false,
+        resolvedVideoId: null
     };
 }
 
-// ✅ ADD THIS FUNCTION
-function getTikTokVideoStatsDirect(videoId) {
+// ✅ COMPLETE: Resolve Short URL
+function resolveShortUrl(shortCode) {
     return new Promise((resolve) => {
+        console.log('🔄 Resolving short URL:', shortCode);
+        
         const options = {
-            hostname: 'www.tiktok.com',
-            path: `/@tiktok/video/${videoId}`,
+            hostname: 'vm.tiktok.com',
+            path: `/${shortCode}/`,
             method: 'GET',
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -501,23 +592,44 @@ function getTikTokVideoStatsDirect(videoId) {
         };
 
         const req = https.request(options, (res) => {
-            let data = '';
-
-            res.on('data', (chunk) => {
-                data += chunk.toString();
-            });
-
-            res.on('end', () => {
-                const stats = extractStatsFromHTML(data);
-                resolve(stats);
-            });
+            console.log('📡 Short URL response status:', res.statusCode);
+            console.log('📡 Response headers:', res.headers);
+            
+            // Follow redirect to get final URL
+            const finalUrl = res.headers.location;
+            console.log('🔗 Redirect URL:', finalUrl);
+            
+            if (finalUrl) {
+                // Extract video ID from final URL
+                const videoIdMatch = finalUrl.match(/\/(\d{19})/);
+                if (videoIdMatch) {
+                    console.log('✅ Resolved to Video ID:', videoIdMatch[1]);
+                    resolve(videoIdMatch[1]);
+                } else {
+                    console.log('❌ No video ID in redirect URL');
+                    resolve(null);
+                }
+            } else {
+                console.log('❌ No redirect location found');
+                resolve(null);
+            }
+            
+            // Consume the response body
+            res.on('data', () => {});
+            res.on('end', () => {});
         });
 
-        req.on('error', () => resolve(getFallbackStats()));
+        req.on('error', (error) => {
+            console.log('❌ Short URL resolve error:', error.message);
+            resolve(null);
+        });
+        
         req.setTimeout(10000, () => {
+            console.log('❌ Short URL resolve timeout');
             req.destroy();
-            resolve(getFallbackStats());
+            resolve(null);
         });
+        
         req.end();
     });
 }
