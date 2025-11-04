@@ -361,19 +361,25 @@ function resolveShortUrl(shortCode) {
 }
 
 // ✅ UPDATED: Get TikTok Video Stats with Short URL Support
+// ✅ UPDATED: Get TikTok Video Stats with Auto Resolution
 function getTikTokVideoStats(videoInfo) {
     return new Promise((resolve) => {
-        // If it's a short URL, resolve it first
+        // If it's a short URL, resolve it first and get stats with real ID
         if (videoInfo.type === 'SHORT_URL') {
             console.log('🔄 Short URL detected, resolving...');
             
             resolveShortUrl(videoInfo.shortCode)
                 .then(resolvedVideoId => {
                     if (resolvedVideoId) {
-                        console.log('✅ Short URL resolved to:', resolvedVideoId);
-                        // Now get stats with the resolved video ID
-                        getTikTokVideoStats({ id: resolvedVideoId, type: 'RESOLVED' })
-                            .then(stats => resolve(stats))
+                        console.log('✅ Short URL resolved to REAL Video ID:', resolvedVideoId);
+                        // Get stats with the REAL video ID
+                        getTikTokVideoStatsDirect(resolvedVideoId)
+                            .then(stats => {
+                                // Add resolved ID to stats
+                                stats.resolvedVideoId = resolvedVideoId;
+                                stats.originalShortCode = videoInfo.shortCode;
+                                resolve(stats);
+                            })
                             .catch(() => resolve(getFallbackStats()));
                     } else {
                         console.log('❌ Short URL resolution failed');
@@ -386,6 +392,13 @@ function getTikTokVideoStats(videoInfo) {
                 });
             return;
         }
+
+        // For standard video IDs, directly get stats
+        getTikTokVideoStatsDirect(videoInfo.id)
+            .then(stats => resolve(stats))
+            .catch(() => resolve(getFallbackStats()));
+    });
+
 
         // For standard video IDs, directly get stats
         const options = {
@@ -598,6 +611,7 @@ app.post('/api/logout', async (req, res) => {
 
 // ✅ Route 1: Get Video Information
 // ✅ UPDATED: Get Video Information with Short URL Support
+// ✅ UPDATED: Get Video Information with Auto Resolution
 app.post('/api/get-video-info', verifyToken, async (req, res) => {
     try {
         const { videoLink, token } = req.body;
@@ -615,12 +629,13 @@ app.post('/api/get-video-info', verifyToken, async (req, res) => {
 
         console.log('📊 Video Info:', videoInfo);
         
-        // Get current video stats (with short URL resolution)
+        // Get current video stats (with auto resolution for short URLs)
         const currentStats = await getTikTokVideoStats(videoInfo);
         
         console.log('📈 Stats retrieved:', currentStats);
         
-        res.json({
+        // Prepare response
+        const responseData = {
             success: true,
             videoInfo: {
                 id: videoInfo.id,
@@ -629,10 +644,21 @@ app.post('/api/get-video-info', verifyToken, async (req, res) => {
                 currentLikes: currentStats.likes,
                 currentComments: currentStats.comments,
                 author: currentStats.author,
-                title: currentStats.title,
-                resolved: videoInfo.type === 'SHORT_URL' ? 'pending' : 'direct'
+                title: currentStats.title
             }
-        });
+        };
+
+        // Add resolved video ID if available
+        if (currentStats.resolvedVideoId) {
+            responseData.videoInfo.resolvedVideoId = currentStats.resolvedVideoId;
+            responseData.videoInfo.resolved = true;
+            responseData.videoInfo.finalVideoId = currentStats.resolvedVideoId;
+        } else {
+            responseData.videoInfo.finalVideoId = videoInfo.id;
+            responseData.videoInfo.resolved = false;
+        }
+        
+        res.json(responseData);
         
     } catch (error) {
         console.log('❌ Video info error:', error);
@@ -644,6 +670,7 @@ app.post('/api/get-video-info', verifyToken, async (req, res) => {
 });
 
 // ✅ Route 2: Modified Start All Bots with New Logic
+// ✅ UPDATED: Start All Bots with Resolved Video ID
 app.post('/api/start-all', verifyToken, async (req, res) => {
     try {
         const { videoLink, targetViews, token, currentViews } = req.body;
@@ -664,6 +691,21 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
             return res.json({ success: false, message: 'Invalid TikTok link' });
         }
 
+        // ✅ GET FINAL VIDEO ID (Resolve short URL if needed)
+        let finalVideoId = videoInfo.id;
+        let finalVideoLink = videoLink;
+
+        if (videoInfo.type === 'SHORT_URL') {
+            console.log('🔄 Resolving short URL for bot start...');
+            const resolvedVideoId = await resolveShortUrl(videoInfo.shortCode);
+            if (resolvedVideoId) {
+                finalVideoId = resolvedVideoId;
+                // Create proper TikTok URL from resolved ID
+                finalVideoLink = `https://www.tiktok.com/@tiktok/video/${resolvedVideoId}`;
+                console.log('✅ Using resolved Video ID for bots:', finalVideoId);
+            }
+        }
+
         // Calculate target views: currentViews + additional target
         const currentViewsNum = parseInt(currentViews) || 0;
         const targetViewsNum = parseInt(targetViews) || 0;
@@ -671,21 +713,23 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
 
         // Store target in global variable for monitoring
         global.runningJobs = global.runningJobs || {};
-        global.runningJobs[videoInfo.id] = {
-            videoId: videoInfo.id,
-            videoLink: videoLink,
+        global.runningJobs[finalVideoId] = {
+            videoId: finalVideoId,
+            videoLink: finalVideoLink,
             startViews: currentViewsNum,
             targetViews: finalTarget,
             startTime: new Date(),
-            isRunning: true
+            isRunning: true,
+            originalLink: videoLink
         };
 
         const results = [];
         for (const instance of enabledInstances) {
             try {
+                // ✅ Send FINAL video ID to bots
                 await axios.post(`${instance.url}/start`, {
                     targetViews: finalTarget,
-                    videoLink: videoLink,
+                    videoLink: finalVideoLink,  // Use resolved link
                     mode: 'persistent'
                 }, { timeout: 10000 });
                 results.push({ instance: instance.id, success: true, message: 'Started' });
@@ -695,13 +739,14 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
         }
 
         // Start monitoring for this video
-        startVideoMonitoring(videoInfo.id, finalTarget);
+        startVideoMonitoring(finalVideoId, finalTarget);
 
         const successful = results.filter(r => r.success).length;
         res.json({
             success: successful > 0,
             message: `${successful}/${enabledInstances.length} started`,
             finalTarget: finalTarget,
+            finalVideoId: finalVideoId,
             results: results
         });
     } catch (error) {
