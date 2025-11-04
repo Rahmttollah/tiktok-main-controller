@@ -265,7 +265,8 @@ async function getInstancesForSystem() {
     }
 }
 
-// ✅ VIDEO INFO EXTRACTION FUNCTION
+// ✅ HELPER FUNCTIONS - Add these to your main-controller.js
+
 function extractVideoInfo(url) {
     let cleanUrl = url.split('?')[0].trim();
     
@@ -290,8 +291,7 @@ function extractVideoInfo(url) {
     return { id: null, type: 'UNKNOWN' };
 }
 
-// ✅ GET TIKTOK VIDEO STATS FUNCTION
-async function getTikTokVideoStats(videoId) {
+function getTikTokVideoStats(videoId) {
     return new Promise((resolve) => {
         const options = {
             hostname: 'www.tiktok.com',
@@ -316,16 +316,29 @@ async function getTikTokVideoStats(videoId) {
             });
         });
 
-        req.on('error', () => resolve({ views: 0, likes: 0, comments: 0, author: 'Unknown', title: 'No Title' }));
+        req.on('error', () => resolve({ 
+            views: 0, 
+            likes: 0, 
+            comments: 0, 
+            author: 'Unknown', 
+            title: 'No Title' 
+        }));
+        
         req.setTimeout(8000, () => {
             req.destroy();
-            resolve({ views: 0, likes: 0, comments: 0, author: 'Unknown', title: 'No Title' });
+            resolve({ 
+                views: 0, 
+                likes: 0, 
+                comments: 0, 
+                author: 'Unknown', 
+                title: 'No Title' 
+            });
         });
+        
         req.end();
     });
 }
 
-// ✅ EXTRACT STATS FROM HTML FUNCTION
 function extractStatsFromHTML(html) {
     const stats = {
         views: 0,
@@ -358,7 +371,6 @@ function extractStatsFromHTML(html) {
     return stats;
 }
 
-// ✅ VIDEO MONITORING FUNCTION
 function startVideoMonitoring(videoId, targetViews) {
     const checkInterval = setInterval(async () => {
         try {
@@ -379,9 +391,6 @@ function startVideoMonitoring(videoId, targetViews) {
                 // Stop all bots for this video
                 if (global.runningJobs[videoId]) {
                     global.runningJobs[videoId].isRunning = false;
-                    
-                    // You can add automatic stop logic here if needed
-                    // await stopBotsForVideo(videoId);
                 }
                 
                 clearInterval(checkInterval);
@@ -449,7 +458,7 @@ app.post('/api/logout', async (req, res) => {
     }
 });
 
-// ✅ GET VIDEO INFO ROUTE
+// ✅ Route 1: Get Video Information
 app.post('/api/get-video-info', verifyToken, async (req, res) => {
     try {
         const { videoLink, token } = req.body;
@@ -478,11 +487,12 @@ app.post('/api/get-video-info', verifyToken, async (req, res) => {
             }
         });
     } catch (error) {
+        console.log('Video info error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-// ✅ MODIFIED START-ALL ROUTE WITH NEW LOGIC
+// ✅ Route 2: Modified Start All Bots with New Logic
 app.post('/api/start-all', verifyToken, async (req, res) => {
     try {
         const { videoLink, targetViews, token, currentViews } = req.body;
@@ -523,9 +533,9 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
         for (const instance of enabledInstances) {
             try {
                 await axios.post(`${instance.url}/start`, {
-                    targetViews: finalTarget, // Send final target to bots
+                    targetViews: finalTarget,
                     videoLink: videoLink,
-                    mode: 'persistent' // New mode for persistent running
+                    mode: 'persistent'
                 }, { timeout: 10000 });
                 results.push({ instance: instance.id, success: true, message: 'Started' });
             } catch (error) {
@@ -544,11 +554,12 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
             results: results
         });
     } catch (error) {
+        console.log('Start bots error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-// ✅ MONITORING STATUS ROUTE
+// ✅ Route 3: Monitoring Status
 app.get('/api/monitoring-status', verifyToken, async (req, res) => {
     try {
         const { videoId } = req.query;
