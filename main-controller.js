@@ -635,123 +635,123 @@ function resolveShortUrl(shortCode) {
 }
 
 // ✅ COMPLETE: Start Video Monitoring with Auto-Restart
-function startVideoMonitoring(videoId, targetViews, originalVideoLink) {
-    let restartCount = 0;
-    const MAX_RESTARTS = 10; // Maximum 10 times restart
+// ✅ NEW LOGIC: Every 200ms Check & Send 20x
+function startVideoMonitoring(videoId, userTarget, originalVideoLink) {
+    const CHECK_INTERVAL = 200; // Every 200ms
+    const MULTIPLIER = 20; // 20x every time
+    let checkCount = 0;
     
-    console.log(`🎯 Starting monitoring for video ${videoId}, target: ${targetViews}`);
+    console.log(`🎯 TURBO MODE: Every 200ms | Check + Send 20x | Target: +${userTarget}`);
     
     const checkInterval = setInterval(async () => {
+        checkCount++;
+        
         try {
             // Check if job is still running
             if (!global.runningJobs || !global.runningJobs[videoId]) {
-                console.log(`🛑 Monitoring stopped - job removed`);
+                console.log(`🛑 Monitoring stopped`);
                 clearInterval(checkInterval);
                 return;
             }
 
             const job = global.runningJobs[videoId];
             
-            // Get current REAL views from TikTok
-            console.log(`📊 Checking current views for ${videoId}...`);
-            const currentStats = await getTikTokVideoStats({ id: videoId, type: 'MONITORING' });
+            // ✅ STEP 1: GET CURRENT REAL VIEWS (Every 200ms)
+            const currentStats = await getTikTokVideoStats({ id: videoId, type: 'FAST_CHECK' });
             const currentViews = currentStats.views;
+            const actualProgress = currentViews - job.startViews;
             
-            console.log(`📈 Video ${videoId}: Current=${currentViews}, Target=${targetViews}, Progress=${currentViews - job.startViews}`);
+            console.log(`🔄 CHECK ${checkCount}: Current=${currentViews} | Progress=${actualProgress} | Target=${userTarget}`);
             
-            // Update job with current progress
+            // Update job progress
             job.currentViews = currentViews;
-            job.progress = currentViews - job.startViews;
-            job.remaining = targetViews - currentViews;
+            job.progress = actualProgress;
+            job.remaining = userTarget - actualProgress;
+            job.lastCheck = new Date();
+            job.checkCount = checkCount;
             
-            // Check if target reached
-            if (currentViews >= targetViews) {
-                console.log(`🎯 TARGET REACHED! Video ${videoId}: ${currentViews}/${targetViews}`);
+            // ✅ STEP 2: CHECK IF TARGET COMPLETE
+            if (actualProgress >= userTarget) {
+                console.log(`🎯 TARGET COMPLETED! Stopping bots...`);
+                console.log(`✅ Real Views: ${currentViews} | Progress: ${actualProgress} | Target: ${userTarget}`);
                 
-                // Stop all bots for this video
+                // STOP ALL BOTS
+                await stopAllBotsForVideo(videoId);
+                
                 job.isRunning = false;
                 job.status = 'COMPLETED';
                 job.completedAt = new Date();
                 
-                console.log(`✅ Successfully completed target for video ${videoId}`);
+                console.log(`✅ SUCCESS: Target completed in ${checkCount} checks`);
                 clearInterval(checkInterval);
                 return;
             }
             
-            // ✅ CHECK IF BOTS ARE STILL RUNNING
-            let botsRunning = false;
-            try {
-                const instances = await getInstancesForSystem();
-                for (const instance of instances) {
-                    if (instance.enabled) {
-                        try {
-                            const status = await axios.get(`${instance.url}/status`, { timeout: 5000 });
-                            if (status.data && status.data.running) {
-                                botsRunning = true;
-                                break;
-                            }
-                        } catch (error) {
-                            // Instance might be offline
-                        }
-                    }
-                }
-            } catch (error) {
-                console.log('❌ Error checking bot status:', error.message);
-            }
+            // ✅ STEP 3: TARGET NOT COMPLETE - SEND 20x VIEWS
+            console.log(`🚀 TARGET NOT COMPLETE - SENDING ${userTarget * MULTIPLIER} VIEWS (20x)`);
+            await sendViewsToBots(videoId, originalVideoLink, userTarget * MULTIPLIER);
             
-            // ✅ AUTO-RESTART LOGIC
-            if (!botsRunning && job.isRunning && restartCount < MAX_RESTARTS) {
-                console.log(`🔄 BOTS STOPPED! Auto-restarting... (Attempt ${restartCount + 1}/${MAX_RESTARTS})`);
-                
-                restartCount++;
-                job.restartCount = restartCount;
-                job.lastRestart = new Date();
-                
-                try {
-                    // Restart all bots
-                    const instances = await getInstancesForSystem();
-                    const enabledInstances = instances.filter(inst => inst.enabled);
-                    
-                    let restartSuccess = 0;
-                    for (const instance of enabledInstances) {
-                        try {
-                            await axios.post(`${instance.url}/start`, {
-                                targetViews: targetViews,
-                                videoLink: originalVideoLink,
-                                mode: 'auto_restart'
-                            }, { timeout: 10000 });
-                            restartSuccess++;
-                        } catch (error) {
-                            console.log(`❌ Failed to restart instance ${instance.url}`);
-                        }
-                    }
-                    
-                    if (restartSuccess > 0) {
-                        console.log(`✅ Auto-restart successful: ${restartSuccess} bots restarted`);
-                        job.status = `RESTARTED_${restartCount}`;
-                    } else {
-                        console.log(`❌ Auto-restart failed: No bots could be restarted`);
-                        job.status = 'RESTART_FAILED';
-                    }
-                    
-                } catch (restartError) {
-                    console.log(`❌ Auto-restart error:`, restartError.message);
-                    job.status = 'RESTART_ERROR';
-                }
-            }
+            job.sentCount = (job.sentCount || 0) + 1;
+            job.totalSent = (job.totalSent || 0) + (userTarget * MULTIPLIER);
             
-            // Stop if max restarts reached but target not achieved
-            if (restartCount >= MAX_RESTARTS && currentViews < targetViews) {
-                console.log(`💀 MAX RESTARTS REACHED! Video ${videoId}: ${currentViews}/${targetViews}`);
-                job.isRunning = false;
-                job.status = 'MAX_RESTARTS_REACHED';
-                clearInterval(checkInterval);
-            }
+            console.log(`📈 Sent ${userTarget * MULTIPLIER} views | Total sent: ${job.totalSent} | Checks: ${checkCount}`);
 
         } catch (error) {
-            console.log('❌ Monitoring error:', error.message);
+            console.log('❌ Turbo mode error:', error.message);
         }
-    }, 10000); // Check every 10 seconds
+    }, CHECK_INTERVAL); // Every 200ms
+}
+
+// ✅ NEW: Send Views to Bots
+async function sendViewsToBots(videoId, videoLink, viewsToSend) {
+    try {
+        const instances = await getInstancesForSystem();
+        const enabledInstances = instances.filter(inst => inst.enabled);
+        
+        let sentCount = 0;
+        for (const instance of enabledInstances) {
+            try {
+                await axios.post(`${instance.url}/start`, {
+                    targetViews: viewsToSend,
+                    videoLink: videoLink,
+                    mode: 'turbo_200ms'
+                }, { timeout: 5000 }); // Faster timeout
+                sentCount++;
+            } catch (error) {
+                console.log(`❌ Failed to send to ${instance.url}`);
+            }
+        }
+        
+        console.log(`📤 Sent ${viewsToSend} views to ${sentCount} bots`);
+        return sentCount;
+    } catch (error) {
+        console.log('❌ Error sending views:', error.message);
+        return 0;
+    }
+}
+
+// ✅ NEW: Stop All Bots for Specific Video
+async function stopAllBotsForVideo(videoId) {
+    try {
+        const instances = await getInstancesForSystem();
+        const enabledInstances = instances.filter(inst => inst.enabled);
+        
+        let stoppedCount = 0;
+        for (const instance of enabledInstances) {
+            try {
+                await axios.post(`${instance.url}/stop`, {}, { timeout: 3000 });
+                stoppedCount++;
+            } catch (error) {
+                // Ignore stop errors
+            }
+        }
+        
+        console.log(`🛑 Stopped ${stoppedCount} bots`);
+        return stoppedCount;
+    } catch (error) {
+        console.log('❌ Error stopping bots:', error.message);
+        return 0;
+    }
 }
 
 // Routes
@@ -872,6 +872,7 @@ app.post('/api/get-video-info', verifyToken, async (req, res) => {
 
 // ✅ Route 2: Modified Start All Bots with New Logic
 // ✅ UPDATED: Start All Bots with Resolved Video ID
+// ✅ UPDATED: Start Turbo Mode
 app.post('/api/start-all', verifyToken, async (req, res) => {
     try {
         const { videoLink, targetViews, token, currentViews } = req.body;
@@ -880,77 +881,57 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
             return res.json({ success: false, message: 'Video link required' });
         }
 
-        const instances = await getInstancesFromAuthServer(token);
-        const enabledInstances = instances.filter(inst => inst.enabled);
-        
-        if (enabledInstances.length === 0) {
-            return res.json({ success: false, message: 'No bot instances available' });
-        }
-
         const videoInfo = extractVideoInfo(videoLink);
         if (!videoInfo.id) {
             return res.json({ success: false, message: 'Invalid TikTok link' });
         }
 
-        // ✅ GET FINAL VIDEO ID (Resolve short URL if needed)
+        // ✅ GET FINAL VIDEO ID
         let finalVideoId = videoInfo.id;
         let finalVideoLink = videoLink;
 
         if (videoInfo.type === 'SHORT_URL') {
-            console.log('🔄 Resolving short URL for bot start...');
             const resolvedVideoId = await resolveShortUrl(videoInfo.shortCode);
             if (resolvedVideoId) {
                 finalVideoId = resolvedVideoId;
-                // Create proper TikTok URL from resolved ID
                 finalVideoLink = `https://www.tiktok.com/@tiktok/video/${resolvedVideoId}`;
-                console.log('✅ Using resolved Video ID for bots:', finalVideoId);
             }
         }
 
-        // Calculate target views: currentViews + additional target
+        // Calculate targets
         const currentViewsNum = parseInt(currentViews) || 0;
-        const targetViewsNum = parseInt(targetViews) || 0;
-        const finalTarget = currentViewsNum + targetViewsNum;
+        const userTarget = parseInt(targetViews) || 0;
+        const finalTarget = currentViewsNum + userTarget;
 
-        // Store target in global variable for monitoring
+        console.log(`🎯 TURBO START: User Target=+${userTarget} | Final Target=${finalTarget}`);
+
+        // Store in global variable
         global.runningJobs = global.runningJobs || {};
         global.runningJobs[finalVideoId] = {
             videoId: finalVideoId,
             videoLink: finalVideoLink,
             startViews: currentViewsNum,
             targetViews: finalTarget,
+            userTarget: userTarget, // +100
             startTime: new Date(),
             isRunning: true,
-            originalLink: videoLink
+            originalLink: videoLink,
+            mode: 'turbo_200ms'
         };
 
-        const results = [];
-        for (const instance of enabledInstances) {
-            try {
-                // ✅ Send FINAL video ID to bots
-                await axios.post(`${instance.url}/start`, {
-                    targetViews: finalTarget,
-                    videoLink: finalVideoLink,  // Use resolved link
-                    mode: 'persistent'
-                }, { timeout: 10000 });
-                results.push({ instance: instance.id, success: true, message: 'Started' });
-            } catch (error) {
-                results.push({ instance: instance.id, success: false, message: 'Failed' });
-            }
-        }
+        // ✅ START TURBO MODE (200ms checks + 20x sends)
+        startVideoMonitoring(finalVideoId, userTarget, finalVideoLink);
 
-        // Start monitoring for this video
-        // Start monitoring for this video WITH AUTO-RESTART
-startVideoMonitoring(finalVideoId, finalTarget, videoLink);
-
-        const successful = results.filter(r => r.success).length;
         res.json({
-            success: successful > 0,
-            message: `${successful}/${enabledInstances.length} started`,
+            success: true,
+            message: 'Turbo mode started!',
+            userTarget: userTarget,
             finalTarget: finalTarget,
-            finalVideoId: finalVideoId,
-            results: results
+            multiplier: 20,
+            checkInterval: '200ms',
+            finalVideoId: finalVideoId
         });
+        
     } catch (error) {
         console.log('Start bots error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
@@ -959,6 +940,7 @@ startVideoMonitoring(finalVideoId, finalTarget, videoLink);
 
 // ✅ Route 3: Monitoring Status
 // ✅ UPDATED: Monitoring Status with Restart Info
+// ✅ UPDATED: Monitoring Status for Turbo Mode
 app.get('/api/monitoring-status', verifyToken, async (req, res) => {
     try {
         const { videoId } = req.query;
@@ -978,18 +960,22 @@ app.get('/api/monitoring-status', verifyToken, async (req, res) => {
             isRunning: job.isRunning,
             startViews: job.startViews,
             targetViews: job.targetViews,
+            userTarget: job.userTarget,
             currentViews: currentViews,
             progress: currentViews - job.startViews,
             remaining: job.targetViews - currentViews,
             startTime: job.startTime,
-            restartCount: job.restartCount || 0,
-            status: job.status || 'RUNNING',
-            lastRestart: job.lastRestart || null
+            checkCount: job.checkCount || 0,
+            sentCount: job.sentCount || 0,
+            totalSent: job.totalSent || 0,
+            status: job.status || 'TURBO_RUNNING',
+            mode: '200ms_check_20x_send'
         });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
+
 
 // ✅ Protected APIs - Instances auth server se fetch karo
 app.get('/api/instances', verifyToken, async (req, res) => {
