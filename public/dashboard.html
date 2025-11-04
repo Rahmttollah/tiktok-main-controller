@@ -948,473 +948,628 @@
     <script type='text/javascript' src='//ancestorheadquarters.com/c0/08/ba/c008ba61aec9fa0fa19086602bd9f29b.js'></script>
 
     <script>
-        let refreshInterval;
-        let userToken = '';
-        let botStatus = 'stopped';
-        let adGuardChecked = false;
-        
-        // REAL AdGuard Detection - Only shows when AdGuard is actually detected
-        function detectAdGuard() {
-            return new Promise((resolve) => {
-                let detectionCount = 0;
-                let totalTests = 5;
-                
-                // Test 1: Check for AdGuard specific objects (most reliable)
-                if (window.adguard || window.AdGuard) {
-                    console.log('AdGuard detected: Window objects found');
-                    detectionCount += 2; // Give more weight to this test
-                }
-                
-                // Test 2: Check for blocked ad requests (more reliable)
-                const adUrls = [
-                    'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
-                    'https://googleads.g.doubleclick.net/pagead/id',
-                    'https://securepubads.g.doubleclick.net/tag/js/gpt.js'
-                ];
-                
-                let blockedRequests = 0;
-                let completedRequests = 0;
-                
-                adUrls.forEach(url => {
-                    fetch(url, { 
-                        method: 'HEAD',
-                        mode: 'no-cors',
-                        cache: 'no-store'
-                    }).then(() => {
-                        completedRequests++;
-                        if (completedRequests === adUrls.length) {
-                            evaluateResults();
-                        }
-                    }).catch(() => {
-                        blockedRequests++;
-                        completedRequests++;
-                        if (completedRequests === adUrls.length) {
-                            evaluateResults();
-                        }
-                    });
-                });
-                
-                // Test 3: Check for hidden ad elements (common ad blocker technique)
-                const adElement = document.createElement('div');
-                adElement.className = 'adsbox';
-                adElement.innerHTML = '&nbsp;';
-                adElement.style.cssText = 'width: 1px; height: 1px; position: absolute; left: -100px; top: -100px; visibility: hidden;';
-                document.body.appendChild(adElement);
-                
-                setTimeout(() => {
-                    const computedStyle = window.getComputedStyle(adElement);
-                    if (adElement.offsetHeight === 0 || 
-                        adElement.offsetWidth === 0 || 
-                        computedStyle.display === 'none' ||
-                        computedStyle.visibility === 'hidden') {
-                        detectionCount++;
+    let refreshInterval;
+    let userToken = '';
+    let botStatus = 'stopped';
+    let adGuardChecked = false;
+    let currentVideoInfo = null;
+    let liveUpdateInterval = null;
+    let monitoringInterval = null;
+    
+    // REAL AdGuard Detection - Only shows when AdGuard is actually detected
+    function detectAdGuard() {
+        return new Promise((resolve) => {
+            let detectionCount = 0;
+            let totalTests = 5;
+            
+            // Test 1: Check for AdGuard specific objects (most reliable)
+            if (window.adguard || window.AdGuard) {
+                console.log('AdGuard detected: Window objects found');
+                detectionCount += 2;
+            }
+            
+            // Test 2: Check for blocked ad requests (more reliable)
+            const adUrls = [
+                'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
+                'https://googleads.g.doubleclick.net/pagead/id',
+                'https://securepubads.g.doubleclick.net/tag/js/gpt.js'
+            ];
+            
+            let blockedRequests = 0;
+            let completedRequests = 0;
+            
+            adUrls.forEach(url => {
+                fetch(url, { 
+                    method: 'HEAD',
+                    mode: 'no-cors',
+                    cache: 'no-store'
+                }).then(() => {
+                    completedRequests++;
+                    if (completedRequests === adUrls.length) {
+                        evaluateResults();
                     }
-                    document.body.removeChild(adElement);
-                }, 100);
-                
-                // Test 4: Check for common ad blocker properties
-                if (window.canRunAds === undefined) {
+                }).catch(() => {
+                    blockedRequests++;
+                    completedRequests++;
+                    if (completedRequests === adUrls.length) {
+                        evaluateResults();
+                    }
+                });
+            });
+            
+            // Test 3: Check for hidden ad elements
+            const adElement = document.createElement('div');
+            adElement.className = 'adsbox';
+            adElement.innerHTML = '&nbsp;';
+            adElement.style.cssText = 'width: 1px; height: 1px; position: absolute; left: -100px; top: -100px; visibility: hidden;';
+            document.body.appendChild(adElement);
+            
+            setTimeout(() => {
+                const computedStyle = window.getComputedStyle(adElement);
+                if (adElement.offsetHeight === 0 || computedStyle.display === 'none') {
                     detectionCount++;
                 }
-                
-                // Test 5: Check for modified DOM properties
-                const testDiv = document.createElement('div');
-                testDiv.id = 'test-ad';
-                document.body.appendChild(testDiv);
-                
-                setTimeout(() => {
-                    if (document.getElementById('test-ad') === null) {
-                        detectionCount++;
-                    }
-                    document.body.removeChild(testDiv);
-                }, 50);
-                
-                function evaluateResults() {
-                    // If more than 2/3 of ad requests are blocked, likely ad blocker
-                    if (blockedRequests >= 2) {
-                        detectionCount += 2;
-                    }
-                    
-                    // Only consider AdGuard detected if multiple tests confirm
-                    const isDetected = detectionCount >= 3;
-                    
-                    console.log(`AdGuard Detection Results:
-                    - Detection Score: ${detectionCount}/7
-                    - Blocked Requests: ${blockedRequests}/3
-                    - Final Result: ${isDetected ? 'ADGUARD DETECTED' : 'No AdGuard'}
-                    `);
-                    
-                    resolve(isDetected);
+                document.body.removeChild(adElement);
+            }, 100);
+            
+            // Test 4: Check for common ad blocker properties
+            if (window.canRunAds === undefined) {
+                detectionCount++;
+            }
+            
+            function evaluateResults() {
+                if (blockedRequests >= 2) {
+                    detectionCount += 2;
                 }
                 
-                // Fallback timeout
-                setTimeout(() => {
-                    evaluateResults();
-                }, 1000);
+                const isDetected = detectionCount >= 3;
+                resolve(isDetected);
+            }
+            
+            setTimeout(() => {
+                evaluateResults();
+            }, 1000);
+        });
+    }
+    
+    // Show AdGuard blocker
+    function showAdGuardBlocker() {
+        const blocker = document.getElementById('adguardBlocker');
+        blocker.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+    
+    // Hide AdGuard blocker
+    function hideAdGuardBlocker() {
+        const blocker = document.getElementById('adguardBlocker');
+        blocker.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+    
+    // Check AdGuard status
+    async function checkAdGuard() {
+        if (adGuardChecked) return true;
+        
+        const isAdGuard = await detectAdGuard();
+        if (isAdGuard) {
+            showAdGuardBlocker();
+            adGuardChecked = true;
+            return false;
+        } else {
+            hideAdGuardBlocker();
+            adGuardChecked = true;
+            return true;
+        }
+    }
+    
+    // Get token from URL
+    function getTokenFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('token');
+    }
+    
+    // Enhanced API call with error handling
+    async function safeFetch(url, options = {}) {
+        try {
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
             });
-        }
-        
-        // Show AdGuard blocker
-        function showAdGuardBlocker() {
-            const blocker = document.getElementById('adguardBlocker');
-            blocker.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-        }
-        
-        // Hide AdGuard blocker
-        function hideAdGuardBlocker() {
-            const blocker = document.getElementById('adguardBlocker');
-            blocker.style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-        
-        // Check AdGuard status
-        async function checkAdGuard() {
-            // Only check once to avoid annoying users
-            if (adGuardChecked) return true;
             
-            const isAdGuard = await detectAdGuard();
-            if (isAdGuard) {
-                showAdGuardBlocker();
-                adGuardChecked = true;
-                return false;
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('text/html')) {
+                throw new Error('Server returned HTML instead of JSON');
+            }
+            
+            const text = await response.text();
+            
+            try {
+                return JSON.parse(text);
+            } catch (parseError) {
+                console.error('JSON Parse Error:', parseError);
+                throw new Error('Invalid server response');
+            }
+        } catch (error) {
+            console.error('Fetch Error:', error);
+            throw error;
+        }
+    }
+    
+    // ✅ NEW: Paste with video info analysis
+    async function pasteFromClipboard() {
+        try {
+            const text = await navigator.clipboard.readText();
+            const videoLinkInput = document.getElementById('videoLink');
+            videoLinkInput.value = text;
+            
+            showMessage('📋 Link pasted! Analyzing video...', 'info');
+            
+            // Get video info immediately
+            await fetchVideoInfo(text);
+            
+        } catch (error) {
+            showMessage('Failed to paste from clipboard', 'error');
+        }
+    }
+
+    // ✅ NEW: Fetch video information
+    async function fetchVideoInfo(videoLink) {
+        try {
+            const response = await fetch('/api/get-video-info', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    videoLink: videoLink,
+                    token: userToken
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                currentVideoInfo = data.videoInfo;
+                displayVideoInfo(currentVideoInfo);
+                
+                // Start live updates every 500ms
+                startLiveUpdates(videoLink);
+                
             } else {
-                hideAdGuardBlocker();
-                adGuardChecked = true;
-                return true;
+                showMessage(data.message, 'error');
             }
+        } catch (error) {
+            showMessage('Error fetching video info', 'error');
+        }
+    }
+
+    // ✅ NEW: Display video information
+    function displayVideoInfo(videoInfo) {
+        // Remove existing video info
+        const existingInfo = document.getElementById('videoInfo');
+        if (existingInfo) {
+            existingInfo.remove();
         }
         
-        // Get token from URL
-        function getTokenFromURL() {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('token');
+        const videoInfoDiv = document.createElement('div');
+        videoInfoDiv.id = 'videoInfo';
+        videoInfoDiv.className = 'video-info-card';
+        
+        videoInfoDiv.innerHTML = `
+            <h4>🎯 Video Information</h4>
+            <div class="video-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Video ID:</span>
+                    <span class="stat-value">${videoInfo.id}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Author:</span>
+                    <span class="stat-value">@${videoInfo.author}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Current Views:</span>
+                    <span class="stat-value" id="currentViews">${videoInfo.currentViews.toLocaleString()}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Likes:</span>
+                    <span class="stat-value">${videoInfo.currentLikes.toLocaleString()}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Comments:</span>
+                    <span class="stat-value">${videoInfo.currentComments.toLocaleString()}</span>
+                </div>
+            </div>
+            <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
+                🔄 Live updating every 500ms
+            </div>
+        `;
+        
+        // Insert after control panel
+        const controlPanel = document.querySelector('.control-panel');
+        controlPanel.appendChild(videoInfoDiv);
+    }
+
+    // ✅ NEW: Start live updates
+    function startLiveUpdates(videoLink) {
+        // Clear existing interval
+        if (liveUpdateInterval) {
+            clearInterval(liveUpdateInterval);
         }
         
-        // Enhanced API call with error handling
-        async function safeFetch(url, options = {}) {
-            try {
-                const response = await fetch(url, {
-                    ...options,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...options.headers
-                    }
-                });
-                
-                // Check if response is HTML instead of JSON
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('text/html')) {
-                    throw new Error('Server returned HTML instead of JSON');
-                }
-                
-                const text = await response.text();
-                
-                try {
-                    return JSON.parse(text);
-                } catch (parseError) {
-                    console.error('JSON Parse Error:', parseError);
-                    throw new Error('Invalid server response');
-                }
-            } catch (error) {
-                console.error('Fetch Error:', error);
-                throw error;
-            }
+        liveUpdateInterval = setInterval(async () => {
+            await fetchVideoInfo(videoLink);
+        }, 500); // Update every 500ms
+    }
+
+    // ✅ NEW: Stop live updates
+    function stopLiveUpdates() {
+        if (liveUpdateInterval) {
+            clearInterval(liveUpdateInterval);
+            liveUpdateInterval = null;
+        }
+    }
+
+    // ✅ MODIFIED: Start all bots with new logic
+    async function startAllBots() {
+        if (!currentVideoInfo) {
+            showMessage('Please paste a TikTok link first!', 'error');
+            return;
         }
         
-        async function pasteFromClipboard() {
-            try {
-                const text = await navigator.clipboard.readText();
-                document.getElementById('videoLink').value = text;
-                showMessage('📋 Pasted from clipboard!', 'success');
-            } catch (error) {
-                showMessage('Failed to paste from clipboard', 'error');
-            }
+        const targetViews = document.getElementById('targetViews').value;
+        if (!targetViews || targetViews < 1) {
+            showMessage('Please enter target views!', 'error');
+            return;
         }
         
-        async function startAllBots() {
-            const videoLink = document.getElementById('videoLink').value;
-            const targetViews = document.getElementById('targetViews').value;
-            const botStrategy = document.getElementById('botStrategy').value;
+        const currentViews = currentVideoInfo.currentViews;
+        const finalTarget = currentViews + parseInt(targetViews);
+        
+        setLoading('startBtn', true);
+        showMessage(`🚀 Starting bots... Target: ${currentViews.toLocaleString()} + ${targetViews} = ${finalTarget.toLocaleString()}`, 'info');
+        
+        try {
+            const response = await fetch('/api/start-all', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    videoLink: document.getElementById('videoLink').value,
+                    targetViews: targetViews,
+                    currentViews: currentViews,
+                    token: userToken
+                })
+            });
             
-            if (!videoLink) {
-                showMessage('Please enter TikTok video link!', 'error');
-                return;
-            }
+            const data = await response.json();
             
-            if (!isValidTikTokUrl(videoLink)) {
-                showMessage('Please enter a valid TikTok URL!', 'error');
-                return;
-            }
-            
-            setLoading('startBtn', true);
-            showMessage('🚀 Starting view bot system...', 'info');
-            
-            try {
-                const data = await safeFetch('/api/start-all', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        videoLink: videoLink,
-                        targetViews: parseInt(targetViews),
-                        strategy: botStrategy,
-                        token: userToken
-                    })
-                });
+            if (data.success) {
+                showMessage(`✅ ${data.message} | Final Target: ${data.finalTarget.toLocaleString()}`, 'success');
+                botStatus = 'running';
                 
-                if (data.success) {
-                    showMessage(`✅ ${data.message}`, 'success');
-                    botStatus = 'running';
-                    startStatusUpdates();
-                } else {
-                    showMessage(data.message, 'error');
-                }
-            } catch (error) {
-                showMessage('Error starting bot: ' + error.message, 'error');
-            } finally {
-                setLoading('startBtn', false);
+                // Start monitoring
+                startMonitoring(currentVideoInfo.id, data.finalTarget);
+                startStatusUpdates();
+                
+            } else {
+                showMessage(data.message, 'error');
             }
+        } catch (error) {
+            showMessage('Error starting bots: ' + error.message, 'error');
+        } finally {
+            setLoading('startBtn', false);
+        }
+    }
+
+    // ✅ NEW: Start monitoring progress
+    function startMonitoring(videoId, targetViews) {
+        if (monitoringInterval) {
+            clearInterval(monitoringInterval);
         }
         
-        async function stopAllBots() {
-            if (botStatus === 'stopped') {
-                showMessage('Bot is already stopped!', 'info');
-                return;
-            }
-            
-            setLoading('stopBtn', true);
-            showMessage('🛑 Stopping view bot...', 'info');
-            
-            try {
-                const data = await safeFetch('/api/stop-all', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        token: userToken
-                    })
-                });
-                
-                showMessage('🛑 ' + data.message, 'success');
-                botStatus = 'stopped';
-                if (refreshInterval) {
-                    clearInterval(refreshInterval);
-                }
-            } catch (error) {
-                showMessage('Error stopping bot', 'error');
-            } finally {
-                setLoading('stopBtn', false);
-            }
+        // Remove existing progress
+        const existingProgress = document.getElementById('progressInfo');
+        if (existingProgress) {
+            existingProgress.remove();
         }
         
-        async function refreshStatus() {
-            setLoading('refreshBtn', true);
-            await updateStatus();
-            setTimeout(() => setLoading('refreshBtn', false), 1000);
-            showMessage('🔄 Status refreshed!', 'success');
-        }
+        const progressDiv = document.createElement('div');
+        progressDiv.id = 'progressInfo';
+        progressDiv.className = 'progress-card';
         
-        // ✅ ENHANCED STATUS UPDATE - With bot distribution info
-        async function updateStatus() {
-            try {
-                const data = await safeFetch(`/api/status-all?token=${userToken}`);
-                
-                if (data.success) {
-                    // Update overview stats
-                    document.getElementById('totalSuccess').textContent = data.totals.success.toLocaleString();
-                    document.getElementById('totalRequests').textContent = data.totals.reqs.toLocaleString();
-                    document.getElementById('onlineBots').textContent = data.totals.onlineBots;
-                    document.getElementById('totalRpsNum').textContent = data.totals.rps.toFixed(1);
-                    document.getElementById('rpsValue').textContent = data.totals.rps.toFixed(1);
-                    
-                    // Show message if no bots allocated
-                    if (data.totals.totalBots === 0 && data.message) {
-                        showMessage(data.message, 'info');
-                    }
-                    
-                    // Update instances count
-                    document.getElementById('instancesCount').textContent = 
-                        `${data.totals.onlineBots} bots online`;
-                    
-                    // Update instances grid
-                    const container = document.getElementById('instancesContainer');
-                    
-                    if (data.instances.length === 0) {
-                        container.innerHTML = `
-                            <div class="empty-state">
-                                <i class="fas fa-robot"></i>
-                                <h3>Waiting for Bot Allocation</h3>
-                                <p>You will automatically receive bots when available</p>
-                                <p style="font-size: 0.8em; opacity: 0.7; margin-top: 10px;">
-                                    🔄 System checking for available bots...
-                                </p>
-                            </div>
-                        `;
-                        return;
-                    }
-                    
-                    container.innerHTML = '';
-                    
-                    data.instances.forEach((instance, index) => {
-                        const instanceCard = document.createElement('div');
-                        instanceCard.className = 'instance-card';
-                        instanceCard.style.animationDelay = `${index * 0.1}s`;
-                        
-                        const status = instance.status;
-                        const isOnline = instance.online;
-                        
-                        instanceCard.innerHTML = `
-                            <div class="instance-header">
-                                <div class="instance-title">${instance.name}</div>
-                                <span class="instance-status ${isOnline ? 'status-online' : 'status-offline'}">
-                                    ${isOnline ? 'ONLINE' : 'OFFLINE'}
-                                </span>
-                            </div>
-                            
-                            ${isOnline ? `
-                                <div class="instance-stats">
-                                    <div class="mini-stat">
-                                        <div class="mini-number" style="color: var(--success)">${status.success}</div>
-                                        <div class="mini-label">Success</div>
-                                    </div>
-                                    <div class="mini-stat">
-                                        <div class="mini-number" style="color: var(--danger)">${status.fails}</div>
-                                        <div class="mini-label">Failed</div>
-                                    </div>
-                                    <div class="mini-stat">
-                                        <div class="mini-number" style="color: var(--info)">${status.reqs}</div>
-                                        <div class="mini-label">Requests</div>
-                                    </div>
-                                    <div class="mini-stat">
-                                        <div class="mini-number" style="color: var(--warning)">${status.rps}</div>
-                                        <div class="mini-label">RPS</div>
-                                    </div>
-                                </div>
-                                
-                                <div class="progress-container">
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: ${status.targetViews > 0 ? (status.success / status.targetViews) * 100 : 0}%"></div>
-                                    </div>
-                                    <div class="progress-text">
-                                        ${status.targetViews > 0 ? 
-                                            `Progress: ${status.success}/${status.targetViews} (${((status.success / status.targetViews) * 100).toFixed(1)}%)` : 
-                                            `Views: ${status.success}`
-                                        }
-                                    </div>
-                                </div>
-                            ` : `
-                                <div style="text-align: center; padding: 20px; opacity: 0.7;">
-                                    <i class="fas fa-exclamation-triangle" style="font-size: 1.5em; margin-bottom: 10px;"></i>
-                                    <div>Bot Offline</div>
-                                </div>
-                            `}
-                        `;
-                        
-                        container.appendChild(instanceCard);
-                    });
-                }
-            } catch (error) {
-                console.log('Error fetching status:', error);
-            }
-        }
+        progressDiv.innerHTML = `
+            <h4>📈 Progress Tracking</h4>
+            <div class="progress-stats">
+                <div>Progress: 0 views</div>
+                <div>Remaining: ${targetViews.toLocaleString()} views</div>
+                <div>Completion: 0%</div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 0%"></div>
+            </div>
+        `;
         
-        // ✅ FIXED LOGOUT - No redirect loops
-        async function logout() {
+        const controlPanel = document.querySelector('.control-panel');
+        controlPanel.appendChild(progressDiv);
+        
+        monitoringInterval = setInterval(async () => {
             try {
-                const token = userToken || getTokenFromURL();
-                
-                // Call main controller logout
-                const response = await fetch('/api/logout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: token })
-                });
-                
+                const response = await fetch(`/api/monitoring-status?videoId=${videoId}&token=${userToken}`);
                 const data = await response.json();
                 
-                // Clear everything locally
-                localStorage.removeItem('userToken');
-                sessionStorage.clear();
-                
-                // Direct redirect - no chains
-                if (data.redirect_url) {
-                    window.location.href = data.redirect_url;
+                if (data.success && data.isRunning) {
+                    updateProgressDisplay(data);
                 } else {
-                    window.location.href = 'https://tiktok-bot-auth.up.railway.app/login';
+                    clearInterval(monitoringInterval);
+                    showMessage('🎯 Target completed! Bots stopped.', 'success');
                 }
-                
             } catch (error) {
-                // Still redirect on error
-                localStorage.removeItem('userToken');
-                window.location.href = 'https://tiktok-bot-auth.up.railway.app/login';
+                console.log('Monitoring error:', error);
             }
+        }, 2000);
+    }
+
+    // ✅ NEW: Update progress display
+    function updateProgressDisplay(monitoringData) {
+        const progressElement = document.getElementById('progressInfo');
+        if (!progressElement) return;
+        
+        const progress = monitoringData.progress;
+        const remaining = monitoringData.remaining;
+        const totalNeeded = monitoringData.targetViews - monitoringData.startViews;
+        const percentage = totalNeeded > 0 ? ((progress / totalNeeded) * 100).toFixed(1) : 0;
+        
+        progressElement.innerHTML = `
+            <h4>📈 Progress Tracking</h4>
+            <div class="progress-stats">
+                <div>Progress: ${progress.toLocaleString()} views</div>
+                <div>Remaining: ${remaining.toLocaleString()} views</div>
+                <div>Completion: ${percentage}%</div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: ${percentage}%"></div>
+            </div>
+        `;
+    }
+    
+    async function stopAllBots() {
+        if (botStatus === 'stopped') {
+            showMessage('Bot is already stopped!', 'info');
+            return;
         }
         
-        function setLoading(buttonId, isLoading) {
-            const btn = document.getElementById(buttonId);
-            if (isLoading) {
-                btn.classList.add('loading');
-                btn.disabled = true;
-            } else {
-                btn.classList.remove('loading');
-                btn.disabled = false;
-            }
-        }
+        setLoading('stopBtn', true);
+        showMessage('🛑 Stopping view bot...', 'info');
         
-        function showMessage(message, type) {
-            const messageDiv = document.getElementById('message');
-            messageDiv.innerHTML = `<div class="alert ${type}">${message}</div>`;
-            setTimeout(() => {
-                messageDiv.innerHTML = '';
-            }, 5000);
-        }
-        
-        function startStatusUpdates() {
+        try {
+            const data = await safeFetch('/api/stop-all', {
+                method: 'POST',
+                body: JSON.stringify({
+                    token: userToken
+                })
+            });
+            
+            showMessage('🛑 ' + data.message, 'success');
+            botStatus = 'stopped';
+            
+            // Stop all intervals
             if (refreshInterval) {
                 clearInterval(refreshInterval);
             }
-            refreshInterval = setInterval(updateStatus, 2000);
-            updateStatus();
-        }
-        
-        function isValidTikTokUrl(url) {
-            const tiktokPattern = /^(https?:\/\/)?(www\.)?tiktok\.com\/.+/;
-            const vmTiktokPattern = /^(https?:\/\/)?(www\.)?vm\.tiktok\.com\/.+/;
-            return tiktokPattern.test(url) || vmTiktokPattern.test(url);
-        }
-        
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            userToken = getTokenFromURL();
-            
-            if (!userToken) {
-                showMessage('Invalid token. Redirecting...', 'error');
-                setTimeout(() => {
-                    window.location.href = 'https://tiktok-bot-auth.up.railway.app';
-                }, 2000);
-                return;
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
             }
+            stopLiveUpdates();
             
-            // Store token for later use
-            localStorage.setItem('userToken', userToken);
+        } catch (error) {
+            showMessage('Error stopping bot', 'error');
+        } finally {
+            setLoading('stopBtn', false);
+        }
+    }
+    
+    async function refreshStatus() {
+        setLoading('refreshBtn', true);
+        await updateStatus();
+        setTimeout(() => setLoading('refreshBtn', false), 1000);
+        showMessage('🔄 Status refreshed!', 'success');
+    }
+    
+    // Status update function
+    async function updateStatus() {
+        try {
+            const data = await safeFetch(`/api/status-all?token=${userToken}`);
             
-            startStatusUpdates();
-            showMessage('🎉 Welcome to TikTok View Bot!', 'info');
-            
-            // Set username from token (you can add API for this)
-            document.getElementById('username').textContent = 'User';
-            
-            // Mobile responsive setup
-            if (window.innerWidth <= 768) {
-                document.body.style.paddingBottom = '70px';
+            if (data.success) {
+                // Update overview stats
+                document.getElementById('totalSuccess').textContent = data.totals.success.toLocaleString();
+                document.getElementById('totalRequests').textContent = data.totals.reqs.toLocaleString();
+                document.getElementById('onlineBots').textContent = data.totals.onlineBots;
+                document.getElementById('totalRpsNum').textContent = data.totals.rps.toFixed(1);
+                document.getElementById('rpsValue').textContent = data.totals.rps.toFixed(1);
+                
+                // Update instances count
+                document.getElementById('instancesCount').textContent = 
+                    `${data.totals.onlineBots} bots online`;
+                
+                // Update instances grid
+                const container = document.getElementById('instancesContainer');
+                
+                if (data.instances.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-robot"></i>
+                            <h3>Waiting for Bot Allocation</h3>
+                            <p>You will automatically receive bots when available</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = '';
+                
+                data.instances.forEach((instance, index) => {
+                    const instanceCard = document.createElement('div');
+                    instanceCard.className = 'instance-card';
+                    instanceCard.style.animationDelay = `${index * 0.1}s`;
+                    
+                    const status = instance.status;
+                    const isOnline = instance.online;
+                    
+                    instanceCard.innerHTML = `
+                        <div class="instance-header">
+                            <div class="instance-title">${instance.name}</div>
+                            <span class="instance-status ${isOnline ? 'status-online' : 'status-offline'}">
+                                ${isOnline ? 'ONLINE' : 'OFFLINE'}
+                            </span>
+                        </div>
+                        
+                        ${isOnline ? `
+                            <div class="instance-stats">
+                                <div class="mini-stat">
+                                    <div class="mini-number" style="color: var(--success)">${status.success}</div>
+                                    <div class="mini-label">Success</div>
+                                </div>
+                                <div class="mini-stat">
+                                    <div class="mini-number" style="color: var(--danger)">${status.fails}</div>
+                                    <div class="mini-label">Failed</div>
+                                </div>
+                                <div class="mini-stat">
+                                    <div class="mini-number" style="color: var(--info)">${status.reqs}</div>
+                                    <div class="mini-label">Requests</div>
+                                </div>
+                                <div class="mini-stat">
+                                    <div class="mini-number" style="color: var(--warning)">${status.rps}</div>
+                                    <div class="mini-label">RPS</div>
+                                </div>
+                            </div>
+                            
+                            <div class="progress-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${status.targetViews > 0 ? (status.success / status.targetViews) * 100 : 0}%"></div>
+                                </div>
+                                <div class="progress-text">
+                                    ${status.targetViews > 0 ? 
+                                        `Progress: ${status.success}/${status.targetViews} (${((status.success / status.targetViews) * 100).toFixed(1)}%)` : 
+                                        `Views: ${status.success}`
+                                    }
+                                </div>
+                            </div>
+                        ` : `
+                            <div style="text-align: center; padding: 20px; opacity: 0.7;">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 1.5em; margin-bottom: 10px;"></i>
+                                <div>Bot Offline</div>
+                            </div>
+                        `}
+                    `;
+                    
+                    container.appendChild(instanceCard);
+                });
             }
-        });
-        
-        // Window resize handler
-        window.addEventListener('resize', function() {
-            if (window.innerWidth <= 768) {
-                document.body.style.paddingBottom = '70px';
+        } catch (error) {
+            console.log('Error fetching status:', error);
+        }
+    }
+    
+    // Logout function
+    async function logout() {
+        try {
+            const token = userToken || getTokenFromURL();
+            
+            const response = await fetch('/api/logout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token })
+            });
+            
+            const data = await response.json();
+            
+            localStorage.removeItem('userToken');
+            sessionStorage.clear();
+            
+            // Stop all intervals
+            stopLiveUpdates();
+            if (monitoringInterval) clearInterval(monitoringInterval);
+            if (refreshInterval) clearInterval(refreshInterval);
+            
+            if (data.redirect_url) {
+                window.location.href = data.redirect_url;
             } else {
-                document.body.style.paddingBottom = '0';
+                window.location.href = 'https://tiktok-bot-auth.up.railway.app/login';
             }
-        });
-    </script>
+            
+        } catch (error) {
+            localStorage.removeItem('userToken');
+            window.location.href = 'https://tiktok-bot-auth.up.railway.app/login';
+        }
+    }
+    
+    function setLoading(buttonId, isLoading) {
+        const btn = document.getElementById(buttonId);
+        if (isLoading) {
+            btn.classList.add('loading');
+            btn.disabled = true;
+        } else {
+            btn.classList.remove('loading');
+            btn.disabled = false;
+        }
+    }
+    
+    function showMessage(message, type) {
+        const messageDiv = document.getElementById('message');
+        messageDiv.innerHTML = `<div class="alert ${type}">${message}</div>`;
+        setTimeout(() => {
+            messageDiv.innerHTML = '';
+        }, 5000);
+    }
+    
+    function startStatusUpdates() {
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+        }
+        refreshInterval = setInterval(updateStatus, 2000);
+        updateStatus();
+    }
+    
+    function isValidTikTokUrl(url) {
+        const tiktokPattern = /^(https?:\/\/)?(www\.)?tiktok\.com\/.+/;
+        const vmTiktokPattern = /^(https?:\/\/)?(www\.)?vm\.tiktok\.com\/.+/;
+        return tiktokPattern.test(url) || vmTiktokPattern.test(url);
+    }
+    
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        userToken = getTokenFromURL();
+        
+        if (!userToken) {
+            showMessage('Invalid token. Redirecting...', 'error');
+            setTimeout(() => {
+                window.location.href = 'https://tiktok-bot-auth.up.railway.app';
+            }, 2000);
+            return;
+        }
+        
+        localStorage.setItem('userToken', userToken);
+        
+        startStatusUpdates();
+        showMessage('🎉 Welcome to TikTok View Bot!', 'info');
+        
+        document.getElementById('username').textContent = 'User';
+        
+        // Mobile responsive setup
+        if (window.innerWidth <= 768) {
+            document.body.style.paddingBottom = '70px';
+        }
+    });
+    
+    // Window resize handler
+    window.addEventListener('resize', function() {
+        if (window.innerWidth <= 768) {
+            document.body.style.paddingBottom = '70px';
+        } else {
+            document.body.style.paddingBottom = '0';
+        }
+    });
+</script>
 </body>
 </html>
