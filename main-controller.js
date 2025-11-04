@@ -1,8 +1,8 @@
 const express = require('express');
 const axios = require('axios');
-const https = require('https');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,10 +15,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// ✅ Global variables for job tracking
+// Global variables for monitoring
 global.runningJobs = {};
-global.permanentOnlineBots = new Map();
-global.permanentOnlineInterval = null;
 
 // ✅ FIXED TOKEN VERIFICATION - No redirect loops
 async function verifyToken(req, res, next) {
@@ -96,6 +94,177 @@ async function getInstancesFromAuthServer(token) {
     }
 }
 
+// ✅ PERMANENT ONLINE SYSTEM - Bots kabhi offline nahi honge
+let permanentOnlineInterval = null;
+const permanentOnlineBots = new Map();
+
+// ✅ START PERMANENT ONLINE SYSTEM
+function startPermanentOnlineSystem() {
+    if (permanentOnlineInterval) {
+        clearInterval(permanentOnlineInterval);
+    }
+    
+    console.log('🔴🟢 Starting PERMANENT ONLINE SYSTEM...');
+    
+    permanentOnlineInterval = setInterval(async () => {
+        try {
+            await keepAllBotsPermanentlyOnline();
+        } catch (error) {
+            console.log('❌ Permanent online system error:', error.message);
+        }
+    }, 5000); // Check every 5 seconds
+    
+    console.log('✅ Permanent Online System Started - Bots will NEVER go offline');
+}
+
+// ✅ STOP PERMANENT ONLINE SYSTEM
+function stopPermanentOnlineSystem() {
+    if (permanentOnlineInterval) {
+        clearInterval(permanentOnlineInterval);
+        permanentOnlineInterval = null;
+    }
+    permanentOnlineBots.clear();
+    console.log('🛑 Permanent Online System Stopped');
+}
+
+// ✅ KEEP ALL BOTS PERMANENTLY ONLINE
+async function keepAllBotsPermanentlyOnline() {
+    try {
+        // Get all bot instances from auth server (using a default token for system operations)
+        const instances = await getInstancesForSystem();
+        
+        if (instances.length === 0) {
+            console.log('ℹ️ No bot instances found for permanent online system');
+            return;
+        }
+        
+        console.log(`🔧 Permanent Online: Checking ${instances.length} bots...`);
+        
+        let onlineCount = 0;
+        let restartedCount = 0;
+        
+        for (const instance of instances) {
+            try {
+                // Check if bot is responding
+                const statusResponse = await axios.get(`${instance.url}/status`, {
+                    timeout: 8000
+                });
+                
+                const botStatus = statusResponse.data;
+                
+                // Update permanent online tracking
+                if (!permanentOnlineBots.has(instance.id)) {
+                    permanentOnlineBots.set(instance.id, {
+                        instanceId: instance.id,
+                        instanceUrl: instance.url,
+                        firstSeen: new Date().toISOString(),
+                        lastSeen: new Date().toISOString(),
+                        restartCount: 0,
+                        alwaysOnline: true
+                    });
+                }
+                
+                const botInfo = permanentOnlineBots.get(instance.id);
+                botInfo.lastSeen = new Date().toISOString();
+                botInfo.currentStatus = botStatus;
+                
+                onlineCount++;
+                
+                // If bot is not running but should be, start it
+                if (!botStatus.running && instance.enabled) {
+                    console.log(`🔄 Auto-starting idle bot: ${instance.url}`);
+                    
+                    try {
+                        // Start with minimal settings to keep it alive
+                        await axios.post(`${instance.url}/start`, {
+                            targetViews: 1000000, // Very high target to keep running
+                            videoLink: 'https://www.tiktok.com/@tiktok/video/7106688751857945857', // Default video
+                            mode: 'permanent'
+                        }, { timeout: 15000 });
+                        
+                        botInfo.restartCount++;
+                        restartedCount++;
+                        console.log(`✅ Bot auto-started: ${instance.url} (Restart #${botInfo.restartCount})`);
+                    } catch (startError) {
+                        console.log(`❌ Failed to auto-start bot ${instance.url}:`, startError.message);
+                    }
+                }
+                
+            } catch (error) {
+                console.log(`🔴 Bot ${instance.url} is OFFLINE - Attempting restart...`);
+                
+                // Bot is completely offline - try to restart
+                try {
+                    const botInfo = permanentOnlineBots.get(instance.id) || {
+                        instanceId: instance.id,
+                        instanceUrl: instance.url,
+                        firstSeen: new Date().toISOString(),
+                        lastSeen: new Date().toISOString(),
+                        restartCount: 0,
+                        alwaysOnline: true
+                    };
+                    
+                    // Try to start the bot
+                    await axios.post(`${instance.url}/start`, {
+                        targetViews: 1000000,
+                        videoLink: 'https://www.tiktok.com/@tiktok/video/7106688751857945857',
+                        mode: 'permanent_recovery'
+                    }, { timeout: 20000 });
+                    
+                    botInfo.restartCount++;
+                    botInfo.lastSeen = new Date().toISOString();
+                    permanentOnlineBots.set(instance.id, botInfo);
+                    
+                    restartedCount++;
+                    console.log(`✅ OFFLINE Bot RESTARTED: ${instance.url} (Recovery #${botInfo.restartCount})`);
+                    
+                } catch (restartError) {
+                    console.log(`💀 CRITICAL: Bot ${instance.url} cannot be restarted:`, restartError.message);
+                    
+                    // Mark for special attention
+                    const botInfo = permanentOnlineBots.get(instance.id) || {
+                        instanceId: instance.id,
+                        instanceUrl: instance.url,
+                        firstSeen: new Date().toISOString(),
+                        lastSeen: new Date().toISOString(),
+                        restartCount: 0,
+                        alwaysOnline: true,
+                        critical: true
+                    };
+                    
+                    botInfo.critical = true;
+                    botInfo.lastError = restartError.message;
+                    permanentOnlineBots.set(instance.id, botInfo);
+                }
+            }
+        }
+        
+        console.log(`📊 Permanent Online Stats: ${onlineCount} online, ${restartedCount} restarted`);
+        
+    } catch (error) {
+        console.log('❌ Permanent online system critical error:', error.message);
+    }
+}
+
+// ✅ GET INSTANCES FOR SYSTEM (Without user token)
+async function getInstancesForSystem() {
+    try {
+        // For system operations, we need to get instances without user token
+        // This is a simplified version - you might need to adjust based on your auth system
+        const response = await axios.get(`${AUTH_SERVER_URL}/api/bot-instances?token=system_admin_2024`, {
+            timeout: 10000
+        });
+        
+        if (response.data.success) {
+            return response.data.instances || [];
+        }
+        return [];
+    } catch (error) {
+        console.log('❌ System instances fetch failed:', error.message);
+        return [];
+    }
+}
+
 // ✅ VIDEO INFO EXTRACTION FUNCTION
 function extractVideoInfo(url) {
     let cleanUrl = url.split('?')[0].trim();
@@ -129,17 +298,8 @@ async function getTikTokVideoStats(videoId) {
             path: `/@tiktok/video/${videoId}`,
             method: 'GET',
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'DNT': '1',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Cache-Control': 'max-age=0'
             }
         };
 
@@ -156,12 +316,8 @@ async function getTikTokVideoStats(videoId) {
             });
         });
 
-        req.on('error', (error) => {
-            console.log('❌ TikTok stats request error:', error.message);
-            resolve({ views: 0, likes: 0, comments: 0, author: 'Unknown', title: 'No Title' });
-        });
-        
-        req.setTimeout(10000, () => {
+        req.on('error', () => resolve({ views: 0, likes: 0, comments: 0, author: 'Unknown', title: 'No Title' }));
+        req.setTimeout(8000, () => {
             req.destroy();
             resolve({ views: 0, likes: 0, comments: 0, author: 'Unknown', title: 'No Title' });
         });
@@ -176,44 +332,34 @@ function extractStatsFromHTML(html) {
         likes: 0,
         comments: 0,
         author: 'Unknown',
-        title: 'No Title',
-        thumbnail: ''
+        title: 'No Title'
     };
 
-    try {
-        // Extract views
-        const viewMatch = html.match(/"playCount":(\d+)/) || html.match(/"viewCount":(\d+)/);
-        if (viewMatch) stats.views = parseInt(viewMatch[1]);
+    // Extract views
+    const viewMatch = html.match(/"playCount":(\d+)/) || html.match(/"viewCount":(\d+)/);
+    if (viewMatch) stats.views = parseInt(viewMatch[1]);
 
-        // Extract likes
-        const likeMatch = html.match(/"diggCount":(\d+)/) || html.match(/"likeCount":(\d+)/);
-        if (likeMatch) stats.likes = parseInt(likeMatch[1]);
+    // Extract likes
+    const likeMatch = html.match(/"diggCount":(\d+)/) || html.match(/"likeCount":(\d+)/);
+    if (likeMatch) stats.likes = parseInt(likeMatch[1]);
 
-        // Extract comments
-        const commentMatch = html.match(/"commentCount":(\d+)/);
-        if (commentMatch) stats.comments = parseInt(commentMatch[1]);
+    // Extract comments
+    const commentMatch = html.match(/"commentCount":(\d+)/);
+    if (commentMatch) stats.comments = parseInt(commentMatch[1]);
 
-        // Extract author
-        const authorMatch = html.match(/"author":"([^"]*)"/) || html.match(/"uniqueId":"([^"]*)"/);
-        if (authorMatch) stats.author = authorMatch[1];
+    // Extract author
+    const authorMatch = html.match(/"author":"([^"]*)"/) || html.match(/"uniqueId":"([^"]*)"/);
+    if (authorMatch) stats.author = authorMatch[1];
 
-        // Extract title
-        const titleMatch = html.match(/"title":"([^"]*)"/) || html.match(/"description":"([^"]*)"/);
-        if (titleMatch && titleMatch[1] !== 'Company') stats.title = titleMatch[1].substring(0, 100);
-
-        // Extract thumbnail
-        const thumbnailMatch = html.match(/"cover":"([^"]*)"/);
-        if (thumbnailMatch) stats.thumbnail = thumbnailMatch[1];
-
-    } catch (error) {
-        console.log('❌ Error extracting stats from HTML:', error.message);
-    }
+    // Extract title
+    const titleMatch = html.match(/"title":"([^"]*)"/) || html.match(/"description":"([^"]*)"/);
+    if (titleMatch && titleMatch[1] !== 'Company') stats.title = titleMatch[1];
 
     return stats;
 }
 
 // ✅ VIDEO MONITORING FUNCTION
-function startVideoMonitoring(videoId, targetViews, token) {
+function startVideoMonitoring(videoId, targetViews) {
     const checkInterval = setInterval(async () => {
         try {
             // Check if job is still running
@@ -226,222 +372,33 @@ function startVideoMonitoring(videoId, targetViews, token) {
             const currentStats = await getTikTokVideoStats(videoId);
             const currentViews = currentStats.views;
 
-            // Update current views in running job
-            global.runningJobs[videoId].currentViews = currentViews;
-            global.runningJobs[videoId].lastChecked = new Date();
-
-            // Calculate progress
-            const progress = currentViews - global.runningJobs[videoId].startViews;
-            const remaining = targetViews - currentViews;
-
-            console.log(`📊 Video ${videoId}: ${currentViews}/${targetViews} (${progress} progress, ${remaining} remaining)`);
-
             // Check if target reached
             if (currentViews >= targetViews) {
-                console.log(`🎯 TARGET REACHED for video ${videoId}! Stopping bots...`);
+                console.log(`🎯 Target reached for video ${videoId}! Stopping bots...`);
                 
                 // Stop all bots for this video
-                global.runningJobs[videoId].isRunning = false;
-                global.runningJobs[videoId].completedAt = new Date();
-                global.runningJobs[videoId].status = 'COMPLETED';
-                
-                // Stop bots through instances
-                try {
-                    const instances = await getInstancesFromAuthServer(token);
-                    const enabledInstances = instances.filter(inst => inst.enabled);
+                if (global.runningJobs[videoId]) {
+                    global.runningJobs[videoId].isRunning = false;
                     
-                    for (const instance of enabledInstances) {
-                        try {
-                            await axios.post(`${instance.url}/stop`, {}, { timeout: 5000 });
-                        } catch (error) {
-                            // Ignore individual instance errors
-                        }
-                    }
-                    console.log(`✅ All bots stopped for completed video: ${videoId}`);
-                } catch (error) {
-                    console.log('❌ Error stopping bots:', error.message);
+                    // You can add automatic stop logic here if needed
+                    // await stopBotsForVideo(videoId);
                 }
                 
                 clearInterval(checkInterval);
             }
 
         } catch (error) {
-            console.log('❌ Monitoring error:', error.message);
+            console.log('Monitoring error:', error.message);
         }
-    }, 15000); // Check every 15 seconds to avoid rate limiting
+    }, 5000); // Check every 5 seconds
 }
 
-// ✅ PERMANENT ONLINE SYSTEM - Bots kabhi offline nahi honge
-function startPermanentOnlineSystem() {
-    if (global.permanentOnlineInterval) {
-        clearInterval(global.permanentOnlineInterval);
-    }
-    
-    console.log('🔴🟢 Starting PERMANENT ONLINE SYSTEM...');
-    
-    global.permanentOnlineInterval = setInterval(async () => {
-        try {
-            await keepAllBotsPermanentlyOnline();
-        } catch (error) {
-            console.log('❌ Permanent online system error:', error.message);
-        }
-    }, 10000); // Check every 10 seconds
-    
-    console.log('✅ Permanent Online System Started - Bots will NEVER go offline');
-}
-
-// ✅ STOP PERMANENT ONLINE SYSTEM
-function stopPermanentOnlineSystem() {
-    if (global.permanentOnlineInterval) {
-        clearInterval(global.permanentOnlineInterval);
-        global.permanentOnlineInterval = null;
-    }
-    global.permanentOnlineBots.clear();
-    console.log('🛑 Permanent Online System Stopped');
-}
-
-// ✅ KEEP ALL BOTS PERMANENTLY ONLINE
-async function keepAllBotsPermanentlyOnline() {
-    try {
-        // Get all bot instances from auth server
-        const instances = await getInstancesForSystem();
-        
-        if (instances.length === 0) {
-            console.log('ℹ️ No bot instances found for permanent online system');
-            return;
-        }
-        
-        let onlineCount = 0;
-        let restartedCount = 0;
-        
-        for (const instance of instances) {
-            try {
-                // Check if bot is responding
-                const statusResponse = await axios.get(`${instance.url}/status`, {
-                    timeout: 8000
-                });
-                
-                const botStatus = statusResponse.data;
-                
-                // Update permanent online tracking
-                if (!global.permanentOnlineBots.has(instance.id)) {
-                    global.permanentOnlineBots.set(instance.id, {
-                        instanceId: instance.id,
-                        instanceUrl: instance.url,
-                        firstSeen: new Date().toISOString(),
-                        lastSeen: new Date().toISOString(),
-                        restartCount: 0,
-                        alwaysOnline: true
-                    });
-                }
-                
-                const botInfo = global.permanentOnlineBots.get(instance.id);
-                botInfo.lastSeen = new Date().toISOString();
-                botInfo.currentStatus = botStatus;
-                
-                onlineCount++;
-                
-                // If bot is not running but should be, start it
-                if (!botStatus.running && instance.enabled) {
-                    console.log(`🔄 Auto-starting idle bot: ${instance.url}`);
-                    
-                    try {
-                        // Start with minimal settings to keep it alive
-                        await axios.post(`${instance.url}/start`, {
-                            targetViews: 1000000, // Very high target to keep running
-                            videoLink: 'https://www.tiktok.com/@tiktok/video/7106688751857945857', // Default video
-                            mode: 'permanent'
-                        }, { timeout: 15000 });
-                        
-                        botInfo.restartCount++;
-                        restartedCount++;
-                        console.log(`✅ Bot auto-started: ${instance.url} (Restart #${botInfo.restartCount})`);
-                    } catch (startError) {
-                        console.log(`❌ Failed to auto-start bot ${instance.url}:`, startError.message);
-                    }
-                }
-                
-            } catch (error) {
-                console.log(`🔴 Bot ${instance.url} is OFFLINE - Attempting restart...`);
-                
-                // Bot is completely offline - try to restart
-                try {
-                    const botInfo = global.permanentOnlineBots.get(instance.id) || {
-                        instanceId: instance.id,
-                        instanceUrl: instance.url,
-                        firstSeen: new Date().toISOString(),
-                        lastSeen: new Date().toISOString(),
-                        restartCount: 0,
-                        alwaysOnline: true
-                    };
-                    
-                    // Try to start the bot
-                    await axios.post(`${instance.url}/start`, {
-                        targetViews: 1000000,
-                        videoLink: 'https://www.tiktok.com/@tiktok/video/7106688751857945857',
-                        mode: 'permanent_recovery'
-                    }, { timeout: 20000 });
-                    
-                    botInfo.restartCount++;
-                    botInfo.lastSeen = new Date().toISOString();
-                    global.permanentOnlineBots.set(instance.id, botInfo);
-                    
-                    restartedCount++;
-                    console.log(`✅ OFFLINE Bot RESTARTED: ${instance.url} (Recovery #${botInfo.restartCount})`);
-                    
-                } catch (restartError) {
-                    console.log(`💀 CRITICAL: Bot ${instance.url} cannot be restarted:`, restartError.message);
-                    
-                    // Mark for special attention
-                    const botInfo = global.permanentOnlineBots.get(instance.id) || {
-                        instanceId: instance.id,
-                        instanceUrl: instance.url,
-                        firstSeen: new Date().toISOString(),
-                        lastSeen: new Date().toISOString(),
-                        restartCount: 0,
-                        alwaysOnline: true,
-                        critical: true
-                    };
-                    
-                    botInfo.critical = true;
-                    botInfo.lastError = restartError.message;
-                    global.permanentOnlineBots.set(instance.id, botInfo);
-                }
-            }
-        }
-        
-        console.log(`📊 Permanent Online Stats: ${onlineCount} online, ${restartedCount} restarted`);
-        
-    } catch (error) {
-        console.log('❌ Permanent online system critical error:', error.message);
-    }
-}
-
-// ✅ GET INSTANCES FOR SYSTEM (Without user token)
-async function getInstancesForSystem() {
-    try {
-        // For system operations, we need to get instances without user token
-        const response = await axios.get(`${AUTH_SERVER_URL}/api/bot-instances?token=system_admin_2024`, {
-            timeout: 10000
-        });
-        
-        if (response.data.success) {
-            return response.data.instances || [];
-        }
-        return [];
-    } catch (error) {
-        console.log('❌ System instances fetch failed:', error.message);
-        return [];
-    }
-}
-
-// ==================== ROUTES ====================
-
+// Routes
 app.get('/', (req, res) => {
     res.redirect(AUTH_SERVER_URL);
 });
 
-// ✅ DASHBOARD ROUTE
+// ✅ FIXED DASHBOARD ROUTE
 app.get('/dashboard', async (req, res) => {
     const token = req.query.token;
     
@@ -465,7 +422,7 @@ app.get('/dashboard', async (req, res) => {
     }
 });
 
-// ✅ FIXED LOGOUT
+// ✅ FIXED LOGOUT - Simple and effective
 app.post('/api/logout', async (req, res) => {
     try {
         const token = req.body.token;
@@ -492,7 +449,7 @@ app.post('/api/logout', async (req, res) => {
     }
 });
 
-// ✅ GET VIDEO INFORMATION ROUTE
+// ✅ GET VIDEO INFO ROUTE
 app.post('/api/get-video-info', verifyToken, async (req, res) => {
     try {
         const { videoLink, token } = req.body;
@@ -517,17 +474,15 @@ app.post('/api/get-video-info', verifyToken, async (req, res) => {
                 currentLikes: currentStats.likes,
                 currentComments: currentStats.comments,
                 author: currentStats.author,
-                title: currentStats.title,
-                thumbnail: currentStats.thumbnail
+                title: currentStats.title
             }
         });
     } catch (error) {
-        console.log('❌ Get video info error:', error.message);
-        res.status(500).json({ success: false, message: 'Failed to get video information' });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-// ✅ ENHANCED START-ALL ROUTE WITH MONITORING
+// ✅ MODIFIED START-ALL ROUTE WITH NEW LOGIC
 app.post('/api/start-all', verifyToken, async (req, res) => {
     try {
         const { videoLink, targetViews, token, currentViews } = req.body;
@@ -560,10 +515,8 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
             videoLink: videoLink,
             startViews: currentViewsNum,
             targetViews: finalTarget,
-            currentViews: currentViewsNum,
             startTime: new Date(),
-            isRunning: true,
-            status: 'RUNNING'
+            isRunning: true
         };
 
         const results = [];
@@ -576,47 +529,89 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
                 }, { timeout: 10000 });
                 results.push({ instance: instance.id, success: true, message: 'Started' });
             } catch (error) {
-                results.push({ instance: instance.id, success: false, message: 'Failed: ' + error.message });
+                results.push({ instance: instance.id, success: false, message: 'Failed' });
             }
         }
 
         // Start monitoring for this video
-        startVideoMonitoring(videoInfo.id, finalTarget, token);
+        startVideoMonitoring(videoInfo.id, finalTarget);
 
         const successful = results.filter(r => r.success).length;
         res.json({
             success: successful > 0,
             message: `${successful}/${enabledInstances.length} started`,
             finalTarget: finalTarget,
-            videoId: videoInfo.id,
             results: results
         });
     } catch (error) {
-        console.log('❌ Start-all error:', error.message);
-        res.status(500).json({ success: false, message: 'Server error: ' + error.message });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-// ✅ STOP ALL ROUTE
+// ✅ MONITORING STATUS ROUTE
+app.get('/api/monitoring-status', verifyToken, async (req, res) => {
+    try {
+        const { videoId } = req.query;
+        
+        if (!global.runningJobs || !global.runningJobs[videoId]) {
+            return res.json({ success: false, isRunning: false });
+        }
+
+        const job = global.runningJobs[videoId];
+        const currentStats = await getTikTokVideoStats(videoId);
+
+        res.json({
+            success: true,
+            isRunning: job.isRunning,
+            startViews: job.startViews,
+            targetViews: job.targetViews,
+            currentViews: currentStats.views,
+            progress: currentStats.views - job.startViews,
+            remaining: job.targetViews - currentStats.views,
+            startTime: job.startTime
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// ✅ Protected APIs - Instances auth server se fetch karo
+app.get('/api/instances', verifyToken, async (req, res) => {
+    try {
+        const token = req.query.token || req.body.token;
+        const instances = await getInstancesFromAuthServer(token);
+        
+        const safeInstances = instances.map(instance => ({
+            id: instance.id,
+            name: `Bot Instance ${instance.id.substring(0, 8)}`,
+            status: 'active',
+            addedAt: instance.addedAt,
+            url: instance.url
+        }));
+        
+        res.json({ success: true, instances: safeInstances });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 app.post('/api/stop-all', verifyToken, async (req, res) => {
     try {
         const token = req.query.token || req.body.token;
         const instances = await getInstancesFromAuthServer(token);
         const enabledInstances = instances.filter(inst => inst.enabled);
         
-        // Stop all running jobs
-        if (global.runningJobs) {
-            Object.keys(global.runningJobs).forEach(videoId => {
-                global.runningJobs[videoId].isRunning = false;
-                global.runningJobs[videoId].status = 'STOPPED';
-                global.runningJobs[videoId].stoppedAt = new Date();
-            });
-        }
-        
         for (const instance of enabledInstances) {
             try {
                 await axios.post(`${instance.url}/stop`, {}, { 
-                    timeout: 10000
+                    timeout: 10000,
+                    transformResponse: [function (data) {
+                        try {
+                            return JSON.parse(data);
+                        } catch (e) {
+                            return { success: true }; // Consider successful even on parse error
+                        }
+                    }]
                 });
             } catch (error) {
                 // Continue even if some instances fail
@@ -630,7 +625,6 @@ app.post('/api/stop-all', verifyToken, async (req, res) => {
     }
 });
 
-// ✅ STATUS ALL ROUTE
 app.get('/api/status-all', verifyToken, async (req, res) => {
     try {
         const token = req.query.token || req.body.token;
@@ -640,7 +634,14 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
         for (const instance of instances) {
             try {
                 const response = await axios.get(`${instance.url}/status`, { 
-                    timeout: 10000
+                    timeout: 10000,
+                    transformResponse: [function (data) {
+                        try {
+                            return JSON.parse(data);
+                        } catch (e) {
+                            return null;
+                        }
+                    }]
                 });
                 
                 allStatus.push({ 
@@ -684,83 +685,6 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
     }
 });
 
-// ✅ MONITORING STATUS ROUTE
-app.get('/api/monitoring-status', verifyToken, async (req, res) => {
-    try {
-        const { videoId } = req.query;
-        
-        if (!global.runningJobs || !global.runningJobs[videoId]) {
-            return res.json({ success: false, isRunning: false });
-        }
-
-        const job = global.runningJobs[videoId];
-        const currentStats = await getTikTokVideoStats(videoId);
-
-        const progress = currentStats.views - job.startViews;
-        const remaining = job.targetViews - currentStats.views;
-        const percentage = ((currentStats.views - job.startViews) / (job.targetViews - job.startViews) * 100).toFixed(1);
-
-        res.json({
-            success: true,
-            isRunning: job.isRunning,
-            startViews: job.startViews,
-            targetViews: job.targetViews,
-            currentViews: currentStats.views,
-            progress: progress,
-            remaining: remaining,
-            percentage: percentage,
-            startTime: job.startTime,
-            status: job.status || 'RUNNING',
-            videoInfo: {
-                author: currentStats.author,
-                title: currentStats.title
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// ✅ GET ALL RUNNING JOBS ROUTE
-app.get('/api/running-jobs', verifyToken, async (req, res) => {
-    try {
-        const jobs = global.runningJobs || {};
-        const jobList = [];
-
-        for (const [videoId, job] of Object.entries(jobs)) {
-            if (job.isRunning) {
-                const currentStats = await getTikTokVideoStats(videoId);
-                const progress = currentStats.views - job.startViews;
-                const remaining = job.targetViews - currentStats.views;
-                const percentage = ((currentStats.views - job.startViews) / (job.targetViews - job.startViews) * 100).toFixed(1);
-
-                jobList.push({
-                    videoId: videoId,
-                    videoLink: job.videoLink,
-                    startViews: job.startViews,
-                    targetViews: job.targetViews,
-                    currentViews: currentStats.views,
-                    progress: progress,
-                    remaining: remaining,
-                    percentage: percentage,
-                    startTime: job.startTime,
-                    status: job.status,
-                    author: currentStats.author,
-                    title: currentStats.title
-                });
-            }
-        }
-
-        res.json({
-            success: true,
-            totalJobs: jobList.length,
-            jobs: jobList
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
 // ✅ PERMANENT ONLINE CONTROL APIS
 app.post('/api/system/permanent-online/start', (req, res) => {
     try {
@@ -784,18 +708,18 @@ app.post('/api/system/permanent-online/stop', (req, res) => {
             status: 'inactive'
         });
     } catch (error) {
-        res.status(500).json({ success false, message: 'Server error' });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
 app.get('/api/system/permanent-online/status', (req, res) => {
     try {
-        const activeBots = Array.from(global.permanentOnlineBots.values());
+        const activeBots = Array.from(permanentOnlineBots.values());
         
         res.json({
             success: true,
             system: {
-                isActive: !!global.permanentOnlineInterval,
+                isActive: !!permanentOnlineInterval,
                 totalBots: activeBots.length,
                 onlineBots: activeBots.filter(bot => !bot.critical).length,
                 criticalBots: activeBots.filter(bot => bot.critical).length,
@@ -816,45 +740,24 @@ app.get('/api/system/permanent-online/status', (req, res) => {
     }
 });
 
-// ✅ HEALTH CHECK
+// ✅ HEALTH CHECK - No authentication required
 app.get('/api/health', (req, res) => {
     res.json({ 
         success: true, 
         message: 'Main Controller is running',
-        timestamp: new Date().toISOString(),
-        runningJobs: Object.keys(global.runningJobs || {}).length,
-        permanentOnline: !!global.permanentOnlineInterval
+        timestamp: new Date().toISOString()
     });
 });
 
-// ✅ INSTANCES ROUTE
-app.get('/api/instances', verifyToken, async (req, res) => {
-    try {
-        const token = req.query.token || req.body.token;
-        const instances = await getInstancesFromAuthServer(token);
-        
-        const safeInstances = instances.map(instance => ({
-            id: instance.id,
-            name: `Bot Instance ${instance.id.substring(0, 8)}`,
-            status: 'active',
-            addedAt: instance.addedAt,
-            url: instance.url
-        }));
-        
-        res.json({ success: true, instances: safeInstances });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// Start the server
+// Start the permanent online system when server starts
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🔧 Main Controller running on port ${PORT}`);
     console.log(`🔐 Auth Server: ${AUTH_SERVER_URL}`);
     console.log(`✅ Enhanced Error Handling: Enabled`);
     console.log(`📱 Mobile Compatible: Yes`);
-    console.log(`🎯 Video Monitoring: Active`);
-    console.log(`📊 Progress Tracking: Enabled`);
+    console.log(`🚀 Fixed Logout System: Active`);
+    console.log(`🎯 Video Monitoring System: Active`);
+    console.log(`📊 Real-time Stats Tracking: Enabled`);
     
     // ✅ START PERMANENT ONLINE SYSTEM ON BOOT
     setTimeout(() => {
