@@ -1,7 +1,7 @@
 {
   "name": "tiktok-main-controller",
-  "version": "2.0.0",
-  "description": "Enhanced Main Controller with Mobile Support & Fixed Logout System",
+  "version": "3.0.0",
+  "description": "Enhanced Main Controller with Live Video Analytics & Persistent Bot System",
   "main": "main-controller.js",
   "scripts": {
     "start": "node main-controller.js",
@@ -16,7 +16,9 @@
     "bot",
     "controller",
     "dashboard",
-    "mobile"
+    "mobile",
+    "analytics",
+    "live-views"
   ],
   "author": "NAIMUL HACKER KING",
   "license": "MIT",
