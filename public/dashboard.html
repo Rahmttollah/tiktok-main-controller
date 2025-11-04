@@ -1335,27 +1335,51 @@ function displayVideoInfo(videoInfo) {
     }
 
     // ✅ NEW: Update progress display
-    function updateProgressDisplay(monitoringData) {
-        const progressElement = document.getElementById('progressInfo');
-        if (!progressElement) return;
-        
-        const progress = monitoringData.progress;
-        const remaining = monitoringData.remaining;
-        const totalNeeded = monitoringData.targetViews - monitoringData.startViews;
-        const percentage = totalNeeded > 0 ? ((progress / totalNeeded) * 100).toFixed(1) : 0;
-        
-        progressElement.innerHTML = `
-            <h4>📈 Progress Tracking</h4>
+    // ✅ UPDATED: Update progress display with restart info
+function updateProgressDisplay(monitoringData) {
+    const progressElement = document.getElementById('progressInfo') || createProgressElement();
+    
+    const progress = monitoringData.progress;
+    const remaining = monitoringData.remaining;
+    const totalNeeded = monitoringData.targetViews - monitoringData.startViews;
+    const percentage = totalNeeded > 0 ? ((progress / totalNeeded) * 100).toFixed(1) : 0;
+    
+    let restartInfo = '';
+    if (monitoringData.restartCount > 0) {
+        restartInfo = `<div style="color: orange; font-size: 0.9em; margin-top: 5px;">
+            🔄 Auto-restarted: ${monitoringData.restartCount} times
+        </div>`;
+    }
+    
+    let statusBadge = '';
+    if (monitoringData.status === 'COMPLETED') {
+        statusBadge = '<span style="color: green;">✅ COMPLETED</span>';
+    } else if (monitoringData.status.includes('RESTART')) {
+        statusBadge = '<span style="color: orange;">🔄 RESTARTING</span>';
+    } else {
+        statusBadge = '<span style="color: blue;">▶️ RUNNING</span>';
+    }
+    
+    progressElement.innerHTML = `
+        <div class="progress-card">
+            <h4>📈 Progress Tracking ${statusBadge}</h4>
             <div class="progress-stats">
                 <div>Progress: ${progress.toLocaleString()} views</div>
                 <div>Remaining: ${remaining.toLocaleString()} views</div>
                 <div>Completion: ${percentage}%</div>
+                ${monitoringData.restartCount > 0 ? 
+                    `<div>Restarts: ${monitoringData.restartCount}</div>` : ''}
             </div>
             <div class="progress-bar">
                 <div class="progress-fill" style="width: ${percentage}%"></div>
             </div>
-        `;
-    }
+            ${restartInfo}
+            <div style="font-size: 0.8em; opacity: 0.7; margin-top: 5px;">
+                🔄 Auto-restart enabled (Max 10 times)
+            </div>
+        </div>
+    `;
+}
     
     async function stopAllBots() {
         if (botStatus === 'stopped') {
