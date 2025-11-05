@@ -3,24 +3,45 @@ const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
+const cors = require('cors');
+const helmet = require('helmet');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ✅ CORRECT Auth Server URL 
+// ✅ RENDER COMPATIBLE - Dynamic Auth Server URL
 const AUTH_SERVER_URL = process.env.AUTH_SERVER_URL || 'https://tiktok-bot-auth.onrender.com';
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
+// ✅ RENDER MIDDLEWARE
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.static('public', {
+  maxAge: '1d',
+  etag: false
+}));
+
+// ✅ RENDER HEALTH CHECK MIDDLEWARE
+app.use((req, res, next) => {
+  res.set('X-Powered-By', 'TikTok Multi Bot');
+  next();
+});
 
 // Global variables for monitoring
 global.runningJobs = {};
 
-// ✅ FIXED TOKEN VERIFICATION - No redirect loops
+// ✅ ENHANCED TOKEN VERIFICATION - Render Optimized
 async function verifyToken(req, res, next) {
     try {
+        // Skip token verification for health checks
+        if (req.path === '/api/health' || req.path === '/') {
+            return next();
+        }
+
         const token = req.query.token || req.body.token;
         
         if (!token) {
@@ -31,7 +52,10 @@ async function verifyToken(req, res, next) {
         const response = await axios.post(`${AUTH_SERVER_URL}/api/verify-token`, {
             token: token
         }, { 
-            timeout: 5000,
+            timeout: 10000, // Increased timeout for Render
+            headers: {
+                'User-Agent': 'TikTok-Bot-Controller/3.0.0'
+            },
             transformResponse: [function (data) {
                 try {
                     return JSON.parse(data);
@@ -53,11 +77,15 @@ async function verifyToken(req, res, next) {
         }
     } catch (error) {
         console.log('❌ Token verification failed:', error.message);
+        // For Render, allow some endpoints without strict auth
+        if (req.path === '/api/health' || req.path.includes('/public')) {
+            return next();
+        }
         return res.status(401).json({ success: false, message: 'Token verification failed' });
     }
 }
 
-// ✅ ENHANCED API Call Wrapper
+// ✅ ENHANCED API Call Wrapper - Render Optimized
 async function safeApiCall(apiCall) {
     try {
         const response = await apiCall();
@@ -71,16 +99,29 @@ async function safeApiCall(apiCall) {
         return response.data;
     } catch (error) {
         console.error('API Call Error:', error.message);
+        
+        // Render-specific error handling
+        if (error.code === 'ECONNREFUSED') {
+            throw new Error('Auth server is unavailable');
+        }
+        if (error.code === 'ETIMEDOUT') {
+            throw new Error('Request timeout - service busy');
+        }
+        
         throw error;
     }
 }
 
-// ✅ GET INSTANCES FROM AUTH SERVER (With better error handling)
+// ✅ GET INSTANCES FROM AUTH SERVER (Render Optimized)
 async function getInstancesFromAuthServer(token) {
     try {
         const data = await safeApiCall(() => 
             axios.get(`${AUTH_SERVER_URL}/api/bot-instances?token=${token}`, {
-                timeout: 5000
+                timeout: 15000, // Increased for Render
+                headers: {
+                    'User-Agent': 'TikTok-Bot-Controller/3.0.0',
+                    'Accept': 'application/json'
+                }
             })
         );
         
@@ -94,7 +135,7 @@ async function getInstancesFromAuthServer(token) {
     }
 }
 
-// ✅ PERMANENT ONLINE SYSTEM - Bots kabhi offline nahi honge
+// ✅ PERMANENT ONLINE SYSTEM - Render Compatible
 let permanentOnlineInterval = null;
 const permanentOnlineBots = new Map();
 
@@ -112,7 +153,7 @@ function startPermanentOnlineSystem() {
         } catch (error) {
             console.log('❌ Permanent online system error:', error.message);
         }
-    }, 5000); // Check every 5 seconds
+    }, 10000); // Increased to 10 seconds for Render
     
     console.log('✅ Permanent Online System Started - Bots will NEVER go offline');
 }
@@ -127,10 +168,10 @@ function stopPermanentOnlineSystem() {
     console.log('🛑 Permanent Online System Stopped');
 }
 
-// ✅ KEEP ALL BOTS PERMANENTLY ONLINE
+// ✅ KEEP ALL BOTS PERMANENTLY ONLINE - Render Optimized
 async function keepAllBotsPermanentlyOnline() {
     try {
-        // Get all bot instances from auth server (using a default token for system operations)
+        // Get all bot instances from auth server
         const instances = await getInstancesForSystem();
         
         if (instances.length === 0) {
@@ -145,9 +186,12 @@ async function keepAllBotsPermanentlyOnline() {
         
         for (const instance of instances) {
             try {
-                // Check if bot is responding
+                // Check if bot is responding with longer timeout
                 const statusResponse = await axios.get(`${instance.url}/status`, {
-                    timeout: 8000
+                    timeout: 15000,
+                    headers: {
+                        'User-Agent': 'TikTok-Bot-Controller/3.0.0'
+                    }
                 });
                 
                 const botStatus = statusResponse.data;
@@ -177,10 +221,15 @@ async function keepAllBotsPermanentlyOnline() {
                     try {
                         // Start with minimal settings to keep it alive
                         await axios.post(`${instance.url}/start`, {
-                            targetViews: 1000000, // Very high target to keep running
-                            videoLink: 'https://www.tiktok.com/@tiktok/video/7106688751857945857', // Default video
+                            targetViews: 1000000,
+                            videoLink: 'https://www.tiktok.com/@tiktok/video/7106688751857945857',
                             mode: 'permanent'
-                        }, { timeout: 15000 });
+                        }, { 
+                            timeout: 20000,
+                            headers: {
+                                'User-Agent': 'TikTok-Bot-Controller/3.0.0'
+                            }
+                        });
                         
                         botInfo.restartCount++;
                         restartedCount++;
@@ -204,12 +253,17 @@ async function keepAllBotsPermanentlyOnline() {
                         alwaysOnline: true
                     };
                     
-                    // Try to start the bot
+                    // Try to start the bot with longer timeout
                     await axios.post(`${instance.url}/start`, {
                         targetViews: 1000000,
                         videoLink: 'https://www.tiktok.com/@tiktok/video/7106688751857945857',
                         mode: 'permanent_recovery'
-                    }, { timeout: 20000 });
+                    }, { 
+                        timeout: 25000,
+                        headers: {
+                            'User-Agent': 'TikTok-Bot-Controller/3.0.0'
+                        }
+                    });
                     
                     botInfo.restartCount++;
                     botInfo.lastSeen = new Date().toISOString();
@@ -246,13 +300,16 @@ async function keepAllBotsPermanentlyOnline() {
     }
 }
 
-// ✅ GET INSTANCES FOR SYSTEM (Without user token)
+// ✅ GET INSTANCES FOR SYSTEM (Without user token) - Render Optimized
 async function getInstancesForSystem() {
     try {
         // For system operations, we need to get instances without user token
-        // This is a simplified version - you might need to adjust based on your auth system
         const response = await axios.get(`${AUTH_SERVER_URL}/api/bot-instances?token=system_admin_2024`, {
-            timeout: 10000
+            timeout: 20000,
+            headers: {
+                'User-Agent': 'TikTok-Bot-Controller/3.0.0',
+                'Accept': 'application/json'
+            }
         });
         
         if (response.data.success) {
@@ -265,9 +322,9 @@ async function getInstancesForSystem() {
     }
 }
 
-// ✅ HELPER FUNCTIONS - Add these to your main-controller.js
+// ✅ HELPER FUNCTIONS
 
-// ✅ UPDATED: Extract Video Info with Short URL Resolution
+// ✅ Extract Video Info with Short URL Resolution
 function extractVideoInfo(url) {
     let cleanUrl = url.split('?')[0].trim();
     
@@ -303,7 +360,7 @@ function extractVideoInfo(url) {
     return { id: null, type: 'UNKNOWN' };
 }
 
-// ✅ NEW: Resolve Short URL to get actual Video ID
+// ✅ Resolve Short URL to get actual Video ID
 function resolveShortUrl(shortCode) {
     return new Promise((resolve) => {
         console.log('🔄 Resolving short URL:', shortCode);
@@ -350,7 +407,7 @@ function resolveShortUrl(shortCode) {
             resolve(null);
         });
         
-        req.setTimeout(8000, () => {
+        req.setTimeout(10000, () => {
             console.log('❌ Short URL resolve timeout');
             req.destroy();
             resolve(null);
@@ -360,9 +417,7 @@ function resolveShortUrl(shortCode) {
     });
 }
 
-// ✅ UPDATED: Get TikTok Video Stats with Short URL Support
-// ✅ UPDATED: Get TikTok Video Stats with Auto Resolution
-// ✅ COMPLETE: Get TikTok Video Stats with Auto Resolution
+// ✅ Get TikTok Video Stats with Auto Resolution
 function getTikTokVideoStats(videoInfo) {
     return new Promise((resolve) => {
         console.log('📊 Getting stats for:', videoInfo);
@@ -423,7 +478,7 @@ function getTikTokVideoStats(videoInfo) {
     });
 }
 
-// ✅ COMPLETE: Get TikTok Video Stats Direct (for resolved IDs)
+// ✅ Get TikTok Video Stats Direct (for resolved IDs)
 function getTikTokVideoStatsDirect(videoId) {
     return new Promise((resolve, reject) => {
         console.log('🎯 Fetching stats directly for Video ID:', videoId);
@@ -481,7 +536,7 @@ function getTikTokVideoStatsDirect(videoId) {
     });
 }
 
-// ✅ COMPLETE: Extract Stats from HTML
+// ✅ Extract Stats from HTML
 function extractStatsFromHTML(html) {
     const stats = {
         views: 0,
@@ -563,7 +618,7 @@ function extractStatsFromHTML(html) {
     return stats;
 }
 
-// ✅ COMPLETE: Get Fallback Stats
+// ✅ Get Fallback Stats
 function getFallbackStats() {
     return {
         views: 0,
@@ -576,64 +631,6 @@ function getFallbackStats() {
     };
 }
 
-// ✅ COMPLETE: Resolve Short URL
-function resolveShortUrl(shortCode) {
-    return new Promise((resolve) => {
-        console.log('🔄 Resolving short URL:', shortCode);
-        
-        const options = {
-            hostname: 'vm.tiktok.com',
-            path: `/${shortCode}/`,
-            method: 'GET',
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            }
-        };
-
-        const req = https.request(options, (res) => {
-            console.log('📡 Short URL response status:', res.statusCode);
-            console.log('📡 Response headers:', res.headers);
-            
-            // Follow redirect to get final URL
-            const finalUrl = res.headers.location;
-            console.log('🔗 Redirect URL:', finalUrl);
-            
-            if (finalUrl) {
-                // Extract video ID from final URL
-                const videoIdMatch = finalUrl.match(/\/(\d{19})/);
-                if (videoIdMatch) {
-                    console.log('✅ Resolved to Video ID:', videoIdMatch[1]);
-                    resolve(videoIdMatch[1]);
-                } else {
-                    console.log('❌ No video ID in redirect URL');
-                    resolve(null);
-                }
-            } else {
-                console.log('❌ No redirect location found');
-                resolve(null);
-            }
-            
-            // Consume the response body
-            res.on('data', () => {});
-            res.on('end', () => {});
-        });
-
-        req.on('error', (error) => {
-            console.log('❌ Short URL resolve error:', error.message);
-            resolve(null);
-        });
-        
-        req.setTimeout(10000, () => {
-            console.log('❌ Short URL resolve timeout');
-            req.destroy();
-            resolve(null);
-        });
-        
-        req.end();
-    });
-}
-
 function startVideoMonitoring(videoId, targetViews) {
     const checkInterval = setInterval(async () => {
         try {
@@ -644,7 +641,7 @@ function startVideoMonitoring(videoId, targetViews) {
             }
 
             // Get current views
-            const currentStats = await getTikTokVideoStats(videoId);
+            const currentStats = await getTikTokVideoStats({ id: videoId, type: 'STANDARD' });
             const currentViews = currentStats.views;
 
             // Check if target reached
@@ -662,15 +659,25 @@ function startVideoMonitoring(videoId, targetViews) {
         } catch (error) {
             console.log('Monitoring error:', error.message);
         }
-    }, 5000); // Check every 5 seconds
+    }, 5000);
 }
 
-// Routes
+// ✅ RENDER COMPATIBLE ROUTES
+
+// Health check route (required for Render)
+app.get('/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'OK', 
+        timestamp: new Date().toISOString(),
+        service: 'TikTok Main Controller'
+    });
+});
+
 app.get('/', (req, res) => {
     res.redirect(AUTH_SERVER_URL);
 });
 
-// ✅ FIXED DASHBOARD ROUTE
+// ✅ FIXED DASHBOARD ROUTE - Render Optimized
 app.get('/dashboard', async (req, res) => {
     const token = req.query.token;
     
@@ -682,6 +689,11 @@ app.get('/dashboard', async (req, res) => {
     try {
         const response = await axios.post(`${AUTH_SERVER_URL}/api/verify-token`, {
             token: token
+        }, {
+            timeout: 10000,
+            headers: {
+                'User-Agent': 'TikTok-Bot-Controller/3.0.0'
+            }
         });
         
         if (response.data.success && response.data.valid) {
@@ -690,11 +702,12 @@ app.get('/dashboard', async (req, res) => {
             res.redirect(AUTH_SERVER_URL);
         }
     } catch (error) {
+        console.log('Dashboard auth error:', error.message);
         res.redirect(AUTH_SERVER_URL);
     }
 });
 
-// ✅ FIXED LOGOUT - Simple and effective
+// ✅ FIXED LOGOUT - Render Optimized
 app.post('/api/logout', async (req, res) => {
     try {
         const token = req.body.token;
@@ -703,8 +716,13 @@ app.post('/api/logout', async (req, res) => {
         if (token) {
             axios.post(`${AUTH_SERVER_URL}/api/global-logout`, {
                 token: token
-            }, { timeout: 3000 }).catch(err => {
-                // Ignore errors
+            }, { 
+                timeout: 5000,
+                headers: {
+                    'User-Agent': 'TikTok-Bot-Controller/3.0.0'
+                }
+            }).catch(err => {
+                // Ignore errors for logout
             });
         }
         
@@ -721,9 +739,7 @@ app.post('/api/logout', async (req, res) => {
     }
 });
 
-// ✅ Route 1: Get Video Information
-// ✅ UPDATED: Get Video Information with Short URL Support
-// ✅ UPDATED: Get Video Information with Auto Resolution
+// ✅ Route 1: Get Video Information with Short URL Support
 app.post('/api/get-video-info', verifyToken, async (req, res) => {
     try {
         const { videoLink, token } = req.body;
@@ -781,8 +797,7 @@ app.post('/api/get-video-info', verifyToken, async (req, res) => {
     }
 });
 
-// ✅ Route 2: Modified Start All Bots with New Logic
-// ✅ UPDATED: Start All Bots with Resolved Video ID
+// ✅ Route 2: Start All Bots with Resolved Video ID - Render Optimized
 app.post('/api/start-all', verifyToken, async (req, res) => {
     try {
         const { videoLink, targetViews, token, currentViews } = req.body;
@@ -841,12 +856,17 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
                 // ✅ Send FINAL video ID to bots
                 await axios.post(`${instance.url}/start`, {
                     targetViews: finalTarget,
-                    videoLink: finalVideoLink,  // Use resolved link
+                    videoLink: finalVideoLink,
                     mode: 'persistent'
-                }, { timeout: 10000 });
+                }, { 
+                    timeout: 15000,
+                    headers: {
+                        'User-Agent': 'TikTok-Bot-Controller/3.0.0'
+                    }
+                });
                 results.push({ instance: instance.id, success: true, message: 'Started' });
             } catch (error) {
-                results.push({ instance: instance.id, success: false, message: 'Failed' });
+                results.push({ instance: instance.id, success: false, message: 'Failed: ' + error.message });
             }
         }
 
@@ -863,7 +883,7 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
         });
     } catch (error) {
         console.log('Start bots error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
+        res.status(500).json({ success: false, message: 'Server error: ' + error.message });
     }
 });
 
@@ -877,7 +897,7 @@ app.get('/api/monitoring-status', verifyToken, async (req, res) => {
         }
 
         const job = global.runningJobs[videoId];
-        const currentStats = await getTikTokVideoStats(videoId);
+        const currentStats = await getTikTokVideoStats({ id: videoId, type: 'STANDARD' });
 
         res.json({
             success: true,
@@ -923,17 +943,19 @@ app.post('/api/stop-all', verifyToken, async (req, res) => {
         for (const instance of enabledInstances) {
             try {
                 await axios.post(`${instance.url}/stop`, {}, { 
-                    timeout: 10000,
+                    timeout: 15000,
+                    headers: {
+                        'User-Agent': 'TikTok-Bot-Controller/3.0.0'
+                    },
                     transformResponse: [function (data) {
                         try {
                             return JSON.parse(data);
                         } catch (e) {
-                            return { success: true }; // Consider successful even on parse error
+                            return { success: true };
                         }
                     }]
                 });
             } catch (error) {
-                // Continue even if some instances fail
                 console.log(`Instance ${instance.url} stop failed:`, error.message);
             }
         }
@@ -953,7 +975,10 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
         for (const instance of instances) {
             try {
                 const response = await axios.get(`${instance.url}/status`, { 
-                    timeout: 10000,
+                    timeout: 15000,
+                    headers: {
+                        'User-Agent': 'TikTok-Bot-Controller/3.0.0'
+                    },
                     transformResponse: [function (data) {
                         try {
                             return JSON.parse(data);
@@ -1059,27 +1084,62 @@ app.get('/api/system/permanent-online/status', (req, res) => {
     }
 });
 
-// ✅ HEALTH CHECK - No authentication required
+// ✅ HEALTH CHECK - No authentication required (Render requirement)
 app.get('/api/health', (req, res) => {
     res.json({ 
         success: true, 
         message: 'Main Controller is running',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+        version: '3.0.0'
     });
 });
 
-// Start the permanent online system when server starts
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🔧 Main Controller running on port ${PORT}`);
+// ✅ RENDER ERROR HANDLING
+app.use((req, res) => {
+    res.status(404).json({ success: false, message: 'Route not found' });
+});
+
+app.use((error, req, res, next) => {
+    console.error('Unhandled Error:', error);
+    res.status(500).json({ 
+        success: false, 
+        message: 'Internal server error',
+        errorId: Date.now()
+    });
+});
+
+// ✅ RENDER SERVER START
+const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 TikTok Main Controller deployed on Render`);
+    console.log(`📍 Port: ${PORT}`);
     console.log(`🔐 Auth Server: ${AUTH_SERVER_URL}`);
-    console.log(`✅ Enhanced Error Handling: Enabled`);
-    console.log(`📱 Mobile Compatible: Yes`);
-    console.log(`🚀 Fixed Logout System: Active`);
-    console.log(`🎯 Video Monitoring System: Active`);
-    console.log(`📊 Real-time Stats Tracking: Enabled`);
+    console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`✅ Render Compatibility: Enabled`);
+    console.log(`🔄 Permanent Online System: Ready`);
     
     // ✅ START PERMANENT ONLINE SYSTEM ON BOOT
     setTimeout(() => {
         startPermanentOnlineSystem();
-    }, 10000); // Start 10 seconds after server boot
+        console.log('🔧 Permanent Online System: ACTIVE');
+    }, 15000); // Start 15 seconds after server boot
+});
+
+// ✅ RENDER GRACEFUL SHUTDOWN
+process.on('SIGTERM', () => {
+    console.log('🛑 SIGTERM received - shutting down gracefully');
+    stopPermanentOnlineSystem();
+    server.close(() => {
+        console.log('✅ Server closed');
+        process.exit(0);
+    });
+});
+
+process.on('SIGINT', () => {
+    console.log('🛑 SIGINT received - shutting down');
+    stopPermanentOnlineSystem();
+    server.close(() => {
+        console.log('✅ Server closed');
+        process.exit(0);
+    });
 });
