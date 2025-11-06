@@ -10,7 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ✅ RENDER COMPATIBLE - Dynamic Auth Server URL
-const AUTH_SERVER_URL = process.env.AUTH_SERVER_URL || 'https://tiktok-bot-auth.onrender.com';
+const AUTH_SERVER_URL = process.env.AUTH_SERVER_URL || 'https://tiktok-bot-auth-2.onrender.com';
 
 // ✅ RENDER MIDDLEWARE
 app.use(helmet({
