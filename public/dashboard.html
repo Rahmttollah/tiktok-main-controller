@@ -1,2049 +1,2043 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 Dashboard - TikTok Multi Bot</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        :root {
-            --primary: #8B5FBF;
-            --primary-dark: #6B46C1;
-            --primary-light: #9F7AEA;
-            --secondary: #D53F8C;
-            --dark: #1A202C;
-            --darker: #0F1419;
-            --light: #EDF2F7;
-            --success: #48BB78;
-            --danger: #F56565;
-            --warning: #ECC94B;
-            --info: #4299E1;
-        }
-        
-        body {
-            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 50%, var(--primary-dark) 100%);
-            min-height: 100vh;
-            color: var(--light);
-            animation: gradientShift 10s ease infinite;
-            background-size: 400% 400%;
-            overflow-x: hidden;
-        }
-        
-        @keyframes gradientShift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-        }
-        
-        .header {
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(20px);
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(139, 95, 191, 0.3);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-        
-        .logo h1 {
-            font-size: 1.4em;
-            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-        
-        .welcome-text {
-            font-size: 0.9em;
-            opacity: 0.9;
-        }
-        
-        .btn-logout {
-            padding: 10px 16px;
-            background: rgba(245, 101, 101, 0.2);
-            color: var(--light);
-            border: 1px solid var(--danger);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-            font-size: 0.9em;
-        }
-        
-        .btn-logout:hover {
-            background: var(--danger);
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px 15px;
-            padding-bottom: 80px;
-        }
-
-        .nav-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 10px;
-            border-radius: 10px;
-            backdrop-filter: blur(20px);
-        }
-
-        .nav-tab {
-            flex: 1;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-
-        .nav-tab.active {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-        }
-
-        .nav-tab:hover:not(.active) {
-            background: rgba(255, 255, 255, 0.2);
-        }
-        
-        .control-panel {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 25px;
-            border: 1px solid rgba(139, 95, 191, 0.3);
-            animation: slideUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-        
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .panel-title {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
-            color: var(--primary-light);
-            font-size: 1.3em;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 10px;
-            font-weight: 600;
-            color: var(--primary-light);
-            font-size: 1em;
-        }
-        
-        .input-group {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-direction: column;
-        }
-        
-        @media (min-width: 768px) {
-            .input-group {
-                flex-direction: row;
-            }
-        }
-        
-        input, select {
-            flex: 1;
-            padding: 14px 16px;
-            background: rgba(45, 55, 72, 0.8);
-            border: 2px solid rgba(139, 95, 191, 0.3);
-            border-radius: 10px;
-            font-size: 16px;
-            color: var(--light);
-            transition: all 0.3s;
-            width: 100%;
-        }
-        
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--primary-light);
-            background: rgba(45, 55, 72, 1);
-        }
-        
-        .btn-paste {
-            padding: 14px 20px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-            white-space: nowrap;
-            width: 100%;
-        }
-        
-        @media (min-width: 768px) {
-            .btn-paste {
-                width: auto;
-            }
-        }
-        
-        .btn-paste:hover {
-            transform: translateY(-2px);
-        }
-        
-        .btn-extract {
-            padding: 14px 20px;
-            background: linear-gradient(135deg, var(--info), #3182CE);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-            white-space: nowrap;
-            width: 100%;
-        }
-        
-        @media (min-width: 768px) {
-            .btn-extract {
-                width: auto;
-            }
-        }
-        
-        .btn-extract:hover {
-            transform: translateY(-2px);
-        }
-        
-        .btn-group {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-            margin: 25px 0;
-        }
-        
-        @media (min-width: 768px) {
-            .btn-group {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-        
-        button {
-            padding: 16px 20px;
-            border: none;
-            border-radius: 10px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        
-        button:hover {
-            transform: translateY(-2px);
-        }
-        
-        button:active {
-            transform: translateY(-1px);
-        }
-        
-        button.loading {
-            pointer-events: none;
-            opacity: 0.8;
-        }
-        
-        button.loading::after {
-            content: '';
-            width: 18px;
-            height: 18px;
-            border: 2px solid transparent;
-            border-top: 2px solid white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .btn-start {
-            background: linear-gradient(135deg, var(--success), #38A169);
-            color: white;
-        }
-        
-        .btn-start:disabled {
-            background: rgba(72, 187, 120, 0.3);
-            color: rgba(255, 255, 255, 0.5);
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .btn-stop {
-            background: linear-gradient(135deg, var(--danger), #E53E3E);
-            color: white;
-        }
-        
-        .btn-refresh {
-            background: linear-gradient(135deg, var(--info), #3182CE);
-            color: white;
-        }
-        
-        .speed-indicator {
-            text-align: center;
-            font-size: 1.8em;
-            margin: 25px 0;
-            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: pulse 2s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.9; }
-        }
-        
-        .stats-overview {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-        
-        @media (min-width: 768px) {
-            .stats-overview {
-                grid-template-columns: repeat(4, 1fr);
-                gap: 20px;
-            }
-        }
-        
-        .stat-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            border: 1px solid rgba(139, 95, 191, 0.3);
-            transition: all 0.3s ease;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-3px);
-        }
-        
-        .stat-number {
-            font-size: 2em;
-            font-weight: bold;
-            margin-bottom: 8px;
-            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .stat-label {
-            font-size: 0.9em;
-            opacity: 0.9;
-        }
-        
-        .instances-section {
-            margin-top: 25px;
-        }
-        
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        @media (min-width: 768px) {
-            .section-header {
-                flex-direction: row;
-            }
-        }
-        
-        .section-header h3 {
-            color: var(--primary-light);
-            font-size: 1.3em;
-        }
-        
-        .instances-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 15px;
-        }
-        
-        @media (min-width: 768px) {
-            .instances-grid {
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            }
-        }
-        
-        .instance-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid rgba(139, 95, 191, 0.3);
-            transition: all 0.3s ease;
-        }
-        
-        .instance-card:hover {
-            transform: translateY(-3px);
-        }
-        
-        .instance-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        
-        .instance-title {
-            font-weight: 600;
-            color: var(--primary-light);
-            font-size: 1em;
-        }
-        
-        .instance-status {
-            padding: 6px 12px;
-            border-radius: 15px;
-            font-size: 0.8em;
-            font-weight: bold;
-        }
-        
-        .status-online {
-            background: linear-gradient(135deg, var(--success), #38A169);
-            color: white;
-        }
-        
-        .status-offline {
-            background: linear-gradient(135deg, var(--danger), #E53E3E);
-            color: white;
-        }
-        
-        .instance-stats {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .mini-stat {
-            text-align: center;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-        
-        .mini-stat:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        .mini-number {
-            font-size: 1.2em;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .mini-label {
-            font-size: 0.8em;
-            opacity: 0.8;
-        }
-        
-        .progress-container {
-            margin: 15px 0;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
-            transition: width 0.5s ease;
-        }
-        
-        .progress-text {
-            text-align: center;
-            font-weight: 600;
-            margin-top: 8px;
-            color: var(--primary-light);
-            font-size: 0.9em;
-        }
-        
-        .alert {
-            padding: 15px;
-            border-radius: 10px;
-            margin: 15px 0;
-            text-align: center;
-            animation: slideIn 0.5s ease;
-        }
-        
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .alert.success {
-            background: rgba(72, 187, 120, 0.2);
-            border: 1px solid var(--success);
-            color: var(--success);
-        }
-        
-        .alert.error {
-            background: rgba(245, 101, 101, 0.2);
-            border: 1px solid var(--danger);
-            color: var(--danger);
-        }
-        
-        .alert.info {
-            background: rgba(66, 153, 225, 0.2);
-            border: 1px solid var(--info);
-            color: var(--info);
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            opacity: 0.7;
-        }
-        
-        .empty-state i {
-            font-size: 3em;
-            margin-bottom: 15px;
-            opacity: 0.5;
-        }
-
-        .video-info-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            padding: 20px;
-            border-radius: 12px;
-            margin: 15px 0;
-            border: 1px solid rgba(139, 95, 191, 0.3);
-        }
-
-        .video-info-card h4 {
-            color: var(--primary-light);
-            margin-bottom: 15px;
-            font-size: 1.1em;
-        }
-
-        .video-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-        }
-
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-        }
-
-        .stat-label {
-            font-size: 0.9em;
-            opacity: 0.8;
-        }
-
-        .stat-value {
-            font-weight: bold;
-            color: var(--primary-light);
-        }
-
-        .progress-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            padding: 20px;
-            border-radius: 12px;
-            margin: 15px 0;
-            border: 1px solid rgba(139, 95, 191, 0.3);
-        }
-
-        .progress-card h4 {
-            color: var(--primary-light);
-            margin-bottom: 15px;
-            font-size: 1.1em;
-        }
-
-        .progress-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .progress-stats div {
-            text-align: center;
-            padding: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 6px;
-            font-size: 0.9em;
-        }
-
-        .instances-live {
-            margin-top: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            padding: 15px;
-        }
-
-        .instance-live-header {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
-            gap: 10px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .instance-live-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
-            gap: 10px;
-            padding: 8px;
-            margin-bottom: 5px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 5px;
-            transition: all 0.3s;
-        }
-
-        .instance-live-row:hover {
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .instance-status.running {
-            color: var(--success);
-            font-weight: bold;
-        }
-
-        .instance-status.stopped {
-            color: var(--danger);
-        }
-
-        .instance-status.starting {
-            color: var(--warning);
-        }
-
-        .instance-status.failed, .instance-status.offline {
-            color: #888;
-        }
-
-        .services-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .service-card {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
-            border-radius: 10px;
-            border: 1px solid rgba(139, 95, 191, 0.3);
-        }
-
-        .service-card.available {
-            border-left: 4px solid var(--success);
-        }
-
-        .service-card.unavailable {
-            border-left: 4px solid var(--danger);
-            opacity: 0.7;
-        }
-
-        .service-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .service-header h4 {
-            color: var(--primary-light);
-        }
-
-        .service-status {
-            padding: 4px 8px;
-            border-radius: 8px;
-            font-size: 0.8em;
-            font-weight: bold;
-        }
-
-        .service-status.available {
-            background: var(--success);
-            color: white;
-        }
-
-        .service-status.unavailable {
-            background: var(--danger);
-            color: white;
-        }
-
-        .service-description {
-            margin-bottom: 15px;
-            opacity: 0.8;
-            font-size: 0.9em;
-        }
-
-        .service-controls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .quantity-input {
-            width: 80px;
-            padding: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 5px;
-            color: white;
-        }
-
-        .btn-select-service {
-            padding: 8px 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 5px;
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-select-service:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .connection-alert {
-            background: #ff9800;
-            color: white;
-            padding: 10px;
-            text-align: center;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 9999;
-        }
-
-        .offline-mode {
-            opacity: 0.9;
-        }
-
-        .offline-mode .btn-start {
-            background: #666 !important;
-            cursor: not-allowed;
-        }
-        
-        .mobile-menu {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.9);
-            backdrop-filter: blur(20px);
-            padding: 10px;
-            z-index: 1000;
-            border-top: 1px solid rgba(139, 95, 191, 0.3);
-        }
-        
-        .mobile-menu-buttons {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-        }
-        
-        .btn-mobile {
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.8em;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-mobile:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-        
-        /* ✅ ORDER TRACKING STYLES */
-        .order-tracking-section {
-            margin-top: 20px;
-        }
-        
-        .order-card {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            border-left: 4px solid var(--info);
-        }
-        
-        .order-card.completed {
-            border-left-color: var(--success);
-        }
-        
-        .order-card.failed {
-            border-left-color: var(--danger);
-        }
-        
-        .order-card.time_limit {
-            border-left-color: var(--warning);
-        }
-        
-        .order-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .order-id {
-            font-weight: bold;
-            color: var(--primary-light);
-            font-size: 0.9em;
-        }
-        
-        .order-status {
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.8em;
-            font-weight: bold;
-        }
-        
-        .order-status.processing {
-            background: var(--info);
-            color: white;
-        }
-        
-        .order-status.completed {
-            background: var(--success);
-            color: white;
-        }
-        
-        .order-status.failed {
-            background: var(--danger);
-            color: white;
-        }
-        
-        .order-status.time_limit {
-            background: var(--warning);
-            color: black;
-        }
-        
-        .order-progress {
-            margin: 10px 0;
-        }
-        
-        .order-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 8px;
-            font-size: 0.85em;
-            opacity: 0.8;
-        }
-        
-        .countdown-timer {
-            text-align: center;
-            font-size: 1.2em;
-            font-weight: bold;
-            color: var(--warning);
-            margin: 10px 0;
-        }
-        
-        @media (max-width: 768px) {
-            .mobile-menu {
-                display: block;
-            }
-            
-            .header {
-                padding: 12px 15px;
-            }
-            
-            .logo h1 {
-                font-size: 1.2em;
-            }
-            
-            .user-menu {
-                gap: 10px;
-            }
-            
-            .welcome-text {
-                font-size: 0.8em;
-            }
-            
-            .btn-logout {
-                padding: 8px 12px;
-                font-size: 0.8em;
-            }
-            
-            .control-panel {
-                padding: 20px;
-            }
-            
-            .panel-title {
-                font-size: 1.1em;
-            }
-            
-            .stat-card {
-                padding: 15px;
-            }
-            
-            .stat-number {
-                font-size: 1.6em;
-            }
-            
-            .speed-indicator {
-                font-size: 1.4em;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .header {
-                flex-direction: column;
-                gap: 10px;
-                text-align: center;
-            }
-            
-            .stats-overview {
-                grid-template-columns: 1fr;
-            }
-            
-            .instance-stats {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <div class="logo">
-            <h1>🚀 TikTok Multi Bot</h1>
-        </div>
-        <div class="user-menu">
-            <span class="welcome-text">Welcome, <span id="username">User</span></span>
-            <button class="btn-logout" onclick="logout()">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </button>
-        </div>
-    </div>
-    
-    <div class="container">
-        <!-- Navigation Tabs -->
-        <div class="nav-tabs">
-            <button class="nav-tab active" onclick="showTab('bot')">
-                <i class="fas fa-robot"></i> Custom Bot
-            </button>
-            <button class="nav-tab" onclick="showTab('zefame')">
-                <i class="fas fa-gift"></i> Free Services
-            </button>
-            <button class="nav-tab" onclick="showTab('turbo')">
-                <i class="fas fa-bolt"></i> Turbo Mode
-            </button>
-        </div>
-
-        <!-- Custom Bot Panel -->
-        <div class="control-panel" id="botPanel">
-            <div class="panel-title">
-                <i class="fas fa-rocket"></i>
-                <h2>🎯 TikTok View Bot Control</h2>
-            </div>
-            
-            <div class="form-group">
-                <label>📹 TikTok Video Link</label>
-                <div class="input-group">
-                    <input type="text" id="videoLink" placeholder="Paste TikTok video URL here">
-                    <button class="btn-paste" onclick="pasteFromClipboard()">
-                        <i class="fas fa-paste"></i> Paste
-                    </button>
-                    <button class="btn-extract" onclick="extractAndAnalyze()" id="extractBtn">
-                        <i class="fas fa-search"></i> Extract & Analyze
-                    </button>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label for="targetViews">🎯 Target Views</label>
-                <input type="number" id="targetViews" placeholder="Enter target views" value="1000">
-            </div>
-            
-            <div class="form-group">
-                <label for="botStrategy">🤖 Bot Strategy</label>
-                <select id="botStrategy">
-                    <option value="balanced">Balanced (Recommended)</option>
-                    <option value="aggressive">Aggressive (High Speed)</option>
-                    <option value="stealth">Stealth (Slow & Safe)</option>
-                </select>
-            </div>
-            
-            <div class="btn-group">
-                <button class="btn-start" onclick="startAllBots()" id="startBtn" disabled>
-                    <i class="fas fa-play-circle"></i> START BOT
-                </button>
-                <button class="btn-stop" onclick="stopAllBots()" id="stopBtn">
-                    <i class="fas fa-stop-circle"></i> STOP BOT
-                </button>
-                <button class="btn-refresh" onclick="refreshStatus()" id="refreshBtn">
-                    <i class="fas fa-sync-alt"></i> REFRESH
-                </button>
-            </div>
-            
-            <div id="message"></div>
-        </div>
-
-        <!-- Zefame Services Panel -->
-        <div class="control-panel" id="zefamePanel" style="display: none;">
-            <div class="panel-title">
-                <i class="fas fa-gift"></i>
-                <h2>🎁 Free TikTok Services</h2>
-            </div>
-            
-            <div class="form-group">
-                <label>📹 TikTok Video Link</label>
-                <div class="input-group">
-                    <input type="text" id="zefameVideoLink" placeholder="Paste TikTok video URL">
-                    <button class="btn-paste" onclick="pasteToZefame()">
-                        <i class="fas fa-paste"></i> Paste
-                    </button>
-                </div>
-            </div>
-
-            <div class="services-grid" id="servicesContainer">
-                <!-- Services will be loaded here -->
-            </div>
-
-            <div class="btn-group">
-                <button class="btn-start" onclick="startZefameBulk()" id="zefameStartBtn">
-                    <i class="fas fa-rocket"></i> START ALL SELECTED
-                </button>
-                <button class="btn-refresh" onclick="loadZefameServices()">
-                    <i class="fas fa-sync"></i> REFRESH SERVICES
-                </button>
-            </div>
-
-            <!-- Order Tracking Section -->
-            <div class="order-tracking-section">
-                <h4>📊 Active Orders Tracking</h4>
-                <div id="activeOrdersContainer">
-                    <!-- Active orders will be shown here -->
-                </div>
-            </div>
-
-            <div id="zefameMessage"></div>
-        </div>
-
-        <!-- Turbo Mode Panel -->
-        <div class="control-panel" id="turboPanel" style="display: none;">
-            <div class="panel-title">
-                <i class="fas fa-bolt"></i>
-                <h2>⚡ Turbo Mode</h2>
-            </div>
-            <p>Combine Custom Bot + Free Services for maximum power!</p>
-            <div class="btn-group">
-                <button class="btn-start" onclick="startTurboMode()">
-                    <i class="fas fa-bolt"></i> ACTIVATE TURBO
-                </button>
-            </div>
-        </div>
-        
-        <div class="speed-indicator" id="totalRps">
-            🚀 SPEED: <span id="rpsValue">0</span> RPS
-        </div>
-        
-        <div class="stats-overview">
-            <div class="stat-card">
-                <div class="stat-number" id="totalSuccess">0</div>
-                <div class="stat-label">Success</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="totalRequests">0</div>
-                <div class="stat-label">Requests</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="onlineBots">0</div>
-                <div class="stat-label">Online Bots</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="totalRpsNum">0</div>
-                <div class="stat-label">RPS</div>
-            </div>
-        </div>
-        
-        <div class="instances-section">
-            <div class="section-header">
-                <h3><i class="fas fa-robot"></i> Bot System Status</h3>
-                <div class="instance-count">
-                    <span id="instancesCount">0 bots active</span>
-                </div>
-            </div>
-            
-            <div class="instances-grid" id="instancesContainer">
-                <div class="empty-state">
-                    <i class="fas fa-robot"></i>
-                    <h3>Bot System Ready</h3>
-                    <p>Start the view bot to see statistics</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Mobile Bottom Menu -->
-    <div class="mobile-menu">
-        <div class="mobile-menu-buttons">
-            <button class="btn-mobile" onclick="startAllBots()">
-                <i class="fas fa-play"></i>
-                <span>Start</span>
-            </button>
-            <button class="btn-mobile" onclick="stopAllBots()">
-                <i class="fas fa-stop"></i>
-                <span>Stop</span>
-            </button>
-            <button class="btn-mobile" onclick="refreshStatus()">
-                <i class="fas fa-sync"></i>
-                <span>Refresh</span>
-            </button>
-        </div>
-    </div>
-
-    <script>
-    let refreshInterval;
-    let userToken = '';
-    let botStatus = 'stopped';
-    let currentVideoInfo = null;
-    let liveUpdateInterval = null;
-    let monitoringInterval = null;
-    let videoExtracted = false;
-    let currentJobId = null;
-    let progressInterval = null;
-    let actualBotStatus = 'unknown';
-    let zefameServices = [];
-    let selectedServices = new Set();
-    let activeOrders = new Map();
-    let orderTrackingInterval = null;
-
-    // ✅ TAB NAVIGATION
-    function showTab(tabName) {
-        document.querySelectorAll('.control-panel').forEach(panel => {
-            panel.style.display = 'none';
-        });
-        
-        document.getElementById(tabName + 'Panel').style.display = 'block';
-        
-        document.querySelectorAll('.nav-tab').forEach(tab => {
-            tab.classList.remove('active');
-        });
-        event.target.classList.add('active');
-
-        if (tabName === 'zefame') {
-            loadZefameServices();
-            startOrderTracking();
-        } else {
-            stopOrderTracking();
-        }
-    }
-
-    // ✅ ORDER TRACKING SYSTEM
-    function startOrderTracking() {
-        if (orderTrackingInterval) {
-            clearInterval(orderTrackingInterval);
-        }
-        
-        orderTrackingInterval = setInterval(() => {
-            updateActiveOrders();
-        }, 3000);
-        
-        updateActiveOrders();
-    }
-
-    function stopOrderTracking() {
-        if (orderTrackingInterval) {
-            clearInterval(orderTrackingInterval);
-            orderTrackingInterval = null;
-        }
-    }
-
-    async function updateActiveOrders() {
-        try {
-            const response = await fetch(`/api/active-orders?token=${userToken}`);
-            const data = await response.json();
-            
-            if (data.success) {
-                renderActiveOrders(data.activeOrders);
-            }
-        } catch (error) {
-            console.log('Error fetching active orders:', error);
-        }
-    }
-
-    function renderActiveOrders(orders) {
-        const container = document.getElementById('activeOrdersContainer');
-        
-        if (!orders || orders.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-box-open"></i>
-                    <h3>No Active Orders</h3>
-                    <p>Your orders will appear here</p>
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = orders.map(order => `
-            <div class="order-card ${order.status}">
-                <div class="order-header">
-                    <div class="order-id">${order.orderId}</div>
-                    <div class="order-status ${order.status}">${order.status.toUpperCase()}</div>
-                </div>
-                <div class="order-progress">
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${order.progress}%"></div>
-                    </div>
-                    <div class="progress-text">${Math.round(order.progress)}% Complete</div>
-                </div>
-                <div class="order-details">
-                    <div>Service: ${order.serviceName}</div>
-                    <div>Quantity: ${order.quantity}</div>
-                    <div>Attempts: ${order.attempts}</div>
-                    <div>Started: ${new Date(order.startTime).toLocaleTimeString()}</div>
-                </div>
-                ${order.status === 'processing' ? `
-                    <div class="countdown-timer" id="timer-${order.orderId}">
-                        ⏳ Processing...
-                    </div>
-                ` : ''}
-            </div>
-        `).join('');
-
-        // Start individual order tracking
-        orders.forEach(order => {
-            if (order.status === 'processing') {
-                trackOrderProgress(order.orderId);
-            }
-        });
-    }
-
-    async function trackOrderProgress(orderId) {
-        try {
-            const response = await fetch(`/api/order-status/${orderId}?token=${userToken}`);
-            const data = await response.json();
-            
-            if (data.success) {
-                updateOrderUI(orderId, data);
-            }
-        } catch (error) {
-            console.log(`Error tracking order ${orderId}:`, error);
-        }
-    }
-
-    function updateOrderUI(orderId, orderData) {
-        const timerElement = document.getElementById(`timer-${orderId}`);
-        if (!timerElement) return;
-
-        const timeRemaining = orderData.timeRemaining;
-        const minutes = Math.floor(timeRemaining / 60000);
-        const seconds = Math.floor((timeRemaining % 60000) / 1000);
-
-        if (orderData.status === 'processing') {
-            timerElement.innerHTML = `⏳ ${minutes}m ${seconds}s remaining`;
-        } else if (orderData.status === 'completed') {
-            timerElement.innerHTML = '✅ Completed';
-            timerElement.style.color = 'var(--success)';
-        } else if (orderData.status === 'time_limit') {
-            timerElement.innerHTML = '⏰ Time Limit Reached';
-            timerElement.style.color = 'var(--warning)';
-        } else if (orderData.status === 'failed') {
-            timerElement.innerHTML = '❌ Failed';
-            timerElement.style.color = 'var(--danger)';
-        }
-    }
-
-    // ✅ OFFLINE MODE DETECTION
-    function setupOfflineMode() {
-        if (!navigator.onLine) {
-            enableOfflineMode();
-        }
-
-        window.addEventListener('online', () => {
-            disableOfflineMode();
-            showMessage('✅ Back online! Syncing data...', 'success');
-            checkActualStatus();
-        });
-
-        window.addEventListener('offline', () => {
-            enableOfflineMode();
-            showMessage('🌐 Offline mode activated', 'info');
-        });
-    }
-
-    function enableOfflineMode() {
-        document.body.classList.add('offline-mode');
-        
-        if (!document.getElementById('offlineIndicator')) {
-            const indicator = document.createElement('div');
-            indicator.id = 'offlineIndicator';
-            indicator.innerHTML = `
-                <div class="connection-alert">
-                    🌐 OFFLINE MODE - Working locally
-                </div>
-            `;
-            document.body.prepend(indicator);
-        }
-    }
-
-    function disableOfflineMode() {
-        document.body.classList.remove('offline-mode');
-        const indicator = document.getElementById('offlineIndicator');
-        if (indicator) indicator.remove();
-    }
-
-    // ✅ ACTUAL STATUS CHECK
-    async function checkActualStatus() {
-        try {
-            const response = await fetch(`/api/actual-status?token=${userToken}`);
-            const data = await response.json();
-            
-            if (data.success) {
-                actualBotStatus = data.actuallyRunning ? 'running' : 'stopped';
-                updateUIForActualStatus(data.actuallyRunning, data.runningInstances);
-            }
-        } catch (error) {
-            actualBotStatus = 'stopped';
-        }
-    }
-
-    function updateUIForActualStatus(isRunning, runningInstances) {
-        const startBtn = document.getElementById('startBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        
-        if (isRunning) {
-            startBtn.disabled = true;
-            startBtn.innerHTML = '<i class="fas fa-pause-circle"></i> BOTS RUNNING';
-            startBtn.style.background = 'linear-gradient(135deg, #48BB78, #38A169)';
-            
-            stopBtn.disabled = false;
-            stopBtn.innerHTML = '<i class="fas fa-stop-circle"></i> STOP RUNNING BOTS';
-            stopBtn.style.background = 'linear-gradient(135deg, #F56565, #E53E3E)';
-            
-            showMessage('🎯 Bots are currently running!', 'success');
-            
-            if (runningInstances.length > 0 && currentJobId) {
-                startLiveProgressTracking(currentJobId);
-            }
-            
-        } else {
-            startBtn.disabled = false;
-            startBtn.innerHTML = '<i class="fas fa-play-circle"></i> START BOT';
-            startBtn.style.background = 'linear-gradient(135deg, #48BB78, #38A169)';
-            
-            stopBtn.disabled = true;
-            stopBtn.innerHTML = '<i class="fas fa-stop-circle"></i> BOTS STOPPED';
-            stopBtn.style.background = 'linear-gradient(135deg, #666, #888)';
-            
-            clearInterval(progressInterval);
-        }
-    }
-
-    // ✅ VIDEO EXTRACTION & ANALYSIS
-    function isValidTikTokUrl(url) {
-        const tiktokDomains = [
-            'tiktok.com',
-            'vm.tiktok.com', 
-            'vt.tiktok.com'
-        ];
-        
-        try {
-            const urlObj = new URL(url);
-            return tiktokDomains.some(domain => urlObj.hostname.includes(domain));
-        } catch (e) {
-            return tiktokDomains.some(domain => url.includes(domain));
-        }
-    }
-    
-    async function extractAndAnalyze() {
-        const videoLink = document.getElementById('videoLink').value.trim();
-        
-        if (!videoLink) {
-            showMessage('Please paste a TikTok link first!', 'error');
-            return;
-        }
-        
-        if (!isValidTikTokUrl(videoLink)) {
-            showMessage('Please enter a valid TikTok URL!', 'error');
-            return;
-        }
-        
-        setLoading('extractBtn', true);
-        showMessage('🔍 Extracting and analyzing video information...', 'info');
-        
-        try {
-            const response = await fetch('/api/get-video-info', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    videoLink: videoLink,
-                    token: userToken
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                currentVideoInfo = data.videoInfo;
-                videoExtracted = true;
-                
-                document.getElementById('startBtn').disabled = false;
-                
-                displayVideoInfo(currentVideoInfo);
-                showMessage('✅ Video extracted and analyzed successfully! You can now start the bots.', 'success');
-                
-                startLiveUpdates(videoLink);
-                
-            } else {
-                showMessage(data.message, 'error');
-                videoExtracted = false;
-                document.getElementById('startBtn').disabled = true;
-            }
-        } catch (error) {
-            showMessage('Error extracting video information: ' + error.message, 'error');
-            videoExtracted = false;
-            document.getElementById('startBtn').disabled = true;
-        } finally {
-            setLoading('extractBtn', false);
-        }
-    }
-    
-    async function pasteFromClipboard() {
-        try {
-            const text = await navigator.clipboard.readText();
-            const videoLinkInput = document.getElementById('videoLink');
-            videoLinkInput.value = text;
-            
-            showMessage('📋 Link pasted! Click "Extract & Analyze" to proceed.', 'info');
-            
-            videoExtracted = false;
-            document.getElementById('startBtn').disabled = true;
-            
-        } catch (error) {
-            showMessage('Failed to paste from clipboard', 'error');
-        }
-    }
-
-    async function fetchVideoInfo(videoLink) {
-        try {
-            const response = await fetch('/api/get-video-info', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    videoLink: videoLink,
-                    token: userToken
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                currentVideoInfo = data.videoInfo;
-                displayVideoInfo(currentVideoInfo);
-            }
-        } catch (error) {
-            console.log('Error fetching video info:', error);
-        }
-    }
-
-    function displayVideoInfo(videoInfo) {
-        const existingInfo = document.getElementById('videoInfo');
-        if (existingInfo) {
-            existingInfo.remove();
-        }
-        
-        const videoInfoDiv = document.createElement('div');
-        videoInfoDiv.id = 'videoInfo';
-        videoInfoDiv.className = 'video-info-card';
-        
-        let statusBadge = '';
-        let finalIdDisplay = videoInfo.id;
-        
-        if (videoInfo.resolvedVideoId) {
-            statusBadge = '<span style="color: green; font-size: 0.8em;">✅ Resolved</span>';
-            finalIdDisplay = videoInfo.resolvedVideoId;
-        } else if (videoInfo.type === 'SHORT_URL') {
-            statusBadge = '<span style="color: orange; font-size: 0.8em;">🔄 Resolving...</span>';
-        }
-        
-        videoInfoDiv.innerHTML = `
-            <h4>🎯 Video Information ${statusBadge}</h4>
-            <div class="video-stats">
-                <div class="stat-item">
-                    <span class="stat-label">Video ID:</span>
-                    <span class="stat-value">${videoInfo.id}</span>
-                </div>
-                ${videoInfo.resolvedVideoId ? `
-                <div class="stat-item">
-                    <span class="stat-label">Resolved ID:</span>
-                    <span class="stat-value" style="color: green;">${videoInfo.resolvedVideoId}</span>
-                </div>
-                ` : ''}
-                <div class="stat-item">
-                    <span class="stat-label">Type:</span>
-                    <span class="stat-value">${videoInfo.type}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Author:</span>
-                    <span class="stat-value">@${videoInfo.author}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Current Views:</span>
-                    <span class="stat-value" id="currentViews">${videoInfo.currentViews.toLocaleString()}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Likes:</span>
-                    <span class="stat-value">${videoInfo.currentLikes.toLocaleString()}</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Comments:</span>
-                    <span class="stat-value">${videoInfo.currentComments.toLocaleString()}</span>
-                </div>
-            </div>
-            <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
-                🔄 Live updating every second
-            </div>
-        `;
-        
-        const controlPanel = document.querySelector('.control-panel');
-        controlPanel.appendChild(videoInfoDiv);
-    }
-
-    function startLiveUpdates(videoLink) {
-        if (liveUpdateInterval) {
-            clearInterval(liveUpdateInterval);
-        }
-        
-        liveUpdateInterval = setInterval(async () => {
-            await fetchVideoInfo(videoLink);
-        }, 1000);
-    }
-
-    function stopLiveUpdates() {
-        if (liveUpdateInterval) {
-            clearInterval(liveUpdateInterval);
-            liveUpdateInterval = null;
-        }
-    }
-
-    // ✅ BOT CONTROL FUNCTIONS
-    async function startAllBots() {
-        if (!videoExtracted || !currentVideoInfo) {
-            showMessage('Please extract and analyze the video first!', 'error');
-            return;
-        }
-        
-        const targetViews = document.getElementById('targetViews').value;
-        if (!targetViews || targetViews < 1) {
-            showMessage('Please enter target views!', 'error');
-            return;
-        }
-        
-        const currentViews = currentVideoInfo.currentViews;
-        
-        setLoading('startBtn', true);
-        showMessage(`🚀 Starting bots... Target: ${currentViews.toLocaleString()} + ${targetViews} = ${(currentViews + parseInt(targetViews)).toLocaleString()}`, 'info');
-        
-        try {
-            const response = await fetch('/api/start-all', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    videoLink: document.getElementById('videoLink').value,
-                    targetViews: targetViews,
-                    currentViews: currentViews,
-                    token: userToken
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                currentJobId = data.jobId;
-                showMessage(`✅ ${data.message}`, 'success');
-                botStatus = 'running';
-                
-                startLiveProgressTracking(currentJobId);
-                startStatusUpdates();
-                
-            } else {
-                showMessage(data.message, 'error');
-            }
-        } catch (error) {
-            showMessage('Error starting bots: ' + error.message, 'error');
-        } finally {
-            setLoading('startBtn', false);
-        }
-    }
-
-    async function stopAllBots() {
-        await checkActualStatus();
-        
-        if (actualBotStatus !== 'running') {
-            showMessage('ℹ️ Bots are already stopped!', 'info');
-            return;
-        }
-        
-        setLoading('stopBtn', true);
-        showMessage('🛑 Stopping running bots...', 'info');
-        
-        try {
-            const response = await fetch('/api/stop-all', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: userToken })
-            });
-            
-            const data = await response.json();
-            
-            showMessage(`✅ ${data.message}`, 'success');
-            botStatus = 'stopped';
-            
-            clearInterval(progressInterval);
-            stopLiveUpdates();
-            
-        } catch (error) {
-            showMessage('Error stopping bot', 'error');
-        } finally {
-            setLoading('stopBtn', false);
-        }
-    }
-
-    // ✅ LIVE PROGRESS TRACKING
-    function startLiveProgressTracking(jobId) {
-        if (progressInterval) {
-            clearInterval(progressInterval);
-        }
-        
-        createProgressDisplay();
-        
-        progressInterval = setInterval(async () => {
-            await updateLiveProgress(jobId);
-        }, 1000);
-    }
-
-    function createProgressDisplay() {
-        const existingProgress = document.getElementById('liveProgress');
-        if (existingProgress) {
-            existingProgress.remove();
-        }
-        
-        const progressDiv = document.createElement('div');
-        progressDiv.id = 'liveProgress';
-        progressDiv.className = 'progress-card';
-        progressDiv.innerHTML = `
-            <h4>🚀 LIVE PROGRESS TRACKING</h4>
-            <div class="progress-stats" id="progressStats">
-                <div>Progress: <span id="progressCurrent">0</span>/<span id="progressTarget">0</span></div>
-                <div>Remaining: <span id="progressRemaining">0</span></div>
-                <div>Completion: <span id="progressPercentage">0%</span></div>
-                <div>Speed: <span id="progressSpeed">0</span>/min</div>
-                <div>ETA: <span id="progressETA">0</span> min</div>
-                <div>Active Bots: <span id="activeBots">0</span></div>
-            </div>
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressBarFill" style="width: 0%"></div>
-            </div>
-            <div class="instances-live" id="instancesLive">
-                <div class="instance-live-header">
-                    <span>Bot</span>
-                    <span>Status</span>
-                    <span>Success</span>
-                    <span>Requests</span>
-                    <span>RPS</span>
-                </div>
-                <div id="instancesList"></div>
-            </div>
-            <div style="margin-top: 10px; text-align: center;">
-                <button class="btn-stop" onclick="stopAllBots()" id="stopProgressBtn">
-                    <i class="fas fa-stop-circle"></i> STOP ALL BOTS
-                </button>
-            </div>
-        `;
-        
-        const controlPanel = document.querySelector('.control-panel');
-        controlPanel.appendChild(progressDiv);
-    }
-
-    async function updateLiveProgress(jobId) {
-        try {
-            const response = await fetch(`/api/live-progress?jobId=${jobId}&token=${userToken}`);
-            const data = await response.json();
-            
-            if (data.success) {
-                updateProgressUI(data);
-                
-                if (!data.isRunning) {
-                    clearInterval(progressInterval);
-                    showMessage('🎯 Job completed!', 'success');
-                    document.getElementById('stopProgressBtn').innerHTML = '<i class="fas fa-check"></i> COMPLETED';
-                    document.getElementById('stopProgressBtn').style.background = 'linear-gradient(135deg, var(--success), #38A169)';
-                }
-            } else {
-                clearInterval(progressInterval);
-            }
-        } catch (error) {
-            console.log('Progress update error:', error);
-        }
-    }
-
-    function updateProgressUI(progressData) {
-        document.getElementById('progressCurrent').textContent = progressData.progress.current.toLocaleString();
-        document.getElementById('progressTarget').textContent = progressData.progress.target.toLocaleString();
-        document.getElementById('progressRemaining').textContent = progressData.progress.remaining.toLocaleString();
-        document.getElementById('progressPercentage').textContent = progressData.progress.percentage + '%';
-        document.getElementById('progressSpeed').textContent = progressData.progress.viewsPerMinute.toLocaleString();
-        document.getElementById('progressETA').textContent = progressData.progress.estimatedMinutes;
-        document.getElementById('activeBots').textContent = progressData.totals.activeBots;
-        
-        document.getElementById('progressBarFill').style.width = progressData.progress.percentage + '%';
-        
-        const instancesList = document.getElementById('instancesList');
-        instancesList.innerHTML = progressData.instances.map(instance => `
-            <div class="instance-live-row">
-                <span class="instance-name">${instance.id.substring(0, 8)}</span>
-                <span class="instance-status ${instance.status}">${getStatusIcon(instance.status)} ${instance.status.toUpperCase()}</span>
-                <span class="instance-success">${instance.success.toLocaleString()}</span>
-                <span class="instance-requests">${instance.requests.toLocaleString()}</span>
-                <span class="instance-rps">${instance.rps || 0}</span>
-            </div>
-        `).join('');
-    }
-
-    function getStatusIcon(status) {
-        const icons = {
-            'running': '🟢',
-            'starting': '🟡',
-            'stopped': '🔴',
-            'failed': '❌',
-            'offline': '⚫'
-        };
-        return icons[status] || '❓';
-    }
-
-    // ✅ ZEFAME SERVICES
-    async function loadZefameServices() {
-        try {
-            showZefameMessage('🔄 Loading Zefame services...', 'info');
-            
-            const response = await fetch('/api/zefame/services?token=' + userToken);
-            
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                zefameServices = data.services;
-                renderServicesGrid();
-                showZefameMessage(`✅ Loaded ${data.services.length} services from Zefame!`, 'success');
-            } else {
-                throw new Error(data.message || 'Failed to load services');
-            }
-        } catch (error) {
-            console.error('Zefame services error:', error);
-            showZefameMessage('❌ ' + error.message, 'error');
-            
-            zefameServices = [];
-            renderServicesGrid();
-        }
-    }
-
-    function renderServicesGrid() {
-        const container = document.getElementById('servicesContainer');
-        
-        if (!container) {
-            console.error('❌ Services container not found!');
-            return;
-        }
-        
-        if (!zefameServices || zefameServices.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <h3>No Services Available</h3>
-                    <p>Failed to load services from Zefame</p>
-                </div>
-            `;
-            return;
-        }
-        
-        container.innerHTML = zefameServices.map(service => {
-            const isSelected = selectedServices.has(service.id);
-            return `
-            <div class="service-card ${service.available ? 'available' : 'unavailable'} ${isSelected ? 'selected' : ''}">
-                <div class="service-header">
-                    <h4>${service.name || 'Unknown Service'}</h4>
-                    <span class="service-status ${service.available ? 'available' : 'unavailable'}">
-                        ${service.available ? '🟢 AVAILABLE' : '🔴 UNAVAILABLE'}
-                    </span>
-                </div>
-                <div class="service-description">
-                    ${service.description || service.rate || 'Free Service'}
-                </div>
-                <div class="service-controls">
-                    <input type="number" 
-                           class="quantity-input" 
-                           id="quantity-${service.id}" 
-                           value="1" 
-                           min="1" 
-                           max="10"
-                           ${!service.available ? 'disabled' : ''}
-                           placeholder="Qty">
-                    <button class="btn-select-service ${isSelected ? 'selected' : ''}" 
-                            onclick="toggleService(${service.id})"
-                            ${!service.available ? 'disabled' : ''}>
-                        ${isSelected ? '✅ SELECTED' : '📥 SELECT'}
-                    </button>
-                </div>
-            </div>
-            `;
-        }).join('');
-        
-        updateZefameButton();
-    }
-
-    function toggleService(serviceId) {
-        console.log('🔄 Toggling service:', serviceId);
-        
-        if (selectedServices.has(serviceId)) {
-            selectedServices.delete(serviceId);
-            console.log('❌ Removed service:', serviceId);
-        } else {
-            selectedServices.add(serviceId);
-            console.log('✅ Added service:', serviceId);
-        }
-        
-        renderServicesGrid();
-    }
-
-    function updateZefameButton() {
-        const zefameStartBtn = document.getElementById('zefameStartBtn');
-        if (zefameStartBtn) {
-            if (selectedServices.size > 0) {
-                zefameStartBtn.disabled = false;
-                zefameStartBtn.innerHTML = `<i class="fas fa-rocket"></i> START ${selectedServices.size} SELECTED`;
-            } else {
-                zefameStartBtn.disabled = true;
-                zefameStartBtn.innerHTML = `<i class="fas fa-rocket"></i> START ALL SELECTED`;
-            }
-        }
-    }
-
-    // ✅ ENHANCED ORDER PLACEMENT WITH TRACKING
-    // ✅ SUPER SIMPLE ORDER PLACEMENT
-// ✅ REAL ORDER PLACEMENT - PYTHON CODE KE HISAB SE
-// ✅ SMART ORDER PLACEMENT - AUTOMATIC TIMER DETECTION
+<!DOCTYPE html>  
+<html lang="en">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>🚀 Dashboard - TikTok Multi Bot</title>  
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">  
+    <style>  
+        * {  
+            margin: 0;  
+            padding: 0;  
+            box-sizing: border-box;  
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;  
+        }  :root {  
+        --primary: #8B5FBF;  
+        --primary-dark: #6B46C1;  
+        --primary-light: #9F7AEA;  
+        --secondary: #D53F8C;  
+        --dark: #1A202C;  
+        --darker: #0F1419;  
+        --light: #EDF2F7;  
+        --success: #48BB78;  
+        --danger: #F56565;  
+        --warning: #ECC94B;  
+        --info: #4299E1;  
+    }  
+      
+    body {  
+        background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 50%, var(--primary-dark) 100%);  
+        min-height: 100vh;  
+        color: var(--light);  
+        animation: gradientShift 10s ease infinite;  
+        background-size: 400% 400%;  
+        overflow-x: hidden;  
+    }  
+      
+    @keyframes gradientShift {  
+        0%, 100% { background-position: 0% 50%; }  
+        50% { background-position: 100% 50%; }  
+    }  
+      
+    .header {  
+        background: rgba(0, 0, 0, 0.4);  
+        backdrop-filter: blur(20px);  
+        padding: 15px 20px;  
+        display: flex;  
+        justify-content: space-between;  
+        align-items: center;  
+        border-bottom: 1px solid rgba(139, 95, 191, 0.3);  
+        position: sticky;  
+        top: 0;  
+        z-index: 1000;  
+    }  
+      
+    .logo h1 {  
+        font-size: 1.4em;  
+        background: linear-gradient(135deg, var(--primary-light), var(--secondary));  
+        -webkit-background-clip: text;  
+        -webkit-text-fill-color: transparent;  
+    }  
+      
+    .user-menu {  
+        display: flex;  
+        align-items: center;  
+        gap: 15px;  
+        flex-wrap: wrap;  
+    }  
+      
+    .welcome-text {  
+        font-size: 0.9em;  
+        opacity: 0.9;  
+    }  
+      
+    .btn-logout {  
+        padding: 10px 16px;  
+        background: rgba(245, 101, 101, 0.2);  
+        color: var(--light);  
+        border: 1px solid var(--danger);  
+        border-radius: 8px;  
+        cursor: pointer;  
+        transition: all 0.3s;  
+        font-weight: 600;  
+        font-size: 0.9em;  
+    }  
+      
+    .btn-logout:hover {  
+        background: var(--danger);  
+    }  
+      
+    .container {  
+        max-width: 1200px;  
+        margin: 0 auto;  
+        padding: 20px 15px;  
+        padding-bottom: 80px;  
+    }  
+
+    .nav-tabs {  
+        display: flex;  
+        gap: 10px;  
+        margin-bottom: 20px;  
+        background: rgba(255, 255, 255, 0.1);  
+        padding: 10px;  
+        border-radius: 10px;  
+        backdrop-filter: blur(20px);  
+    }  
+
+    .nav-tab {  
+        flex: 1;  
+        padding: 15px;  
+        background: rgba(255, 255, 255, 0.1);  
+        border: none;  
+        border-radius: 8px;  
+        color: white;  
+        cursor: pointer;  
+        transition: all 0.3s;  
+        font-weight: 600;  
+    }  
+
+    .nav-tab.active {  
+        background: linear-gradient(135deg, var(--primary), var(--secondary));  
+    }  
+
+    .nav-tab:hover:not(.active) {  
+        background: rgba(255, 255, 255, 0.2);  
+    }  
+      
+    .control-panel {  
+        background: rgba(255, 255, 255, 0.1);  
+        backdrop-filter: blur(20px);  
+        padding: 25px;  
+        border-radius: 15px;  
+        margin-bottom: 25px;  
+        border: 1px solid rgba(139, 95, 191, 0.3);  
+        animation: slideUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);  
+    }  
+      
+    @keyframes slideUp {  
+        from { opacity: 0; transform: translateY(30px); }  
+        to { opacity: 1; transform: translateY(0); }  
+    }  
+      
+    .panel-title {  
+        display: flex;  
+        align-items: center;  
+        gap: 12px;  
+        margin-bottom: 20px;  
+        color: var(--primary-light);  
+        font-size: 1.3em;  
+    }  
+      
+    .form-group {  
+        margin-bottom: 20px;  
+    }  
+      
+    label {  
+        display: block;  
+        margin-bottom: 10px;  
+        font-weight: 600;  
+        color: var(--primary-light);  
+        font-size: 1em;  
+    }  
+      
+    .input-group {  
+        display: flex;  
+        gap: 12px;  
+        align-items: center;  
+        flex-direction: column;  
+    }  
+      
+    @media (min-width: 768px) {  
+        .input-group {  
+            flex-direction: row;  
+        }  
+    }  
+      
+    input, select {  
+        flex: 1;  
+        padding: 14px 16px;  
+        background: rgba(45, 55, 72, 0.8);  
+        border: 2px solid rgba(139, 95, 191, 0.3);  
+        border-radius: 10px;  
+        font-size: 16px;  
+        color: var(--light);  
+        transition: all 0.3s;  
+        width: 100%;  
+    }  
+      
+    input:focus, select:focus {  
+        outline: none;  
+        border-color: var(--primary-light);  
+        background: rgba(45, 55, 72, 1);  
+    }  
+      
+    .btn-paste {  
+        padding: 14px 20px;  
+        background: linear-gradient(135deg, var(--primary), var(--secondary));  
+        color: white;  
+        border: none;  
+        border-radius: 10px;  
+        cursor: pointer;  
+        transition: all 0.3s;  
+        font-weight: 600;  
+        white-space: nowrap;  
+        width: 100%;  
+    }  
+      
+    @media (min-width: 768px) {  
+        .btn-paste {  
+            width: auto;  
+        }  
+    }  
+      
+    .btn-paste:hover {  
+        transform: translateY(-2px);  
+    }  
+      
+    .btn-extract {  
+        padding: 14px 20px;  
+        background: linear-gradient(135deg, var(--info), #3182CE);  
+        color: white;  
+        border: none;  
+        border-radius: 10px;  
+        cursor: pointer;  
+        transition: all 0.3s;  
+        font-weight: 600;  
+        white-space: nowrap;  
+        width: 100%;  
+    }  
+      
+    @media (min-width: 768px) {  
+        .btn-extract {  
+            width: auto;  
+        }  
+    }  
+      
+    .btn-extract:hover {  
+        transform: translateY(-2px);  
+    }  
+      
+    .btn-group {  
+        display: grid;  
+        grid-template-columns: 1fr;  
+        gap: 12px;  
+        margin: 25px 0;  
+    }  
+      
+    @media (min-width: 768px) {  
+        .btn-group {  
+            grid-template-columns: repeat(3, 1fr);  
+        }  
+    }  
+      
+    button {  
+        padding: 16px 20px;  
+        border: none;  
+        border-radius: 10px;  
+        font-size: 15px;  
+        font-weight: 600;  
+        cursor: pointer;  
+        transition: all 0.3s;  
+        display: flex;  
+        align-items: center;  
+        justify-content: center;  
+        gap: 10px;  
+    }  
+      
+    button:hover {  
+        transform: translateY(-2px);  
+    }  
+      
+    button:active {  
+        transform: translateY(-1px);  
+    }  
+      
+    button.loading {  
+        pointer-events: none;  
+        opacity: 0.8;  
+    }  
+      
+    button.loading::after {  
+        content: '';  
+        width: 18px;  
+        height: 18px;  
+        border: 2px solid transparent;  
+        border-top: 2px solid white;  
+        border-radius: 50%;  
+        animation: spin 0.8s linear infinite;  
+    }  
+      
+    @keyframes spin {  
+        0% { transform: rotate(0deg); }  
+        100% { transform: rotate(360deg); }  
+    }  
+      
+    .btn-start {  
+        background: linear-gradient(135deg, var(--success), #38A169);  
+        color: white;  
+    }  
+      
+    .btn-start:disabled {  
+        background: rgba(72, 187, 120, 0.3);  
+        color: rgba(255, 255, 255, 0.5);  
+        cursor: not-allowed;  
+        transform: none;  
+    }  
+      
+    .btn-stop {  
+        background: linear-gradient(135deg, var(--danger), #E53E3E);  
+        color: white;  
+    }  
+      
+    .btn-refresh {  
+        background: linear-gradient(135deg, var(--info), #3182CE);  
+        color: white;  
+    }  
+      
+    .speed-indicator {  
+        text-align: center;  
+        font-size: 1.8em;  
+        margin: 25px 0;  
+        background: linear-gradient(135deg, var(--primary-light), var(--secondary));  
+        -webkit-background-clip: text;  
+        -webkit-text-fill-color: transparent;  
+        animation: pulse 2s ease-in-out infinite;  
+    }  
+      
+    @keyframes pulse {  
+        0%, 100% { transform: scale(1); opacity: 1; }  
+        50% { transform: scale(1.05); opacity: 0.9; }  
+    }  
+      
+    .stats-overview {  
+        display: grid;  
+        grid-template-columns: repeat(2, 1fr);  
+        gap: 15px;  
+        margin-bottom: 25px;  
+    }  
+      
+    @media (min-width: 768px) {  
+        .stats-overview {  
+            grid-template-columns: repeat(4, 1fr);  
+            gap: 20px;  
+        }  
+    }  
+      
+    .stat-card {  
+        background: rgba(255, 255, 255, 0.1);  
+        backdrop-filter: blur(20px);  
+        padding: 20px;  
+        border-radius: 12px;  
+        text-align: center;  
+        border: 1px solid rgba(139, 95, 191, 0.3);  
+        transition: all 0.3s ease;  
+    }  
+      
+    .stat-card:hover {  
+        transform: translateY(-3px);  
+    }  
+      
+    .stat-number {  
+        font-size: 2em;  
+        font-weight: bold;  
+        margin-bottom: 8px;  
+        background: linear-gradient(135deg, var(--primary-light), var(--secondary));  
+        -webkit-background-clip: text;  
+        -webkit-text-fill-color: transparent;  
+    }  
+      
+    .stat-label {  
+        font-size: 0.9em;  
+        opacity: 0.9;  
+    }  
+      
+    .instances-section {  
+        margin-top: 25px;  
+    }  
+      
+    .section-header {  
+        display: flex;  
+        justify-content: space-between;  
+        align-items: center;  
+        margin-bottom: 20px;  
+        flex-direction: column;  
+        gap: 10px;  
+    }  
+      
+    @media (min-width: 768px) {  
+        .section-header {  
+            flex-direction: row;  
+        }  
+    }  
+      
+    .section-header h3 {  
+        color: var(--primary-light);  
+        font-size: 1.3em;  
+    }  
+      
+    .instances-grid {  
+        display: grid;  
+        grid-template-columns: 1fr;  
+        gap: 15px;  
+    }  
+      
+    @media (min-width: 768px) {  
+        .instances-grid {  
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));  
+        }  
+    }  
+      
+    .instance-card {  
+        background: rgba(255, 255, 255, 0.1);  
+        backdrop-filter: blur(20px);  
+        padding: 20px;  
+        border-radius: 12px;  
+        border: 1px solid rgba(139, 95, 191, 0.3);  
+        transition: all 0.3s ease;  
+    }  
+      
+    .instance-card:hover {  
+        transform: translateY(-3px);  
+    }  
+      
+    .instance-header {  
+        display: flex;  
+        justify-content: space-between;  
+        align-items: center;  
+        margin-bottom: 15px;  
+    }  
+      
+    .instance-title {  
+        font-weight: 600;  
+        color: var(--primary-light);  
+        font-size: 1em;  
+    }  
+      
+    .instance-status {  
+        padding: 6px 12px;  
+        border-radius: 15px;  
+        font-size: 0.8em;  
+        font-weight: bold;  
+    }  
+      
+    .status-online {  
+        background: linear-gradient(135deg, var(--success), #38A169);  
+        color: white;  
+    }  
+      
+    .status-offline {  
+        background: linear-gradient(135deg, var(--danger), #E53E3E);  
+        color: white;  
+    }  
+      
+    .instance-stats {  
+        display: grid;  
+        grid-template-columns: repeat(2, 1fr);  
+        gap: 10px;  
+        margin-bottom: 15px;  
+    }  
+      
+    .mini-stat {  
+        text-align: center;  
+        padding: 12px;  
+        background: rgba(255, 255, 255, 0.05);  
+        border-radius: 8px;  
+        transition: all 0.3s ease;  
+    }  
+      
+    .mini-stat:hover {  
+        background: rgba(255, 255, 255, 0.1);  
+    }  
+      
+    .mini-number {  
+        font-size: 1.2em;  
+        font-weight: bold;  
+        margin-bottom: 5px;  
+    }  
+      
+    .mini-label {  
+        font-size: 0.8em;  
+        opacity: 0.8;  
+    }  
+      
+    .progress-container {  
+        margin: 15px 0;  
+    }  
+      
+    .progress-bar {  
+        width: 100%;  
+        height: 10px;  
+        background: rgba(255, 255, 255, 0.1);  
+        border-radius: 5px;  
+        overflow: hidden;  
+    }  
+      
+    .progress-fill {  
+        height: 100%;  
+        background: linear-gradient(135deg, var(--primary-light), var(--secondary));  
+        transition: width 0.5s ease;  
+    }  
+      
+    .progress-text {  
+        text-align: center;  
+        font-weight: 600;  
+        margin-top: 8px;  
+        color: var(--primary-light);  
+        font-size: 0.9em;  
+    }  
+      
+    .alert {  
+        padding: 15px;  
+        border-radius: 10px;  
+        margin: 15px 0;  
+        text-align: center;  
+        animation: slideIn 0.5s ease;  
+    }  
+      
+    @keyframes slideIn {  
+        from { opacity: 0; transform: translateY(-20px); }  
+        to { opacity: 1; transform: translateY(0); }  
+    }  
+      
+    .alert.success {  
+        background: rgba(72, 187, 120, 0.2);  
+        border: 1px solid var(--success);  
+        color: var(--success);  
+    }  
+      
+    .alert.error {  
+        background: rgba(245, 101, 101, 0.2);  
+        border: 1px solid var(--danger);  
+        color: var(--danger);  
+    }  
+      
+    .alert.info {  
+        background: rgba(66, 153, 225, 0.2);  
+        border: 1px solid var(--info);  
+        color: var(--info);  
+    }  
+      
+    .empty-state {  
+        text-align: center;  
+        padding: 40px 20px;  
+        opacity: 0.7;  
+    }  
+      
+    .empty-state i {  
+        font-size: 3em;  
+        margin-bottom: 15px;  
+        opacity: 0.5;  
+    }  
+
+    .video-info-card {  
+        background: rgba(255, 255, 255, 0.1);  
+        backdrop-filter: blur(20px);  
+        padding: 20px;  
+        border-radius: 12px;  
+        margin: 15px 0;  
+        border: 1px solid rgba(139, 95, 191, 0.3);  
+    }  
+
+    .video-info-card h4 {  
+        color: var(--primary-light);  
+        margin-bottom: 15px;  
+        font-size: 1.1em;  
+    }  
+
+    .video-stats {  
+        display: grid;  
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));  
+        gap: 12px;  
+    }  
+
+    .stat-item {  
+        display: flex;  
+        justify-content: space-between;  
+        align-items: center;  
+        padding: 10px;  
+        background: rgba(255, 255, 255, 0.05);  
+        border-radius: 8px;  
+    }  
+
+    .stat-label {  
+        font-size: 0.9em;  
+        opacity: 0.8;  
+    }  
+
+    .stat-value {  
+        font-weight: bold;  
+        color: var(--primary-light);  
+    }  
+
+    .progress-card {  
+        background: rgba(255, 255, 255, 0.1);  
+        backdrop-filter: blur(20px);  
+        padding: 20px;  
+        border-radius: 12px;  
+        margin: 15px 0;  
+        border: 1px solid rgba(139, 95, 191, 0.3);  
+    }  
+
+    .progress-card h4 {  
+        color: var(--primary-light);  
+        margin-bottom: 15px;  
+        font-size: 1.1em;  
+    }  
+
+    .progress-stats {  
+        display: grid;  
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));  
+        gap: 10px;  
+        margin-bottom: 15px;  
+    }  
+
+    .progress-stats div {  
+        text-align: center;  
+        padding: 8px;  
+        background: rgba(255, 255, 255, 0.05);  
+        border-radius: 6px;  
+        font-size: 0.9em;  
+    }  
+
+    .instances-live {  
+        margin-top: 15px;  
+        background: rgba(255, 255, 255, 0.05);  
+        border-radius: 8px;  
+        padding: 15px;  
+    }  
+
+    .instance-live-header {  
+        display: grid;  
+        grid-template-columns: 1fr 1fr 1fr 1fr 1fr;  
+        gap: 10px;  
+        font-weight: bold;  
+        margin-bottom: 10px;  
+        padding-bottom: 8px;  
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);  
+    }  
+
+    .instance-live-row {  
+        display: grid;  
+        grid-template-columns: 1fr 1fr 1fr 1fr 1fr;  
+        gap: 10px;  
+        padding: 8px;  
+        margin-bottom: 5px;  
+        background: rgba(255, 255, 255, 0.03);  
+        border-radius: 5px;  
+        transition: all 0.3s;  
+    }  
+
+    .instance-live-row:hover {  
+        background: rgba(255, 255, 255, 0.08);  
+    }  
+
+    .instance-status.running {  
+        color: var(--success);  
+        font-weight: bold;  
+    }  
+
+    .instance-status.stopped {  
+        color: var(--danger);  
+    }  
+
+    .instance-status.starting {  
+        color: var(--warning);  
+    }  
+
+    .instance-status.failed, .instance-status.offline {  
+        color: #888;  
+    }  
+
+    .services-grid {  
+        display: grid;  
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));  
+        gap: 15px;  
+        margin: 20px 0;  
+    }  
+
+    .service-card {  
+        background: rgba(255, 255, 255, 0.1);  
+        padding: 20px;  
+        border-radius: 10px;  
+        border: 1px solid rgba(139, 95, 191, 0.3);  
+    }  
+
+    .service-card.available {  
+        border-left: 4px solid var(--success);  
+    }  
+
+    .service-card.unavailable {  
+        border-left: 4px solid var(--danger);  
+        opacity: 0.7;  
+    }  
+
+    .service-header {  
+        display: flex;  
+        justify-content: space-between;  
+        align-items: center;  
+        margin-bottom: 10px;  
+    }  
+
+    .service-header h4 {  
+        color: var(--primary-light);  
+    }  
+
+    .service-status {  
+        padding: 4px 8px;  
+        border-radius: 8px;  
+        font-size: 0.8em;  
+        font-weight: bold;  
+    }  
+
+    .service-status.available {  
+        background: var(--success);  
+        color: white;  
+    }  
+
+    .service-status.unavailable {  
+        background: var(--danger);  
+        color: white;  
+    }  
+
+    .service-description {  
+        margin-bottom: 15px;  
+        opacity: 0.8;  
+        font-size: 0.9em;  
+    }  
+
+    .service-controls {  
+        display: flex;  
+        gap: 10px;  
+        align-items: center;  
+    }  
+
+    .quantity-input {  
+        width: 80px;  
+        padding: 8px;  
+        background: rgba(255, 255, 255, 0.1);  
+        border: 1px solid rgba(255, 255, 255, 0.2);  
+        border-radius: 5px;  
+        color: white;  
+    }  
+
+    .btn-select-service {  
+        padding: 8px 15px;  
+        background: rgba(255, 255, 255, 0.1);  
+        border: 1px solid rgba(255, 255, 255, 0.3);  
+        border-radius: 5px;  
+        color: white;  
+        cursor: pointer;  
+        transition: all 0.3s;  
+    }  
+
+    .btn-select-service:hover {  
+        background: rgba(255, 255, 255, 0.2);  
+    }  
+
+    .connection-alert {  
+        background: #ff9800;  
+        color: white;  
+        padding: 10px;  
+        text-align: center;  
+        position: fixed;  
+        top: 0;  
+        left: 0;  
+        right: 0;  
+        z-index: 9999;  
+    }  
+
+    .offline-mode {  
+        opacity: 0.9;  
+    }  
+
+    .offline-mode .btn-start {  
+        background: #666 !important;  
+        cursor: not-allowed;  
+    }  
+      
+    .mobile-menu {  
+        display: none;  
+        position: fixed;  
+        bottom: 0;  
+        left: 0;  
+        right: 0;  
+        background: rgba(0, 0, 0, 0.9);  
+        backdrop-filter: blur(20px);  
+        padding: 10px;  
+        z-index: 1000;  
+        border-top: 1px solid rgba(139, 95, 191, 0.3);  
+    }  
+      
+    .mobile-menu-buttons {  
+        display: grid;  
+        grid-template-columns: repeat(3, 1fr);  
+        gap: 10px;  
+    }  
+      
+    .btn-mobile {  
+        padding: 12px;  
+        background: rgba(255, 255, 255, 0.1);  
+        color: white;  
+        border: none;  
+        border-radius: 8px;  
+        cursor: pointer;  
+        display: flex;  
+        flex-direction: column;  
+        align-items: center;  
+        gap: 5px;  
+        font-size: 0.8em;  
+        transition: all 0.3s ease;  
+    }  
+      
+    .btn-mobile:hover {  
+        background: rgba(255, 255, 255, 0.2);  
+    }  
+      
+    /* ✅ ORDER TRACKING STYLES */  
+    .order-tracking-section {  
+        margin-top: 20px;  
+    }  
+      
+    .order-card {  
+        background: rgba(255, 255, 255, 0.1);  
+        padding: 15px;  
+        border-radius: 10px;  
+        margin-bottom: 10px;  
+        border-left: 4px solid var(--info);  
+    }  
+      
+    .order-card.completed {  
+        border-left-color: var(--success);  
+    }  
+      
+    .order-card.failed {  
+        border-left-color: var(--danger);  
+    }  
+      
+    .order-card.time_limit {  
+        border-left-color: var(--warning);  
+    }  
+      
+    .order-header {  
+        display: flex;  
+        justify-content: space-between;  
+        align-items: center;  
+        margin-bottom: 10px;  
+    }  
+      
+    .order-id {  
+        font-weight: bold;  
+        color: var(--primary-light);  
+        font-size: 0.9em;  
+    }  
+      
+    .order-status {  
+        padding: 4px 8px;  
+        border-radius: 6px;  
+        font-size: 0.8em;  
+        font-weight: bold;  
+    }  
+      
+    .order-status.processing {  
+        background: var(--info);  
+        color: white;  
+    }  
+      
+    .order-status.completed {  
+        background: var(--success);  
+        color: white;  
+    }  
+      
+    .order-status.failed {  
+        background: var(--danger);  
+        color: white;  
+    }  
+      
+    .order-status.time_limit {  
+        background: var(--warning);  
+        color: black;  
+    }  
+      
+    .order-progress {  
+        margin: 10px 0;  
+    }  
+      
+    .order-details {  
+        display: grid;  
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));  
+        gap: 8px;  
+        font-size: 0.85em;  
+        opacity: 0.8;  
+    }  
+      
+    .countdown-timer {  
+        text-align: center;  
+        font-size: 1.2em;  
+        font-weight: bold;  
+        color: var(--warning);  
+        margin: 10px 0;  
+    }  
+      
+    @media (max-width: 768px) {  
+        .mobile-menu {  
+            display: block;  
+        }  
+          
+        .header {  
+            padding: 12px 15px;  
+        }  
+          
+        .logo h1 {  
+            font-size: 1.2em;  
+        }  
+          
+        .user-menu {  
+            gap: 10px;  
+        }  
+          
+        .welcome-text {  
+            font-size: 0.8em;  
+        }  
+          
+        .btn-logout {  
+            padding: 8px 12px;  
+            font-size: 0.8em;  
+        }  
+          
+        .control-panel {  
+            padding: 20px;  
+        }  
+          
+        .panel-title {  
+            font-size: 1.1em;  
+        }  
+          
+        .stat-card {  
+            padding: 15px;  
+        }  
+          
+        .stat-number {  
+            font-size: 1.6em;  
+        }  
+          
+        .speed-indicator {  
+            font-size: 1.4em;  
+        }  
+    }  
+      
+    @media (max-width: 480px) {  
+        .header {  
+            flex-direction: column;  
+            gap: 10px;  
+            text-align: center;  
+        }  
+          
+        .stats-overview {  
+            grid-template-columns: 1fr;  
+        }  
+          
+        .instance-stats {  
+            grid-template-columns: 1fr;  
+        }  
+    }  
+</style>
+
+</head>  
+<body>  
+    <div class="header">  
+        <div class="logo">  
+            <h1>🚀 TikTok Multi Bot</h1>  
+        </div>  
+        <div class="user-menu">  
+            <span class="welcome-text">Welcome, <span id="username">User</span></span>  
+            <button class="btn-logout" onclick="logout()">  
+                <i class="fas fa-sign-out-alt"></i> Logout  
+            </button>  
+        </div>  
+    </div>  <div class="container">  
+    <!-- Navigation Tabs -->  
+    <div class="nav-tabs">  
+        <button class="nav-tab active" onclick="showTab('bot')">  
+            <i class="fas fa-robot"></i> Custom Bot  
+        </button>  
+        <button class="nav-tab" onclick="showTab('zefame')">  
+            <i class="fas fa-gift"></i> Free Services  
+        </button>  
+        <button class="nav-tab" onclick="showTab('turbo')">  
+            <i class="fas fa-bolt"></i> Turbo Mode  
+        </button>  
+    </div>  
+
+    <!-- Custom Bot Panel -->  
+    <div class="control-panel" id="botPanel">  
+        <div class="panel-title">  
+            <i class="fas fa-rocket"></i>  
+            <h2>🎯 TikTok View Bot Control</h2>  
+        </div>  
+          
+        <div class="form-group">  
+            <label>📹 TikTok Video Link</label>  
+            <div class="input-group">  
+                <input type="text" id="videoLink" placeholder="Paste TikTok video URL here">  
+                <button class="btn-paste" onclick="pasteFromClipboard()">  
+                    <i class="fas fa-paste"></i> Paste  
+                </button>  
+                <button class="btn-extract" onclick="extractAndAnalyze()" id="extractBtn">  
+                    <i class="fas fa-search"></i> Extract & Analyze  
+                </button>  
+            </div>  
+        </div>  
+          
+        <div class="form-group">  
+            <label for="targetViews">🎯 Target Views</label>  
+            <input type="number" id="targetViews" placeholder="Enter target views" value="1000">  
+        </div>  
+          
+        <div class="form-group">  
+            <label for="botStrategy">🤖 Bot Strategy</label>  
+            <select id="botStrategy">  
+                <option value="balanced">Balanced (Recommended)</option>  
+                <option value="aggressive">Aggressive (High Speed)</option>  
+                <option value="stealth">Stealth (Slow & Safe)</option>  
+            </select>  
+        </div>  
+          
+        <div class="btn-group">  
+            <button class="btn-start" onclick="startAllBots()" id="startBtn" disabled>  
+                <i class="fas fa-play-circle"></i> START BOT  
+            </button>  
+            <button class="btn-stop" onclick="stopAllBots()" id="stopBtn">  
+                <i class="fas fa-stop-circle"></i> STOP BOT  
+            </button>  
+            <button class="btn-refresh" onclick="refreshStatus()" id="refreshBtn">  
+                <i class="fas fa-sync-alt"></i> REFRESH  
+            </button>  
+        </div>  
+          
+        <div id="message"></div>  
+    </div>  
+
+    <!-- Zefame Services Panel -->  
+    <div class="control-panel" id="zefamePanel" style="display: none;">  
+        <div class="panel-title">  
+            <i class="fas fa-gift"></i>  
+            <h2>🎁 Free Services</h2>  
+        </div>  
+          
+        <div class="form-group">  
+            <label>📹 TikTok Video Link</label>  
+            <div class="input-group">  
+                <input type="text" id="zefameVideoLink" placeholder="Paste TikTok video URL">  
+                <button class="btn-paste" onclick="pasteToZefame()">  
+                    <i class="fas fa-paste"></i> Paste  
+                </button>  
+            </div>  
+        </div>  
+
+        <div class="services-grid" id="servicesContainer">  
+            <!-- Services will be loaded here -->  
+        </div>  
+
+        <div class="btn-group">  
+            <button class="btn-start" onclick="startZefameBulk()" id="zefameStartBtn">  
+                <i class="fas fa-rocket"></i> START ALL SELECTED  
+            </button>  
+            <button class="btn-refresh" onclick="loadZefameServices()">  
+                <i class="fas fa-sync"></i> REFRESH SERVICES  
+            </button>  
+        </div>  
+
+        <!-- Order Tracking Section -->  
+        <div class="order-tracking-section">  
+            <h4>📊 Active Orders Tracking</h4>  
+            <div id="activeOrdersContainer">  
+                <!-- Active orders will be shown here -->  
+            </div>  
+        </div>  
+
+        <div id="zefameMessage"></div>  
+    </div>  
+
+    <!-- Turbo Mode Panel -->  
+    <div class="control-panel" id="turboPanel" style="display: none;">  
+        <div class="panel-title">  
+            <i class="fas fa-bolt"></i>  
+            <h2>⚡ Turbo Mode</h2>  
+        </div>  
+        <p>Combine Custom Bot + Free Services for maximum power!</p>  
+        <div class="btn-group">  
+            <button class="btn-start" onclick="startTurboMode()">  
+                <i class="fas fa-bolt"></i> ACTIVATE TURBO  
+            </button>  
+        </div>  
+    </div>  
+      
+    <div class="speed-indicator" id="totalRps">  
+        🚀 SPEED: <span id="rpsValue">0</span> RPS  
+    </div>  
+      
+    <div class="stats-overview">  
+        <div class="stat-card">  
+            <div class="stat-number" id="totalSuccess">0</div>  
+            <div class="stat-label">Success</div>  
+        </div>  
+        <div class="stat-card">  
+            <div class="stat-number" id="totalRequests">0</div>  
+            <div class="stat-label">Requests</div>  
+        </div>  
+        <div class="stat-card">  
+            <div class="stat-number" id="onlineBots">0</div>  
+            <div class="stat-label">Online Bots</div>  
+        </div>  
+        <div class="stat-card">  
+            <div class="stat-number" id="totalRpsNum">0</div>  
+            <div class="stat-label">RPS</div>  
+        </div>  
+    </div>  
+      
+    <div class="instances-section">  
+        <div class="section-header">  
+            <h3><i class="fas fa-robot"></i> Bot System Status</h3>  
+            <div class="instance-count">  
+                <span id="instancesCount">0 bots active</span>  
+            </div>  
+        </div>  
+          
+        <div class="instances-grid" id="instancesContainer">  
+            <div class="empty-state">  
+                <i class="fas fa-robot"></i>  
+                <h3>Bot System Ready</h3>  
+                <p>Start the view bot to see statistics</p>  
+            </div>  
+        </div>  
+    </div>  
+</div>  
+  
+<!-- Mobile Bottom Menu -->  
+<div class="mobile-menu">  
+    <div class="mobile-menu-buttons">  
+        <button class="btn-mobile" onclick="startAllBots()">  
+            <i class="fas fa-play"></i>  
+            <span>Start</span>  
+        </button>  
+        <button class="btn-mobile" onclick="stopAllBots()">  
+            <i class="fas fa-stop"></i>  
+            <span>Stop</span>  
+        </button>  
+        <button class="btn-mobile" onclick="refreshStatus()">  
+            <i class="fas fa-sync"></i>  
+            <span>Refresh</span>  
+        </button>  
+    </div>  
+</div>  
+
+<script>  
+let refreshInterval;  
+let userToken = '';  
+let botStatus = 'stopped';  
+let currentVideoInfo = null;  
+let liveUpdateInterval = null;  
+let monitoringInterval = null;  
+let videoExtracted = false;  
+let currentJobId = null;  
+let progressInterval = null;  
+let actualBotStatus = 'unknown';  
+let zefameServices = [];  
+let selectedServices = new Set();  
+let activeOrders = new Map();  
+let orderTrackingInterval = null;  
+
+// ✅ TAB NAVIGATION  
+function showTab(tabName) {  
+    document.querySelectorAll('.control-panel').forEach(panel => {  
+        panel.style.display = 'none';  
+    });  
+      
+    document.getElementById(tabName + 'Panel').style.display = 'block';  
+      
+    document.querySelectorAll('.nav-tab').forEach(tab => {  
+        tab.classList.remove('active');  
+    });  
+    event.target.classList.add('active');  
+
+    if (tabName === 'zefame') {  
+        loadZefameServices();  
+        startOrderTracking();  
+    } else {  
+        stopOrderTracking();  
+    }  
+}  
+
+// ✅ ORDER TRACKING SYSTEM  
+function startOrderTracking() {  
+    if (orderTrackingInterval) {  
+        clearInterval(orderTrackingInterval);  
+    }  
+      
+    orderTrackingInterval = setInterval(() => {  
+        updateActiveOrders();  
+    }, 3000);  
+      
+    updateActiveOrders();  
+}  
+
+function stopOrderTracking() {  
+    if (orderTrackingInterval) {  
+        clearInterval(orderTrackingInterval);  
+        orderTrackingInterval = null;  
+    }  
+}  
+
+async function updateActiveOrders() {  
+    try {  
+        const response = await fetch(`/api/active-orders?token=${userToken}`);  
+        const data = await response.json();  
+          
+        if (data.success) {  
+            renderActiveOrders(data.activeOrders);  
+        }  
+    } catch (error) {  
+        console.log('Error fetching active orders:', error);  
+    }  
+}  
+
+function renderActiveOrders(orders) {  
+    const container = document.getElementById('activeOrdersContainer');  
+      
+    if (!orders || orders.length === 0) {  
+        container.innerHTML = `  
+            <div class="empty-state">  
+                <i class="fas fa-box-open"></i>  
+                <h3>No Active Orders</h3>  
+                <p>Your orders will appear here</p>  
+            </div>  
+        `;  
+        return;  
+    }  
+
+    container.innerHTML = orders.map(order => `  
+        <div class="order-card ${order.status}">  
+            <div class="order-header">  
+                <div class="order-id">${order.orderId}</div>  
+                <div class="order-status ${order.status}">${order.status.toUpperCase()}</div>  
+            </div>  
+            <div class="order-progress">  
+                <div class="progress-bar">  
+                    <div class="progress-fill" style="width: ${order.progress}%"></div>  
+                </div>  
+                <div class="progress-text">${Math.round(order.progress)}% Complete</div>  
+            </div>  
+            <div class="order-details">  
+                <div>Service: ${order.serviceName}</div>  
+                <div>Quantity: ${order.quantity}</div>  
+                <div>Attempts: ${order.attempts}</div>  
+                <div>Started: ${new Date(order.startTime).toLocaleTimeString()}</div>  
+            </div>  
+            ${order.status === 'processing' ? `  
+                <div class="countdown-timer" id="timer-${order.orderId}">  
+                    ⏳ Processing...  
+                </div>  
+            ` : ''}  
+        </div>  
+    `).join('');  
+
+    // Start individual order tracking  
+    orders.forEach(order => {  
+        if (order.status === 'processing') {  
+            trackOrderProgress(order.orderId);  
+        }  
+    });  
+}  
+
+async function trackOrderProgress(orderId) {  
+    try {  
+        const response = await fetch(`/api/order-status/${orderId}?token=${userToken}`);  
+        const data = await response.json();  
+          
+        if (data.success) {  
+            updateOrderUI(orderId, data);  
+        }  
+    } catch (error) {  
+        console.log(`Error tracking order ${orderId}:`, error);  
+    }  
+}  
+
+function updateOrderUI(orderId, orderData) {  
+    const timerElement = document.getElementById(`timer-${orderId}`);  
+    if (!timerElement) return;  
+
+    const timeRemaining = orderData.timeRemaining;  
+    const minutes = Math.floor(timeRemaining / 60000);  
+    const seconds = Math.floor((timeRemaining % 60000) / 1000);  
+
+    if (orderData.status === 'processing') {  
+        timerElement.innerHTML = `⏳ ${minutes}m ${seconds}s remaining`;  
+    } else if (orderData.status === 'completed') {  
+        timerElement.innerHTML = '✅ Completed';  
+        timerElement.style.color = 'var(--success)';  
+    } else if (orderData.status === 'time_limit') {  
+        timerElement.innerHTML = '⏰ Time Limit Reached';  
+        timerElement.style.color = 'var(--warning)';  
+    } else if (orderData.status === 'failed') {  
+        timerElement.innerHTML = '❌ Failed';  
+        timerElement.style.color = 'var(--danger)';  
+    }  
+}  
+
+// ✅ OFFLINE MODE DETECTION  
+function setupOfflineMode() {  
+    if (!navigator.onLine) {  
+        enableOfflineMode();  
+    }  
+
+    window.addEventListener('online', () => {  
+        disableOfflineMode();  
+        showMessage('✅ Back online! Syncing data...', 'success');  
+        checkActualStatus();  
+    });  
+
+    window.addEventListener('offline', () => {  
+        enableOfflineMode();  
+        showMessage('🌐 Offline mode activated', 'info');  
+    });  
+}  
+
+function enableOfflineMode() {  
+    document.body.classList.add('offline-mode');  
+      
+    if (!document.getElementById('offlineIndicator')) {  
+        const indicator = document.createElement('div');  
+        indicator.id = 'offlineIndicator';  
+        indicator.innerHTML = `  
+            <div class="connection-alert">  
+                🌐 OFFLINE MODE - Working locally  
+            </div>  
+        `;  
+        document.body.prepend(indicator);  
+    }  
+}  
+
+function disableOfflineMode() {  
+    document.body.classList.remove('offline-mode');  
+    const indicator = document.getElementById('offlineIndicator');  
+    if (indicator) indicator.remove();  
+}  
+
+// ✅ ACTUAL STATUS CHECK  
+async function checkActualStatus() {  
+    try {  
+        const response = await fetch(`/api/actual-status?token=${userToken}`);  
+        const data = await response.json();  
+          
+        if (data.success) {  
+            actualBotStatus = data.actuallyRunning ? 'running' : 'stopped';  
+            updateUIForActualStatus(data.actuallyRunning, data.runningInstances);  
+        }  
+    } catch (error) {  
+        actualBotStatus = 'stopped';  
+    }  
+}  
+
+function updateUIForActualStatus(isRunning, runningInstances) {  
+    const startBtn = document.getElementById('startBtn');  
+    const stopBtn = document.getElementById('stopBtn');  
+      
+    if (isRunning) {  
+        startBtn.disabled = true;  
+        startBtn.innerHTML = '<i class="fas fa-pause-circle"></i> BOTS RUNNING';  
+        startBtn.style.background = 'linear-gradient(135deg, #48BB78, #38A169)';  
+          
+        stopBtn.disabled = false;  
+        stopBtn.innerHTML = '<i class="fas fa-stop-circle"></i> STOP RUNNING BOTS';  
+        stopBtn.style.background = 'linear-gradient(135deg, #F56565, #E53E3E)';  
+          
+        showMessage('🎯 Bots are currently running!', 'success');  
+          
+        if (runningInstances.length > 0 && currentJobId) {  
+            startLiveProgressTracking(currentJobId);  
+        }  
+          
+    } else {  
+        startBtn.disabled = false;  
+        startBtn.innerHTML = '<i class="fas fa-play-circle"></i> START BOT';  
+        startBtn.style.background = 'linear-gradient(135deg, #48BB78, #38A169)';  
+          
+        stopBtn.disabled = true;  
+        stopBtn.innerHTML = '<i class="fas fa-stop-circle"></i> BOTS STOPPED';  
+        stopBtn.style.background = 'linear-gradient(135deg, #666, #888)';  
+          
+        clearInterval(progressInterval);  
+    }  
+}  
+
+// ✅ VIDEO EXTRACTION & ANALYSIS  
+function isValidTikTokUrl(url) {  
+    const tiktokDomains = [  
+        'tiktok.com',  
+        'vm.tiktok.com',   
+        'vt.tiktok.com'  
+    ];  
+      
+    try {  
+        const urlObj = new URL(url);  
+        return tiktokDomains.some(domain => urlObj.hostname.includes(domain));  
+    } catch (e) {  
+        return tiktokDomains.some(domain => url.includes(domain));  
+    }  
+}  
+  
+async function extractAndAnalyze() {  
+    const videoLink = document.getElementById('videoLink').value.trim();  
+      
+    if (!videoLink) {  
+        showMessage('Please paste a TikTok link first!', 'error');  
+        return;  
+    }  
+      
+    if (!isValidTikTokUrl(videoLink)) {  
+        showMessage('Please enter a valid TikTok URL!', 'error');  
+        return;  
+    }  
+      
+    setLoading('extractBtn', true);  
+    showMessage('🔍 Extracting and analyzing video information...', 'info');  
+      
+    try {  
+        const response = await fetch('/api/get-video-info', {  
+            method: 'POST',  
+            headers: { 'Content-Type': 'application/json' },  
+            body: JSON.stringify({  
+                videoLink: videoLink,  
+                token: userToken  
+            })  
+        });  
+          
+        const data = await response.json();  
+          
+        if (data.success) {  
+            currentVideoInfo = data.videoInfo;  
+            videoExtracted = true;  
+              
+            document.getElementById('startBtn').disabled = false;  
+              
+            displayVideoInfo(currentVideoInfo);  
+            showMessage('✅ Video extracted and analyzed successfully! You can now start the bots.', 'success');  
+              
+            startLiveUpdates(videoLink);  
+              
+        } else {  
+            showMessage(data.message, 'error');  
+            videoExtracted = false;  
+            document.getElementById('startBtn').disabled = true;  
+        }  
+    } catch (error) {  
+        showMessage('Error extracting video information: ' + error.message, 'error');  
+        videoExtracted = false;  
+        document.getElementById('startBtn').disabled = true;  
+    } finally {  
+        setLoading('extractBtn', false);  
+    }  
+}  
+  
+async function pasteFromClipboard() {  
+    try {  
+        const text = await navigator.clipboard.readText();  
+        const videoLinkInput = document.getElementById('videoLink');  
+        videoLinkInput.value = text;  
+          
+        showMessage('📋 Link pasted! Click "Extract & Analyze" to proceed.', 'info');  
+          
+        videoExtracted = false;  
+        document.getElementById('startBtn').disabled = true;  
+          
+    } catch (error) {  
+        showMessage('Failed to paste from clipboard', 'error');  
+    }  
+}  
+
+async function fetchVideoInfo(videoLink) {  
+    try {  
+        const response = await fetch('/api/get-video-info', {  
+            method: 'POST',  
+            headers: { 'Content-Type': 'application/json' },  
+            body: JSON.stringify({  
+                videoLink: videoLink,  
+                token: userToken  
+            })  
+        });  
+          
+        const data = await response.json();  
+          
+        if (data.success) {  
+            currentVideoInfo = data.videoInfo;  
+            displayVideoInfo(currentVideoInfo);  
+        }  
+    } catch (error) {  
+        console.log('Error fetching video info:', error);  
+    }  
+}  
+
+function displayVideoInfo(videoInfo) {  
+    const existingInfo = document.getElementById('videoInfo');  
+    if (existingInfo) {  
+        existingInfo.remove();  
+    }  
+      
+    const videoInfoDiv = document.createElement('div');  
+    videoInfoDiv.id = 'videoInfo';  
+    videoInfoDiv.className = 'video-info-card';  
+      
+    let statusBadge = '';  
+    let finalIdDisplay = videoInfo.id;  
+      
+    if (videoInfo.resolvedVideoId) {  
+        statusBadge = '<span style="color: green; font-size: 0.8em;">✅ Resolved</span>';  
+        finalIdDisplay = videoInfo.resolvedVideoId;  
+    } else if (videoInfo.type === 'SHORT_URL') {  
+        statusBadge = '<span style="color: orange; font-size: 0.8em;">🔄 Resolving...</span>';  
+    }  
+      
+    videoInfoDiv.innerHTML = `  
+        <h4>🎯 Video Information ${statusBadge}</h4>  
+        <div class="video-stats">  
+            <div class="stat-item">  
+                <span class="stat-label">Video ID:</span>  
+                <span class="stat-value">${videoInfo.id}</span>  
+            </div>  
+            ${videoInfo.resolvedVideoId ? `  
+            <div class="stat-item">  
+                <span class="stat-label">Resolved ID:</span>  
+                <span class="stat-value" style="color: green;">${videoInfo.resolvedVideoId}</span>  
+            </div>  
+            ` : ''}  
+            <div class="stat-item">  
+                <span class="stat-label">Type:</span>  
+                <span class="stat-value">${videoInfo.type}</span>  
+            </div>  
+            <div class="stat-item">  
+                <span class="stat-label">Author:</span>  
+                <span class="stat-value">@${videoInfo.author}</span>  
+            </div>  
+            <div class="stat-item">  
+                <span class="stat-label">Current Views:</span>  
+                <span class="stat-value" id="currentViews">${videoInfo.currentViews.toLocaleString()}</span>  
+            </div>  
+            <div class="stat-item">  
+                <span class="stat-label">Likes:</span>  
+                <span class="stat-value">${videoInfo.currentLikes.toLocaleString()}</span>  
+            </div>  
+            <div class="stat-item">  
+                <span class="stat-label">Comments:</span>  
+                <span class="stat-value">${videoInfo.currentComments.toLocaleString()}</span>  
+            </div>  
+        </div>  
+        <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">  
+            🔄 Live updating every second  
+        </div>  
+    `;  
+      
+    const controlPanel = document.querySelector('.control-panel');  
+    controlPanel.appendChild(videoInfoDiv);  
+}  
+
+function startLiveUpdates(videoLink) {  
+    if (liveUpdateInterval) {  
+        clearInterval(liveUpdateInterval);  
+    }  
+      
+    liveUpdateInterval = setInterval(async () => {  
+        await fetchVideoInfo(videoLink);  
+    }, 1000);  
+}  
+
+function stopLiveUpdates() {  
+    if (liveUpdateInterval) {  
+        clearInterval(liveUpdateInterval);  
+        liveUpdateInterval = null;  
+    }  
+}  
+
+// ✅ BOT CONTROL FUNCTIONS  
+async function startAllBots() {  
+    if (!videoExtracted || !currentVideoInfo) {  
+        showMessage('Please extract and analyze the video first!', 'error');  
+        return;  
+    }  
+      
+    const targetViews = document.getElementById('targetViews').value;  
+    if (!targetViews || targetViews < 1) {  
+        showMessage('Please enter target views!', 'error');  
+        return;  
+    }  
+      
+    const currentViews = currentVideoInfo.currentViews;  
+      
+    setLoading('startBtn', true);  
+    showMessage(`🚀 Starting bots... Target: ${currentViews.toLocaleString()} + ${targetViews} = ${(currentViews + parseInt(targetViews)).toLocaleString()}`, 'info');  
+      
+    try {  
+        const response = await fetch('/api/start-all', {  
+            method: 'POST',  
+            headers: { 'Content-Type': 'application/json' },  
+            body: JSON.stringify({  
+                videoLink: document.getElementById('videoLink').value,  
+                targetViews: targetViews,  
+                currentViews: currentViews,  
+                token: userToken  
+            })  
+        });  
+          
+        const data = await response.json();  
+          
+        if (data.success) {  
+            currentJobId = data.jobId;  
+            showMessage(`✅ ${data.message}`, 'success');  
+            botStatus = 'running';  
+              
+            startLiveProgressTracking(currentJobId);  
+            startStatusUpdates();  
+              
+        } else {  
+            showMessage(data.message, 'error');  
+        }  
+    } catch (error) {  
+        showMessage('Error starting bots: ' + error.message, 'error');  
+    } finally {  
+        setLoading('startBtn', false);  
+    }  
+}  
+
+async function stopAllBots() {  
+    await checkActualStatus();  
+      
+    if (actualBotStatus !== 'running') {  
+        showMessage('ℹ️ Bots are already stopped!', 'info');  
+        return;  
+    }  
+      
+    setLoading('stopBtn', true);  
+    showMessage('🛑 Stopping running bots...', 'info');  
+      
+    try {  
+        const response = await fetch('/api/stop-all', {  
+            method: 'POST',  
+            headers: { 'Content-Type': 'application/json' },  
+            body: JSON.stringify({ token: userToken })  
+        });  
+          
+        const data = await response.json();  
+          
+        showMessage(`✅ ${data.message}`, 'success');  
+        botStatus = 'stopped';  
+          
+        clearInterval(progressInterval);  
+        stopLiveUpdates();  
+          
+    } catch (error) {  
+        showMessage('Error stopping bot', 'error');  
+    } finally {  
+        setLoading('stopBtn', false);  
+    }  
+}  
+
+// ✅ LIVE PROGRESS TRACKING  
+function startLiveProgressTracking(jobId) {  
+    if (progressInterval) {  
+        clearInterval(progressInterval);  
+    }  
+      
+    createProgressDisplay();  
+      
+    progressInterval = setInterval(async () => {  
+        await updateLiveProgress(jobId);  
+    }, 1000);  
+}  
+
+function createProgressDisplay() {  
+    const existingProgress = document.getElementById('liveProgress');  
+    if (existingProgress) {  
+        existingProgress.remove();  
+    }  
+      
+    const progressDiv = document.createElement('div');  
+    progressDiv.id = 'liveProgress';  
+    progressDiv.className = 'progress-card';  
+    progressDiv.innerHTML = `  
+        <h4>🚀 LIVE PROGRESS TRACKING</h4>  
+        <div class="progress-stats" id="progressStats">  
+            <div>Progress: <span id="progressCurrent">0</span>/<span id="progressTarget">0</span></div>  
+            <div>Remaining: <span id="progressRemaining">0</span></div>  
+            <div>Completion: <span id="progressPercentage">0%</span></div>  
+            <div>Speed: <span id="progressSpeed">0</span>/min</div>  
+            <div>ETA: <span id="progressETA">0</span> min</div>  
+            <div>Active Bots: <span id="activeBots">0</span></div>  
+        </div>  
+        <div class="progress-bar">  
+            <div class="progress-fill" id="progressBarFill" style="width: 0%"></div>  
+        </div>  
+        <div class="instances-live" id="instancesLive">  
+            <div class="instance-live-header">  
+                <span>Bot</span>  
+                <span>Status</span>  
+                <span>Success</span>  
+                <span>Requests</span>  
+                <span>RPS</span>  
+            </div>  
+            <div id="instancesList"></div>  
+        </div>  
+        <div style="margin-top: 10px; text-align: center;">  
+            <button class="btn-stop" onclick="stopAllBots()" id="stopProgressBtn">  
+                <i class="fas fa-stop-circle"></i> STOP ALL BOTS  
+            </button>  
+        </div>  
+    `;  
+      
+    const controlPanel = document.querySelector('.control-panel');  
+    controlPanel.appendChild(progressDiv);  
+}  
+
+async function updateLiveProgress(jobId) {  
+    try {  
+        const response = await fetch(`/api/live-progress?jobId=${jobId}&token=${userToken}`);  
+        const data = await response.json();  
+          
+        if (data.success) {  
+            updateProgressUI(data);  
+              
+            if (!data.isRunning) {  
+                clearInterval(progressInterval);  
+                showMessage('🎯 Job completed!', 'success');  
+                document.getElementById('stopProgressBtn').innerHTML = '<i class="fas fa-check"></i> COMPLETED';  
+                document.getElementById('stopProgressBtn').style.background = 'linear-gradient(135deg, var(--success), #38A169)';  
+            }  
+        } else {  
+            clearInterval(progressInterval);  
+        }  
+    } catch (error) {  
+        console.log('Progress update error:', error);  
+    }  
+}  
+
+function updateProgressUI(progressData) {  
+    document.getElementById('progressCurrent').textContent = progressData.progress.current.toLocaleString();  
+    document.getElementById('progressTarget').textContent = progressData.progress.target.toLocaleString();  
+    document.getElementById('progressRemaining').textContent = progressData.progress.remaining.toLocaleString();  
+    document.getElementById('progressPercentage').textContent = progressData.progress.percentage + '%';  
+    document.getElementById('progressSpeed').textContent = progressData.progress.viewsPerMinute.toLocaleString();  
+    document.getElementById('progressETA').textContent = progressData.progress.estimatedMinutes;  
+    document.getElementById('activeBots').textContent = progressData.totals.activeBots;  
+      
+    document.getElementById('progressBarFill').style.width = progressData.progress.percentage + '%';  
+      
+    const instancesList = document.getElementById('instancesList');  
+    instancesList.innerHTML = progressData.instances.map(instance => `  
+        <div class="instance-live-row">  
+            <span class="instance-name">${instance.id.substring(0, 8)}</span>  
+            <span class="instance-status ${instance.status}">${getStatusIcon(instance.status)} ${instance.status.toUpperCase()}</span>  
+            <span class="instance-success">${instance.success.toLocaleString()}</span>  
+            <span class="instance-requests">${instance.requests.toLocaleString()}</span>  
+            <span class="instance-rps">${instance.rps || 0}</span>  
+        </div>  
+    `).join('');  
+}  
+
+function getStatusIcon(status) {  
+    const icons = {  
+        'running': '🟢',  
+        'starting': '🟡',  
+        'stopped': '🔴',  
+        'failed': '❌',  
+        'offline': '⚫'  
+    };  
+    return icons[status] || '❓';  
+}  
+
+// ✅ ZEFAME SERVICES  
+async function loadZefameServices() {  
+    try {  
+        showZefameMessage('🔄 Loading services...', 'info');  
+          
+        const response = await fetch('/api/zefame/services?token=' + userToken);  
+          
+        if (!response.ok) {  
+            throw new Error(`Server error: ${response.status}`);  
+        }  
+          
+        const data = await response.json();  
+          
+        if (data.success) {  
+            zefameServices = data.services;  
+            renderServicesGrid();  
+            showZefameMessage(`✅ Loaded ${data.services.length} services!`, 'success');  
+        } else {  
+            throw new Error(data.message || 'Failed to load services');  
+        }  
+    } catch (error) {  
+        console.error('Services error:', error);  
+        showZefameMessage('❌ ' + error.message, 'error');  
+          
+        zefameServices = [];  
+        renderServicesGrid();  
+    }  
+}  
+
+function renderServicesGrid() {  
+    const container = document.getElementById('servicesContainer');  
+      
+    if (!container) {  
+        console.error('❌ Services container not found!');  
+        return;  
+    }  
+      
+    if (!zefameServices || zefameServices.length === 0) {  
+        container.innerHTML = `  
+            <div class="empty-state">  
+                <i class="fas fa-exclamation-triangle"></i>  
+                <h3>No Services Available</h3>  
+                <p>Failed to load services</p>  
+            </div>  
+        `;  
+        return;  
+    }  
+      
+    container.innerHTML = zefameServices.map(service => {  
+        const isSelected = selectedServices.has(service.id);  
+        return `  
+        <div class="service-card ${service.available ? 'available' : 'unavailable'} ${isSelected ? 'selected' : ''}">  
+            <div class="service-header">  
+                <h4>${service.name || 'Unknown Service'}</h4>  
+                <span class="service-status ${service.available ? 'available' : 'unavailable'}">  
+                    ${service.available ? '🟢 AVAILABLE' : '🔴 UNAVAILABLE'}  
+                </span>  
+            </div>  
+            <div class="service-description">  
+                ${service.description || service.rate || 'Free Service'}  
+            </div>  
+            <div class="service-controls">  
+                <button class="btn-select-service ${isSelected ? 'selected' : ''}"   
+                        onclick="toggleService(${service.id})"  
+                        ${!service.available ? 'disabled' : ''}>  
+                    ${isSelected ? '✅ SELECTED' : '📥 SELECT'}  
+                </button>  
+            </div>  
+        </div>  
+        `;  
+    }).join('');  
+      
+    updateZefameButton();  
+}  
+
+function toggleService(serviceId) {  
+    console.log('🔄 Toggling service:', serviceId);  
+      
+    if (selectedServices.has(serviceId)) {  
+        selectedServices.delete(serviceId);  
+        console.log('❌ Removed service:', serviceId);  
+    } else {  
+        selectedServices.add(serviceId);  
+        console.log('✅ Added service:', serviceId);  
+    }  
+      
+    renderServicesGrid();  
+}  
+
+function updateZefameButton() {  
+    const zefameStartBtn = document.getElementById('zefameStartBtn');  
+    if (zefameStartBtn) {  
+        if (selectedServices.size > 0) {  
+            zefameStartBtn.disabled = false;  
+            zefameStartBtn.innerHTML = `<i class="fas fa-rocket"></i> START ${selectedServices.size} SELECTED`;  
+        } else {  
+            zefameStartBtn.disabled = true;  
+            zefameStartBtn.innerHTML = `<i class="fas fa-rocket"></i> START ALL SELECTED`;  
+        }  
+    }  
+}  
+
+// ✅ FIXED: Ek baar mein sab selected services start ho jayenge
 async function startZefameBulk() {
     const videoLink = document.getElementById('zefameVideoLink').value.trim();
-    
+
     if (!videoLink) {
         showZefameMessage('❌ Please enter TikTok link!', 'error');
         return;
     }
-    
+
     if (selectedServices.size === 0) {
-        showZefameMessage('❌ Please select service!', 'error');
+        showZefameMessage('❌ Please select at least one service!', 'error');
         return;
     }
 
-    const firstServiceId = Array.from(selectedServices)[0];
-    const service = zefameServices.find(s => s.id === firstServiceId);
-
     setLoading('zefameStartBtn', true);
+
+    // Sab selected services ko ek array mein collect karo
+    const servicesToStart = Array.from(selectedServices);
     
-    // Show loading
-    const messageDiv = document.getElementById('zefameMessage');
-    messageDiv.innerHTML = `
-        <div class="alert info">
-            <div>🔄 Calling Zefame API...</div>
-            <div style="font-size: 0.8em; margin-top: 5px;">
-                Service: ${service.name}<br>
-                Processing your order...
-            </div>
-        </div>
-    `;
+    let successCount = 0;
+    let errorCount = 0;
 
-    try {
-        console.log('🔄 Starting real Zefame API call...');
+    // Ek ek karke sab services start karo
+    for (const serviceId of servicesToStart) {
+        const service = zefameServices.find(s => s.id === serviceId);
         
-        const response = await fetch('/api/zefame/order-tracked', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                videoLink: videoLink,
-                serviceId: firstServiceId,
-                quantity: 1,
-                serviceName: service.name,
-                token: userToken
-            })
-        });
+        if (!service) continue;
 
-        const data = await response.json();
-        console.log('📥 REAL API RESPONSE:', data);
-        
-        // ✅ AUTOMATIC TIMER DETECTION - Har output check karo
-        processApiResponseWithTimer(data);
-        
-    } catch (error) {
-        console.error('❌ Request failed:', error);
-        showZefameMessage('❌ Network error: ' + error.message, 'error');
-    } finally {
-        setLoading('zefameStartBtn', false);
-        selectedServices.delete(firstServiceId);
-        renderServicesGrid();
+        try {
+            console.log('🔄 Starting service:', service.name);
+            
+            const response = await fetch('/api/zefame/order-tracked', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    videoLink: videoLink,
+                    serviceId: serviceId,
+                    serviceName: service.name,
+                    token: userToken
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                successCount++;
+                processApiResponseWithTimer(data);
+            } else {
+                errorCount++;
+                showZefameMessage(`❌ ${service.name}: ${data.message}`, 'error');
+            }
+
+            // Thoda delay between requests (optional)
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+        } catch (error) {
+            errorCount++;
+            console.error('❌ Service failed:', service.name, error);
+        }
     }
+
+    // Final message
+    if (successCount > 0) {
+        showZefameMessage(`✅ ${successCount} services started successfully! ${errorCount > 0 ? `(${errorCount} failed)` : ''}`, 'success');
+    }
+
+    // Clear selected services after starting all
+    selectedServices.clear();
+    renderServicesGrid();
+    setLoading('zefameStartBtn', false);
 }
 
 // ✅ SMART RESPONSE PROCESSING - AUTOMATIC TIMER DETECTION
 function processApiResponseWithTimer(apiData) {
     const messageDiv = document.getElementById('zefameMessage');
+
+    // ✅ CHECK FOR WAIT TIME IN RESPONSE (Direct waitTime mila)  
+    if (apiData.waitTime) {  
+        showTimerCountdown(apiData.message, apiData.waitTime);  
+        return;  
+    }  
     
-    // ✅ CHECK FOR WAIT TIME IN RESPONSE (Direct waitTime mila)
-    if (apiData.waitTime) {
-        showTimerCountdown(apiData.message, apiData.waitTime);
-        return;
-    }
+    // ✅ CHECK FOR TIME IN MESSAGE (Message mein time hai)  
+    const timeMatch = detectTimeInMessage(apiData.message);  
+    if (timeMatch) {  
+        const waitTime = timeMatch * 1000; // Convert to milliseconds  
+        showTimerCountdown(apiData.message, waitTime);  
+        return;  
+    }  
     
-    // ✅ CHECK FOR TIME IN MESSAGE (Message mein time hai)
-    const timeMatch = detectTimeInMessage(apiData.message);
-    if (timeMatch) {
-        const waitTime = timeMatch * 1000; // Convert to milliseconds
-        showTimerCountdown(apiData.message, waitTime);
-        return;
-    }
+    // ✅ CHECK FOR NEXT AVAILABLE IN DATA  
+    if (apiData.data && apiData.data.nextAvailable) {  
+        const waitTime = apiData.data.nextAvailable * 1000;  
+        showTimerCountdown(apiData.message || 'Time limit reached', waitTime);  
+        return;  
+    }  
     
-    // ✅ CHECK FOR NEXT AVAILABLE IN DATA
-    if (apiData.data && apiData.data.nextAvailable) {
-        const waitTime = apiData.data.nextAvailable * 1000;
-        showTimerCountdown(apiData.message || 'Time limit reached', waitTime);
-        return;
-    }
-    
-    // ✅ NORMAL RESPONSE DISPLAY (No timer)
-    if (apiData.success) {
-        messageDiv.innerHTML = `
-            <div class="alert success">
-                <div style="font-size: 1.2em; margin-bottom: 10px;">✅ ORDER SUCCESS</div>
-                <div><strong>Message:</strong> ${apiData.message}</div>
-                <div style="margin-top: 10px;">🎉 Your order has been placed successfully!</div>
-            </div>
-        `;
-    } else {
-        messageDiv.innerHTML = `
-            <div class="alert error">
-                <div style="font-size: 1.2em; margin-bottom: 10px;">❌ ORDER FAILED</div>
-                <div><strong>Message:</strong> ${apiData.message}</div>
-                <div style="margin-top: 10px;">Please try again with different service</div>
-            </div>
-        `;
+    // ✅ NORMAL RESPONSE DISPLAY (No timer)  
+    if (apiData.success) {  
+        messageDiv.innerHTML = `  
+            <div class="alert success">  
+                <div style="font-size: 1.2em; margin-bottom: 10px;">✅ ORDER SUCCESS</div>  
+                <div><strong>Message:</strong> ${apiData.message}</div>  
+                <div style="margin-top: 10px;">🎉 Your order has been placed successfully!</div>  
+            </div>  
+        `;  
+    } else {  
+        messageDiv.innerHTML = `  
+            <div class="alert error">  
+                <div style="font-size: 1.2em; margin-bottom: 10px;">❌ ORDER FAILED</div>  
+                <div><strong>Message:</strong> ${apiData.message}</div>  
+                <div style="margin-top: 10px;">Please try again with different service</div>  
+            </div>  
+        `;  
     }
 }
 
 // ✅ SMART TIME DETECTION - Message se time nikalega
-// ✅ IMPROVED TIME DETECTION - Exact time lega message se
-// ✅ IMPROVED TIME DETECTION - Time format ko theek se lega
 function detectTimeInMessage(message) {
     if (!message) return null;
+
+    console.log('🔍 Detecting time from message:', message);  
     
-    console.log('🔍 Detecting time from message:', message);
+    // ✅ 1. TIME FORMAT (e.g., "3:30", "2:45", "1:05") - PEHLE CHECK KARO  
+    const timeFormatMatch = message.match(/(\d+):(\d{1,2})/);  
+    if (timeFormatMatch) {  
+        const minutes = parseInt(timeFormatMatch[1]);  
+        const seconds = parseInt(timeFormatMatch[2]);  
+        const totalSeconds = (minutes * 60) + seconds;  
+        console.log('✅ Found time format:', minutes + ':' + seconds + ' = ' + totalSeconds + 's');  
+        return totalSeconds;  
+    }  
     
-    // ✅ 1. TIME FORMAT (e.g., "3:30", "2:45", "1:05") - PEHLE CHECK KARO
-    const timeFormatMatch = message.match(/(\d+):(\d{1,2})/);
-    if (timeFormatMatch) {
-        const minutes = parseInt(timeFormatMatch[1]);
-        const seconds = parseInt(timeFormatMatch[2]);
-        const totalSeconds = (minutes * 60) + seconds;
-        console.log('✅ Found time format:', minutes + ':' + seconds + ' = ' + totalSeconds + 's');
-        return totalSeconds;
-    }
+    // ✅ 2. DIRECT MINUTES AND SECONDS (e.g., "4 minutes 30 seconds")  
+    const minSecMatch = message.match(/(\d+)\s*minutes?\s*(\d+)\s*seconds?/i) ||   
+                       message.match(/(\d+)\s*min\s*(\d+)\s*sec/i);  
+    if (minSecMatch) {  
+        const minutes = parseInt(minSecMatch[1]);  
+        const seconds = parseInt(minSecMatch[2]);  
+        const totalSeconds = (minutes * 60) + seconds;  
+        console.log('✅ Found minutes+seconds:', minutes + 'm ' + seconds + 's = ' + totalSeconds + 's');  
+        return totalSeconds;  
+    }  
     
-    // ✅ 2. DIRECT MINUTES AND SECONDS (e.g., "4 minutes 30 seconds")
-    const minSecMatch = message.match(/(\d+)\s*minutes?\s*(\d+)\s*seconds?/i) || 
-                       message.match(/(\d+)\s*min\s*(\d+)\s*sec/i);
-    if (minSecMatch) {
-        const minutes = parseInt(minSecMatch[1]);
-        const seconds = parseInt(minSecMatch[2]);
-        const totalSeconds = (minutes * 60) + seconds;
-        console.log('✅ Found minutes+seconds:', minutes + 'm ' + seconds + 's = ' + totalSeconds + 's');
-        return totalSeconds;
-    }
+    // ✅ 3. ONLY MINUTES (e.g., "5 minutes", "3 mins")  
+    const minutesMatch = message.match(/(\d+)\s*minutes?/i) ||   
+                        message.match(/(\d+)\s*min/i);  
+    if (minutesMatch) {  
+        const minutes = parseInt(minutesMatch[1]);  
+        const totalSeconds = minutes * 60;  
+        console.log('✅ Found minutes:', minutes + 'm = ' + totalSeconds + 's');  
+        return totalSeconds;  
+    }  
     
-    // ✅ 3. ONLY MINUTES (e.g., "5 minutes", "3 mins")
-    const minutesMatch = message.match(/(\d+)\s*minutes?/i) || 
-                        message.match(/(\d+)\s*min/i);
-    if (minutesMatch) {
-        const minutes = parseInt(minutesMatch[1]);
-        const totalSeconds = minutes * 60;
-        console.log('✅ Found minutes:', minutes + 'm = ' + totalSeconds + 's');
-        return totalSeconds;
-    }
+    // ✅ 4. ONLY SECONDS (e.g., "300 seconds", "120 sec")  
+    const secondsMatch = message.match(/(\d+)\s*seconds?/i) ||   
+                        message.match(/(\d+)\s*sec/i);  
+    if (secondsMatch) {  
+        const seconds = parseInt(secondsMatch[1]);  
+        console.log('✅ Found seconds:', seconds + 's');  
+        return seconds;  
+    }  
     
-    // ✅ 4. ONLY SECONDS (e.g., "300 seconds", "120 sec")
-    const secondsMatch = message.match(/(\d+)\s*seconds?/i) || 
-                        message.match(/(\d+)\s*sec/i);
-    if (secondsMatch) {
-        const seconds = parseInt(secondsMatch[1]);
-        console.log('✅ Found seconds:', seconds + 's');
-        return seconds;
-    }
-    
-    console.log('❌ No time detected in message');
+    console.log('❌ No time detected in message');  
     return null;
 }
 
@@ -2053,51 +2047,51 @@ function startSmartCountdown(waitTimeMs) {
     const totalTime = waitTimeMs;
     const countdownElement = document.getElementById('countdown');
     const progressElement = document.getElementById('timeProgress');
+
+    const startTime = Date.now();  
     
-    const startTime = Date.now();
+    console.log('🕒 Starting countdown with total time:', totalTime + 'ms');  
     
-    console.log('🕒 Starting countdown with total time:', totalTime + 'ms');
-    
-    const timer = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        remainingTime = Math.max(0, totalTime - elapsed);
+    const timer = setInterval(() => {  
+        const elapsed = Date.now() - startTime;  
+        remainingTime = Math.max(0, totalTime - elapsed);  
         
-        const totalSeconds = Math.round(remainingTime / 1000);
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
+        const totalSeconds = Math.round(remainingTime / 1000);  
+        const minutes = Math.floor(totalSeconds / 60);  
+        const seconds = totalSeconds % 60;  
         
-        // ✅ MM:SS format mein dikhao (e.g., 02:59, 01:30)
-        countdownElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        // ✅ MM:SS format mein dikhao (e.g., 02:59, 01:30)  
+        countdownElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;  
         
-        const progress = ((totalTime - remainingTime) / totalTime) * 100;
-        progressElement.style.width = progress + '%';
+        const progress = ((totalTime - remainingTime) / totalTime) * 100;  
+        progressElement.style.width = progress + '%';  
         
-        // Change color based on progress
-        if (progress > 80) {
-            progressElement.style.background = 'linear-gradient(90deg, #32CD32, #00FF00)';
-        } else if (progress > 50) {
-            progressElement.style.background = 'linear-gradient(90deg, #FFA500, #FFD700)';
-        }
+        // Change color based on progress  
+        if (progress > 80) {  
+            progressElement.style.background = 'linear-gradient(90deg, #32CD32, #00FF00)';  
+        } else if (progress > 50) {  
+            progressElement.style.background = 'linear-gradient(90deg, #FFA500, #FFD700)';  
+        }  
         
-        if (remainingTime <= 0) {
-            clearInterval(timer);
-            countdownElement.textContent = '00:00';
-            progressElement.style.width = '100%';
-            progressElement.style.background = '#00FF00';
+        if (remainingTime <= 0) {  
+            clearInterval(timer);  
+            countdownElement.textContent = '00:00';  
+            progressElement.style.width = '100%';  
+            progressElement.style.background = '#00FF00';  
             
-            // Show completion message
-            setTimeout(() => {
-                document.getElementById('zefameMessage').innerHTML = `
-                    <div class="alert success">
-                        <div style="font-size: 1.2em; margin-bottom: 10px;">🔄 READY TO TRY AGAIN</div>
-                        <div>⏰ Time limit completed! You can place order now.</div>
-                        <div style="margin-top: 10px; font-size: 0.9em;">
-                            ✅ Timer finished at ${new Date().toLocaleTimeString()}
-                        </div>
-                    </div>
-                `;
-            }, 1000);
-        }
+            // Show completion message  
+            setTimeout(() => {  
+                document.getElementById('zefameMessage').innerHTML = `  
+                    <div class="alert success">  
+                        <div style="font-size: 1.2em; margin-bottom: 10px;">🔄 READY TO TRY AGAIN</div>  
+                        <div>⏰ Time limit completed! You can place order now.</div>  
+                        <div style="margin-top: 10px; font-size: 0.9em;">  
+                            ✅ Timer finished at ${new Date().toLocaleTimeString()}  
+                        </div>  
+                    </div>  
+                `;  
+            }, 1000);  
+        }  
     }, 100); // Update every 100ms for smooth countdown
 }
 
@@ -2105,328 +2099,274 @@ function startSmartCountdown(waitTimeMs) {
 function showTimerCountdown(message, waitTimeMs) {
     const messageDiv = document.getElementById('zefameMessage');
     const totalSeconds = Math.round(waitTimeMs / 1000);
+
+    const minutes = Math.floor(totalSeconds / 60);  
+    const seconds = totalSeconds % 60;  
     
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
+    console.log('🕒 Starting countdown:', totalSeconds + 's (' + minutes + 'm ' + seconds + 's)');  
     
-    console.log('🕒 Starting countdown:', totalSeconds + 's (' + minutes + 'm ' + seconds + 's)');
-    
-    messageDiv.innerHTML = `
-        <div class="alert info">
-            <div style="font-size: 1.2em; margin-bottom: 10px;">⏰ TIME LIMIT DETECTED</div>
-            <div><strong>Original Message:</strong> ${message}</div>
-            <div style="margin-top: 5px; font-size: 0.9em; color: #FFA500;">
-                ⏱️ Detected Time: ${minutes} minutes ${seconds} seconds
-            </div>
+    messageDiv.innerHTML = `  
+        <div class="alert info">  
+            <div style="font-size: 1.2em; margin-bottom: 10px;">⏰ TIME LIMIT DETECTED</div>  
+            <div><strong>Original Message:</strong> ${message}</div>  
+            <div style="margin-top: 5px; font-size: 0.9em; color: #FFA500;">  
+                ⏱️ Detected Time: ${minutes} minutes ${seconds} seconds  
+            </div>  
             
-            <div class="countdown-timer" style="margin: 15px 0; text-align: center;">
-                <div style="font-size: 2em; font-weight: bold; color: #FFA500; font-family: monospace;">
-                    ⏳ <span id="countdown">${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}</span>
-                </div>
-                <div style="font-size: 0.9em; margin-top: 5px;">
-                    Next order available in
-                </div>
-            </div>
+            <div class="countdown-timer" style="margin: 15px 0; text-align: center;">  
+                <div style="font-size: 2em; font-weight: bold; color: #FFA500; font-family: monospace;">  
+                    ⏳ <span id="countdown">${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}</span>  
+                </div>  
+                <div style="font-size: 0.9em; margin-top: 5px;">  
+                    Next order available in  
+                </div>  
+            </div>  
             
-            <div class="progress-bar" style="margin-top: 10px; background: #333; height: 12px; border-radius: 6px;">
-                <div class="progress-fill" id="timeProgress" style="width: 0%; background: linear-gradient(90deg, #FFA500, #FF6347); height: 100%; border-radius: 6px; transition: width 1s linear;"></div>
-            </div>
+            <div class="progress-bar" style="margin-top: 10px; background: #333; height: 12px; border-radius: 6px;">  
+                <div class="progress-fill" id="timeProgress" style="width: 0%; background: linear-gradient(90deg, #FFA500, #FF6347); height: 100%; border-radius: 6px; transition: width 1s linear;"></div>  
+            </div>  
             
-            <div style="margin-top: 10px; font-size: 0.9em; text-align: center;">
-                Timer started at: ${new Date().toLocaleTimeString()}
-            </div>
-        </div>
-    `;
+            <div style="margin-top: 10px; font-size: 0.9em; text-align: center;">  
+                Timer started at: ${new Date().toLocaleTimeString()}  
+            </div>  
+        </div>  
+    `;  
     
     startSmartCountdown(waitTimeMs);
 }
 
-// ✅ FORMAT TIME - Seconds to MM:SS
-function formatTime(seconds) {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-}
+function showZefameMessage(message, type) {  
+    const messageDiv = document.getElementById('zefameMessage');  
+    messageDiv.innerHTML = `<div class="alert ${type}">${message}</div>`;  
+    setTimeout(() => {  
+        messageDiv.innerHTML = '';  
+    }, 5000);  
+}  
 
-// ✅ SMART COUNTDOWN WITH SMOOTH PROGRESS
-function startSmartCountdown(waitTimeMs) {
-    let remainingTime = waitTimeMs;
-    const totalTime = waitTimeMs;
-    const countdownElement = document.getElementById('countdown');
-    const progressElement = document.getElementById('timeProgress');
-    
-    const startTime = Date.now();
-    
-    const timer = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        remainingTime = Math.max(0, totalTime - elapsed);
-        
-        const seconds = Math.round(remainingTime / 1000);
-        countdownElement.textContent = formatTime(seconds);
-        
-        const progress = ((totalTime - remainingTime) / totalTime) * 100;
-        progressElement.style.width = progress + '%';
-        
-        // Change color when almost done
-        if (progress > 80) {
-            progressElement.style.background = 'linear-gradient(90deg, #32CD32, #00FF00)';
-        } else if (progress > 50) {
-            progressElement.style.background = 'linear-gradient(90deg, #FFA500, #FFD700)';
-        }
-        
-        if (remainingTime <= 0) {
-            clearInterval(timer);
-            countdownElement.textContent = '00:00';
-            progressElement.style.width = '100%';
-            progressElement.style.background = '#00FF00';
-            
-            // Show completion message
-            setTimeout(() => {
-                document.getElementById('zefameMessage').innerHTML = `
-                    <div class="alert success">
-                        <div style="font-size: 1.2em; margin-bottom: 10px;">🔄 READY TO TRY AGAIN</div>
-                        <div>⏰ Time limit completed! You can place order now.</div>
-                        <div style="margin-top: 10px; font-size: 0.9em;">
-                            ✅ Timer finished at ${new Date().toLocaleTimeString()}
-                        </div>
-                    </div>
-                `;
-            }, 1000);
-        }
-    }, 100);
-}
+// ✅ FIXED: Paste to Zefame  
+function pasteToZefame() {  
+    if (!navigator.clipboard) {  
+        showZefameMessage('❌ Clipboard not supported in your browser', 'error');  
+        return;  
+    }  
+      
+    navigator.clipboard.readText().then(text => {  
+        document.getElementById('zefameVideoLink').value = text;  
+        showZefameMessage('📋 TikTok link pasted!', 'success');  
+    }).catch(error => {  
+        showZefameMessage('❌ Failed to paste from clipboard', 'error');  
+    });  
+}  
 
-    function showZefameMessage(message, type) {
-        const messageDiv = document.getElementById('zefameMessage');
-        messageDiv.innerHTML = `<div class="alert ${type}">${message}</div>`;
-        setTimeout(() => {
-            messageDiv.innerHTML = '';
-        }, 5000);
-    }
+// ✅ TURBO MODE  
+function startTurboMode() {  
+    showMessage('⚡ Turbo Mode - Starting both systems...', 'info');  
+    // Implement turbo mode logic here  
+}  
 
-    // ✅ FIXED: Paste to Zefame
-    function pasteToZefame() {
-        if (!navigator.clipboard) {
-            showZefameMessage('❌ Clipboard not supported in your browser', 'error');
-            return;
-        }
-        
-        navigator.clipboard.readText().then(text => {
-            document.getElementById('zefameVideoLink').value = text;
-            showZefameMessage('📋 TikTok link pasted!', 'success');
-        }).catch(error => {
-            showZefameMessage('❌ Failed to paste from clipboard', 'error');
-        });
-    }
+// ✅ STATUS UPDATES  
+async function refreshStatus() {  
+    setLoading('refreshBtn', true);  
+    await updateStatus();  
+    setTimeout(() => setLoading('refreshBtn', false), 1000);  
+    showMessage('🔄 Status refreshed!', 'success');  
+}  
+  
+async function updateStatus() {  
+    try {  
+        const response = await fetch(`/api/status-all?token=${userToken}`);  
+        const data = await response.json();  
+          
+        if (data.success) {  
+            document.getElementById('totalSuccess').textContent = data.totals.success.toLocaleString();  
+            document.getElementById('totalRequests').textContent = data.totals.reqs.toLocaleString();  
+            document.getElementById('onlineBots').textContent = data.totals.onlineBots;  
+            document.getElementById('totalRpsNum').textContent = data.totals.rps.toFixed(1);  
+            document.getElementById('rpsValue').textContent = data.totals.rps.toFixed(1);  
+              
+            document.getElementById('instancesCount').textContent =   
+                `${data.totals.onlineBots} bots online`;  
+              
+            const container = document.getElementById('instancesContainer');  
+              
+            if (data.instances.length === 0) {  
+                container.innerHTML = `  
+                    <div class="empty-state">  
+                        <i class="fas fa-robot"></i>  
+                        <h3>Waiting for Bot Allocation</h3>  
+                        <p>You will automatically receive bots when available</p>  
+                    </div>  
+                `;  
+                return;  
+            }  
+              
+            container.innerHTML = '';  
+              
+            data.instances.forEach((instance, index) => {  
+                const instanceCard = document.createElement('div');  
+                instanceCard.className = 'instance-card';  
+                  
+                const status = instance.status;  
+                const isOnline = instance.online;  
+                  
+                instanceCard.innerHTML = `  
+                    <div class="instance-header">  
+                        <div class="instance-title">${instance.name}</div>  
+                        <span class="instance-status ${isOnline ? 'status-online' : 'status-offline'}">  
+                            ${isOnline ? 'ONLINE' : 'OFFLINE'}  
+                        </span>  
+                    </div>  
+                      
+                    ${isOnline ? `  
+                        <div class="instance-stats">  
+                            <div class="mini-stat">  
+                                <div class="mini-number" style="color: var(--success)">${status.success}</div>  
+                                <div class="mini-label">Success</div>  
+                            </div>  
+                            <div class="mini-stat">  
+                                <div class="mini-number" style="color: var(--danger)">${status.fails}</div>  
+                                <div class="mini-label">Failed</div>  
+                            </div>  
+                            <div class="mini-stat">  
+                                <div class="mini-number" style="color: var(--info)">${status.reqs}</div>  
+                                <div class="mini-label">Requests</div>  
+                            </div>  
+                            <div class="mini-stat">  
+                                <div class="mini-number" style="color: var(--warning)">${status.rps}</div>  
+                                <div class="mini-label">RPS</div>  
+                            </div>  
+                        </div>  
+                          
+                        <div class="progress-container">  
+                            <div class="progress-bar">  
+                                <div class="progress-fill" style="width: ${status.targetViews > 0 ? (status.success / status.targetViews) * 100 : 0}%"></div>  
+                            </div>  
+                            <div class="progress-text">  
+                                ${status.targetViews > 0 ?   
+                                    `Progress: ${status.success}/${status.targetViews} (${((status.success / status.targetViews) * 100).toFixed(1)}%)` :   
+                                    `Views: ${status.success}`  
+                                }  
+                            </div>  
+                        </div>  
+                    ` : `  
+                        <div style="text-align: center; padding: 20px; opacity: 0.7;">  
+                            <i class="fas fa-exclamation-triangle" style="font-size: 1.5em; margin-bottom: 10px;"></i>  
+                            <div>Bot Offline</div>  
+                        </div>  
+                    `}  
+                `;  
+                  
+                container.appendChild(instanceCard);  
+            });  
+        }  
+    } catch (error) {  
+        console.log('Error fetching status:', error);  
+    }  
+}  
+  
+function startStatusUpdates() {  
+    if (refreshInterval) {  
+        clearInterval(refreshInterval);  
+    }  
+    refreshInterval = setInterval(updateStatus, 2000);  
+    updateStatus();  
+}  
 
-    // ✅ TURBO MODE
-    function startTurboMode() {
-        showMessage('⚡ Turbo Mode - Starting both systems...', 'info');
-        // Implement turbo mode logic here
-    }
+// ✅ UTILITY FUNCTIONS  
+function getTokenFromURL() {  
+    const urlParams = new URLSearchParams(window.location.search);  
+    return urlParams.get('token');  
+}  
+  
+async function logout() {  
+    try {  
+        const token = userToken || getTokenFromURL();  
+          
+        const response = await fetch('/api/logout', {  
+            method: 'POST',  
+            headers: { 'Content-Type': 'application/json' },  
+            body: JSON.stringify({ token: token })  
+        });  
+          
+        const data = await response.json();  
+          
+        localStorage.removeItem('userToken');  
+        sessionStorage.clear();  
+          
+        stopLiveUpdates();  
+        stopOrderTracking();  
+        if (monitoringInterval) clearInterval(monitoringInterval);  
+        if (refreshInterval) clearInterval(refreshInterval);  
+        if (progressInterval) clearInterval(progressInterval);  
+          
+        if (data.redirect_url) {  
+            window.location.href = data.redirect_url;  
+        } else {  
+            window.location.href = 'http://85.215.137.163:14816/login';  
+        }  
+          
+    } catch (error) {  
+        localStorage.removeItem('userToken');  
+        window.location.href = 'http://85.215.137.163:14816/login';  
+    }  
+}  
+  
+function setLoading(buttonId, isLoading) {  
+    const btn = document.getElementById(buttonId);  
+    if (isLoading) {  
+        btn.classList.add('loading');  
+        btn.disabled = true;  
+    } else {  
+        btn.classList.remove('loading');  
+        btn.disabled = false;  
+    }  
+}  
+  
+function showMessage(message, type) {  
+    const messageDiv = document.getElementById('message');  
+    messageDiv.innerHTML = `<div class="alert ${type}">${message}</div>`;  
+    setTimeout(() => {  
+        messageDiv.innerHTML = '';  
+    }, 5000);  
+}  
+  
+// ✅ INITIALIZATION  
+document.addEventListener('DOMContentLoaded', function() {  
+    userToken = getTokenFromURL();  
+      
+    if (!userToken) {  
+        showMessage('Invalid token. Redirecting...', 'error');  
+        setTimeout(() => {  
+            window.location.href = 'http://85.215.137.163:14816';  
+        }, 2000);  
+        return;  
+    }  
+      
+    localStorage.setItem('userToken', userToken);  
+      
+    document.getElementById('startBtn').disabled = true;  
+      
+    setupOfflineMode();  
+    checkActualStatus();  
+    startStatusUpdates();  
+      
+    showMessage('🎉 Welcome to TikTok View Bot! Paste a link and click "Extract & Analyze" to begin.', 'info');  
+      
+    document.getElementById('username').textContent = 'User';  
+      
+    if (window.innerWidth <= 768) {  
+        document.body.style.paddingBottom = '70px';  
+    }  
+});  
+  
+window.addEventListener('resize', function() {  
+    if (window.innerWidth <= 768) {  
+        document.body.style.paddingBottom = '70px';  
+    } else {  
+        document.body.style.paddingBottom = '0';  
+    }  
+});  
+</script>
 
-    // ✅ STATUS UPDATES
-    async function refreshStatus() {
-        setLoading('refreshBtn', true);
-        await updateStatus();
-        setTimeout(() => setLoading('refreshBtn', false), 1000);
-        showMessage('🔄 Status refreshed!', 'success');
-    }
-    
-    async function updateStatus() {
-        try {
-            const response = await fetch(`/api/status-all?token=${userToken}`);
-            const data = await response.json();
-            
-            if (data.success) {
-                document.getElementById('totalSuccess').textContent = data.totals.success.toLocaleString();
-                document.getElementById('totalRequests').textContent = data.totals.reqs.toLocaleString();
-                document.getElementById('onlineBots').textContent = data.totals.onlineBots;
-                document.getElementById('totalRpsNum').textContent = data.totals.rps.toFixed(1);
-                document.getElementById('rpsValue').textContent = data.totals.rps.toFixed(1);
-                
-                document.getElementById('instancesCount').textContent = 
-                    `${data.totals.onlineBots} bots online`;
-                
-                const container = document.getElementById('instancesContainer');
-                
-                if (data.instances.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-robot"></i>
-                            <h3>Waiting for Bot Allocation</h3>
-                            <p>You will automatically receive bots when available</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                container.innerHTML = '';
-                
-                data.instances.forEach((instance, index) => {
-                    const instanceCard = document.createElement('div');
-                    instanceCard.className = 'instance-card';
-                    
-                    const status = instance.status;
-                    const isOnline = instance.online;
-                    
-                    instanceCard.innerHTML = `
-                        <div class="instance-header">
-                            <div class="instance-title">${instance.name}</div>
-                            <span class="instance-status ${isOnline ? 'status-online' : 'status-offline'}">
-                                ${isOnline ? 'ONLINE' : 'OFFLINE'}
-                            </span>
-                        </div>
-                        
-                        ${isOnline ? `
-                            <div class="instance-stats">
-                                <div class="mini-stat">
-                                    <div class="mini-number" style="color: var(--success)">${status.success}</div>
-                                    <div class="mini-label">Success</div>
-                                </div>
-                                <div class="mini-stat">
-                                    <div class="mini-number" style="color: var(--danger)">${status.fails}</div>
-                                    <div class="mini-label">Failed</div>
-                                </div>
-                                <div class="mini-stat">
-                                    <div class="mini-number" style="color: var(--info)">${status.reqs}</div>
-                                    <div class="mini-label">Requests</div>
-                                </div>
-                                <div class="mini-stat">
-                                    <div class="mini-number" style="color: var(--warning)">${status.rps}</div>
-                                    <div class="mini-label">RPS</div>
-                                </div>
-                            </div>
-                            
-                            <div class="progress-container">
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: ${status.targetViews > 0 ? (status.success / status.targetViews) * 100 : 0}%"></div>
-                                </div>
-                                <div class="progress-text">
-                                    ${status.targetViews > 0 ? 
-                                        `Progress: ${status.success}/${status.targetViews} (${((status.success / status.targetViews) * 100).toFixed(1)}%)` : 
-                                        `Views: ${status.success}`
-                                    }
-                                </div>
-                            </div>
-                        ` : `
-                            <div style="text-align: center; padding: 20px; opacity: 0.7;">
-                                <i class="fas fa-exclamation-triangle" style="font-size: 1.5em; margin-bottom: 10px;"></i>
-                                <div>Bot Offline</div>
-                            </div>
-                        `}
-                    `;
-                    
-                    container.appendChild(instanceCard);
-                });
-            }
-        } catch (error) {
-            console.log('Error fetching status:', error);
-        }
-    }
-    
-    function startStatusUpdates() {
-        if (refreshInterval) {
-            clearInterval(refreshInterval);
-        }
-        refreshInterval = setInterval(updateStatus, 2000);
-        updateStatus();
-    }
-
-    // ✅ UTILITY FUNCTIONS
-    function getTokenFromURL() {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get('token');
-    }
-    
-    async function logout() {
-        try {
-            const token = userToken || getTokenFromURL();
-            
-            const response = await fetch('/api/logout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: token })
-            });
-            
-            const data = await response.json();
-            
-            localStorage.removeItem('userToken');
-            sessionStorage.clear();
-            
-            stopLiveUpdates();
-            stopOrderTracking();
-            if (monitoringInterval) clearInterval(monitoringInterval);
-            if (refreshInterval) clearInterval(refreshInterval);
-            if (progressInterval) clearInterval(progressInterval);
-            
-            if (data.redirect_url) {
-                window.location.href = data.redirect_url;
-            } else {
-                window.location.href = 'http://85.215.137.163:14816/login';
-            }
-            
-        } catch (error) {
-            localStorage.removeItem('userToken');
-            window.location.href = 'http://85.215.137.163:14816/login';
-        }
-    }
-    
-    function setLoading(buttonId, isLoading) {
-        const btn = document.getElementById(buttonId);
-        if (isLoading) {
-            btn.classList.add('loading');
-            btn.disabled = true;
-        } else {
-            btn.classList.remove('loading');
-            btn.disabled = false;
-        }
-    }
-    
-    function showMessage(message, type) {
-        const messageDiv = document.getElementById('message');
-        messageDiv.innerHTML = `<div class="alert ${type}">${message}</div>`;
-        setTimeout(() => {
-            messageDiv.innerHTML = '';
-        }, 5000);
-    }
-    
-    // ✅ INITIALIZATION
-    document.addEventListener('DOMContentLoaded', function() {
-        userToken = getTokenFromURL();
-        
-        if (!userToken) {
-            showMessage('Invalid token. Redirecting...', 'error');
-            setTimeout(() => {
-                window.location.href = 'http://85.215.137.163:14816';
-            }, 2000);
-            return;
-        }
-        
-        localStorage.setItem('userToken', userToken);
-        
-        document.getElementById('startBtn').disabled = true;
-        
-        setupOfflineMode();
-        checkActualStatus();
-        startStatusUpdates();
-        
-        showMessage('🎉 Welcome to TikTok View Bot! Paste a link and click "Extract & Analyze" to begin.', 'info');
-        
-        document.getElementById('username').textContent = 'User';
-        
-        if (window.innerWidth <= 768) {
-            document.body.style.paddingBottom = '70px';
-        }
-    });
-    
-    window.addEventListener('resize', function() {
-        if (window.innerWidth <= 768) {
-            document.body.style.paddingBottom = '70px';
-        } else {
-            document.body.style.paddingBottom = '0';
-        }
-    });
-    </script>
-</body>
+</body>  
 </html>
