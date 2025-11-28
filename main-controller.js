@@ -7,10 +7,10 @@ const cors = require('cors');
 const helmet = require('helmet');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || process.env.SERVER_PORT || 14871;
 
 // ✅ RENDER COMPATIBLE - Dynamic Auth Server URL
-const AUTH_SERVER_URL = process.env.AUTH_SERVER_URL || 'https://tiktok-bot-auth-2-znca.onrender.com';
+const AUTH_SERVER_URL = process.env.AUTH_SERVER_URL || 'http://85.215.137.163:14816';
 
 // ✅ RENDER MIDDLEWARE
 app.use(helmet({
@@ -33,11 +33,309 @@ app.use((req, res, next) => {
 
 // Global variables for monitoring
 global.runningJobs = {};
+const progressTracker = new Map();
+let permanentOnlineBots = new Map();
+let backgroundVerificationActive = false;
+let permanentOnlineInterval = null;
 
-// ✅ ENHANCED TOKEN VERIFICATION - Render Optimized
+// ✅ ORDER TRACKING SYSTEM
+const orderTracker = new Map();
+
+// ✅ ORDER STATUS CHECK
+app.get('/api/order-status/:orderId', verifyToken, async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        
+        if (!orderTracker.has(orderId)) {
+            return res.json({ 
+                success: false, 
+                message: 'Order not found',
+                status: 'unknown'
+            });
+        }
+
+        const order = orderTracker.get(orderId);
+        
+        // Simulate progress updates
+        if (order.status === 'processing') {
+            const elapsed = Date.now() - order.startTime;
+            const progress = Math.min(100, (elapsed / order.estimatedTime) * 100);
+            order.progress = progress;
+            
+            if (progress >= 100) {
+                order.status = 'completed';
+                order.completedAt = new Date();
+            }
+        }
+
+        res.json({
+            success: true,
+            order: order,
+            status: order.status,
+            progress: order.progress,
+            timeRemaining: order.estimatedTime - (Date.now() - order.startTime)
+        });
+        
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            message: 'Status check failed' 
+        });
+    }
+});
+
+// ✅ ENHANCED ZEFAME ORDER WITH TRACKING
+// ✅ REAL API ORDER SYSTEM
+// ✅ REAL ZEFAME API INTEGRATION (Python Code Ke According)
+app.post('/api/zefame/order-tracked', verifyToken, async (req, res) => {
+    try {
+        const { serviceId, videoLink, quantity = 1, serviceName } = req.body;
+        
+        console.log('🔄 Calling REAL Zefame API...');
+        console.log('📝 Service ID:', serviceId);
+        console.log('📝 Video Link:', videoLink);
+
+        if (!serviceId || !videoLink) {
+            return res.json({ 
+                success: false, 
+                message: 'Service ID and video link required'
+            });
+        }
+
+        // ✅ STEP 1: GET VIDEO ID (Python code ke hisaab)
+        console.log('🔍 Getting Video ID...');
+        const videoIdResponse = await axios.post('https://zefame-free.com/api_free.php', 
+            `action=checkVideoId&link=${encodeURIComponent(videoLink)}`,
+            {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                },
+                timeout: 10000
+            }
+        );
+
+        const videoIdData = videoIdResponse.data;
+        const videoId = videoIdData?.data?.videoId;
+        console.log('🎯 Video ID:', videoId);
+
+        if (!videoId) {
+            return res.json({ 
+                success: false, 
+                message: 'Invalid TikTok link - Could not get Video ID'
+            });
+        }
+
+        // ✅ STEP 2: PLACE ORDER (Python code ke hisaab)
+        console.log('📤 Placing order...');
+        const orderData = new URLSearchParams();
+        orderData.append('action', 'order');
+        orderData.append('service', serviceId.toString());
+        orderData.append('link', videoLink);
+        orderData.append('uuid', require('crypto').randomUUID());
+        orderData.append('videoId', videoId);
+
+        const orderResponse = await axios.post('https://zefame-free.com/api_free.php', orderData, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            },
+            timeout: 15000
+        });
+
+        const orderResult = orderResponse.data;
+        console.log('📥 Zefame API Response:', orderResult);
+
+        // ✅ STEP 3: PROCESS RESPONSE (Python code ke hisaab)
+        let finalResponse = {
+            success: false,
+            message: 'Unknown response from API',
+            data: orderResult
+        };
+
+        // Check for success
+        if (orderResult.success === true) {
+            finalResponse.success = true;
+            finalResponse.message = 'Order placed successfully!';
+        }
+        // Check for time limit/wait time
+        else if (orderResult.data && orderResult.data.nextAvailable) {
+            const waitTime = orderResult.data.nextAvailable;
+            finalResponse.message = `Time limit reached. Next available in ${waitTime} seconds`;
+            finalResponse.waitTime = parseInt(waitTime) * 1000; // Convert to milliseconds
+            finalResponse.type = 'time_limit';
+        }
+        // Check for error message
+        else if (orderResult.message) {
+            finalResponse.message = orderResult.message;
+        }
+
+        console.log('📤 Final Response:', finalResponse);
+        res.json(finalResponse);
+        
+    } catch (error) {
+        console.log('❌ API Error:', error.message);
+        
+        let errorMessage = 'API Error: ' + error.message;
+        if (error.code === 'ECONNREFUSED') {
+            errorMessage = 'Zefame API is down. Please try again later.';
+        } else if (error.code === 'ETIMEDOUT') {
+            errorMessage = 'API request timeout. Please try again.';
+        }
+
+        res.json({ 
+            success: false, 
+            message: errorMessage
+        });
+    }
+});
+
+// ✅ ORDER PROCESSING ENGINE
+async function processZefameOrder(orderId, orderData) {
+    const order = orderTracker.get(orderId);
+    if (!order) return;
+
+    console.log(`🔄 Processing order ${orderId} for ${order.quantity} items`);
+
+    for (let i = 0; i < order.quantity; i++) {
+        try {
+            order.attempts++;
+            order.currentAttempt = i + 1;
+            order.progress = ((i + 1) / order.quantity) * 100;
+
+            console.log(`📦 Processing item ${i + 1}/${order.quantity}`);
+
+            // Simulate API call to Zefame
+            const orderResult = await placeSingleZefameOrder(
+                order.serviceId, 
+                order.videoLink,
+                order.videoId
+            );
+
+            order.results.push({
+                attempt: i + 1,
+                success: orderResult.success,
+                message: orderResult.message,
+                timestamp: new Date()
+            });
+
+            // Update order status based on result
+            if (orderResult.success) {
+                order.successCount = (order.successCount || 0) + 1;
+            } else {
+                order.failedCount = (order.failedCount || 0) + 1;
+                
+                // Check for time limit error
+                if (orderResult.message && orderResult.message.includes('time') && orderResult.message.includes('limit')) {
+                    order.status = 'time_limit';
+                    order.timeLimitReached = true;
+                    break; // Stop processing
+                }
+            }
+
+            // Update tracker
+            orderTracker.set(orderId, order);
+
+            // Delay between requests
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+        } catch (error) {
+            console.log(`❌ Order ${orderId} item ${i + 1} failed:`, error.message);
+            order.results.push({
+                attempt: i + 1,
+                success: false,
+                message: error.message,
+                timestamp: new Date()
+            });
+            order.failedCount = (order.failedCount || 0) + 1;
+        }
+    }
+
+    // Finalize order
+    order.status = order.timeLimitReached ? 'time_limit' : 'completed';
+    order.completedAt = new Date();
+    order.progress = 100;
+    
+    console.log(`✅ Order ${orderId} completed: ${order.successCount || 0} success, ${order.failedCount || 0} failed`);
+    orderTracker.set(orderId, order);
+}
+
+// ✅ SINGLE ORDER PLACEMENT
+async function placeSingleZefameOrder(serviceId, videoLink, videoId) {
+    try {
+        const orderData = new URLSearchParams();
+        orderData.append('action', 'order');
+        orderData.append('service', serviceId.toString());
+        orderData.append('link', videoLink);
+        orderData.append('uuid', require('crypto').randomUUID());
+        orderData.append('videoId', videoId);
+
+        const orderResponse = await axios.post('https://zefame-free.com/api_free.php', orderData, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            },
+            timeout: 15000
+        });
+
+        let orderResult;
+        
+        if (typeof orderResponse.data === 'string') {
+            try {
+                orderResult = JSON.parse(orderResponse.data);
+            } catch {
+                orderResult = { success: orderResponse.status === 200 };
+            }
+        } else {
+            orderResult = orderResponse.data;
+        }
+
+        return {
+            success: orderResult.success || false,
+            message: orderResult.message || 'Order processed',
+            raw: orderResult
+        };
+
+    } catch (error) {
+        return {
+            success: false,
+            message: error.message,
+            error: true
+        };
+    }
+}
+
+// ✅ GET ALL ACTIVE ORDERS
+app.get('/api/active-orders', verifyToken, async (req, res) => {
+    try {
+        const activeOrders = Array.from(orderTracker.values())
+            .filter(order => order.status === 'processing')
+            .map(order => ({
+                orderId: order.orderId,
+                serviceName: order.serviceName,
+                progress: order.progress,
+                status: order.status,
+                quantity: order.quantity,
+                attempts: order.attempts,
+                startTime: order.startTime
+            }));
+
+        res.json({
+            success: true,
+            activeOrders: activeOrders,
+            total: activeOrders.length
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to fetch orders' 
+        });
+    }
+});
+
+// ✅ ENHANCED TOKEN VERIFICATION
 async function verifyToken(req, res, next) {
     try {
-        // Skip token verification for health checks
         if (req.path === '/api/health' || req.path === '/') {
             return next();
         }
@@ -45,24 +343,16 @@ async function verifyToken(req, res, next) {
         const token = req.query.token || req.body.token;
         
         if (!token) {
-            console.log('❌ No token found');
             return res.status(401).json({ success: false, message: 'Token required' });
         }
 
         const response = await axios.post(`${AUTH_SERVER_URL}/api/verify-token`, {
             token: token
         }, { 
-            timeout: 10000, // Increased timeout for Render
+            timeout: 10000,
             headers: {
                 'User-Agent': 'TikTok-Bot-Controller/3.0.0'
-            },
-            transformResponse: [function (data) {
-                try {
-                    return JSON.parse(data);
-                } catch (e) {
-                    return { success: false, valid: false };
-                }
-            }]
+            }
         });
 
         if (response.data.success && response.data.valid) {
@@ -72,12 +362,9 @@ async function verifyToken(req, res, next) {
             };
             next();
         } else {
-            console.log('❌ Invalid token');
             return res.status(401).json({ success: false, message: 'Invalid token' });
         }
     } catch (error) {
-        console.log('❌ Token verification failed:', error.message);
-        // For Render, allow some endpoints without strict auth
         if (req.path === '/api/health' || req.path.includes('/public')) {
             return next();
         }
@@ -85,48 +372,19 @@ async function verifyToken(req, res, next) {
     }
 }
 
-// ✅ ENHANCED API Call Wrapper - Render Optimized
-async function safeApiCall(apiCall) {
-    try {
-        const response = await apiCall();
-        
-        // Check if response is HTML instead of JSON
-        const contentType = response.headers['content-type'];
-        if (contentType && contentType.includes('text/html')) {
-            throw new Error('Server returned HTML instead of JSON');
-        }
-        
-        return response.data;
-    } catch (error) {
-        console.error('API Call Error:', error.message);
-        
-        // Render-specific error handling
-        if (error.code === 'ECONNREFUSED') {
-            throw new Error('Auth server is unavailable');
-        }
-        if (error.code === 'ETIMEDOUT') {
-            throw new Error('Request timeout - service busy');
-        }
-        
-        throw error;
-    }
-}
-
-// ✅ GET INSTANCES FROM AUTH SERVER (Render Optimized)
+// ✅ GET INSTANCES FROM AUTH SERVER
 async function getInstancesFromAuthServer(token) {
     try {
-        const data = await safeApiCall(() => 
-            axios.get(`${AUTH_SERVER_URL}/api/bot-instances?token=${token}`, {
-                timeout: 15000, // Increased for Render
-                headers: {
-                    'User-Agent': 'TikTok-Bot-Controller/3.0.0',
-                    'Accept': 'application/json'
-                }
-            })
-        );
+        const response = await axios.get(`${AUTH_SERVER_URL}/api/bot-instances?token=${token}`, {
+            timeout: 15000,
+            headers: {
+                'User-Agent': 'TikTok-Bot-Controller/3.0.0',
+                'Accept': 'application/json'
+            }
+        });
         
-        if (data.success) {
-            return data.instances || [];
+        if (response.data.success) {
+            return response.data.instances || [];
         }
         return [];
     } catch (error) {
@@ -135,11 +393,7 @@ async function getInstancesFromAuthServer(token) {
     }
 }
 
-// ✅ PERMANENT ONLINE SYSTEM - Render Compatible
-let permanentOnlineInterval = null;
-const permanentOnlineBots = new Map();
-
-// ✅ START PERMANENT ONLINE SYSTEM
+// ✅ PERMANENT ONLINE SYSTEM
 function startPermanentOnlineSystem() {
     if (permanentOnlineInterval) {
         clearInterval(permanentOnlineInterval);
@@ -153,12 +407,11 @@ function startPermanentOnlineSystem() {
         } catch (error) {
             console.log('❌ Permanent online system error:', error.message);
         }
-    }, 10000); // Increased to 10 seconds for Render
+    }, 10000);
     
-    console.log('✅ Permanent Online System Started - Bots will NEVER go offline');
+    console.log('✅ Permanent Online System Started');
 }
 
-// ✅ STOP PERMANENT ONLINE SYSTEM
 function stopPermanentOnlineSystem() {
     if (permanentOnlineInterval) {
         clearInterval(permanentOnlineInterval);
@@ -168,25 +421,19 @@ function stopPermanentOnlineSystem() {
     console.log('🛑 Permanent Online System Stopped');
 }
 
-// ✅ KEEP ALL BOTS PERMANENTLY ONLINE - Render Optimized
 async function keepAllBotsPermanentlyOnline() {
     try {
-        // Get all bot instances from auth server
         const instances = await getInstancesForSystem();
         
         if (instances.length === 0) {
-            console.log('ℹ️ No bot instances found for permanent online system');
             return;
         }
-        
-        console.log(`🔧 Permanent Online: Checking ${instances.length} bots...`);
         
         let onlineCount = 0;
         let restartedCount = 0;
         
         for (const instance of instances) {
             try {
-                // Check if bot is responding with longer timeout
                 const statusResponse = await axios.get(`${instance.url}/status`, {
                     timeout: 15000,
                     headers: {
@@ -196,7 +443,6 @@ async function keepAllBotsPermanentlyOnline() {
                 
                 const botStatus = statusResponse.data;
                 
-                // Update permanent online tracking
                 if (!permanentOnlineBots.has(instance.id)) {
                     permanentOnlineBots.set(instance.id, {
                         instanceId: instance.id,
@@ -214,12 +460,10 @@ async function keepAllBotsPermanentlyOnline() {
                 
                 onlineCount++;
                 
-                // If bot is not running but should be, start it
                 if (!botStatus.running && instance.enabled) {
                     console.log(`🔄 Auto-starting idle bot: ${instance.url}`);
                     
                     try {
-                        // Start with minimal settings to keep it alive
                         await axios.post(`${instance.url}/start`, {
                             targetViews: 1000000,
                             videoLink: 'https://www.tiktok.com/@tiktok/video/7106688751857945857',
@@ -233,7 +477,6 @@ async function keepAllBotsPermanentlyOnline() {
                         
                         botInfo.restartCount++;
                         restartedCount++;
-                        console.log(`✅ Bot auto-started: ${instance.url} (Restart #${botInfo.restartCount})`);
                     } catch (startError) {
                         console.log(`❌ Failed to auto-start bot ${instance.url}:`, startError.message);
                     }
@@ -242,7 +485,6 @@ async function keepAllBotsPermanentlyOnline() {
             } catch (error) {
                 console.log(`🔴 Bot ${instance.url} is OFFLINE - Attempting restart...`);
                 
-                // Bot is completely offline - try to restart
                 try {
                     const botInfo = permanentOnlineBots.get(instance.id) || {
                         instanceId: instance.id,
@@ -253,7 +495,6 @@ async function keepAllBotsPermanentlyOnline() {
                         alwaysOnline: true
                     };
                     
-                    // Try to start the bot with longer timeout
                     await axios.post(`${instance.url}/start`, {
                         targetViews: 1000000,
                         videoLink: 'https://www.tiktok.com/@tiktok/video/7106688751857945857',
@@ -270,12 +511,10 @@ async function keepAllBotsPermanentlyOnline() {
                     permanentOnlineBots.set(instance.id, botInfo);
                     
                     restartedCount++;
-                    console.log(`✅ OFFLINE Bot RESTARTED: ${instance.url} (Recovery #${botInfo.restartCount})`);
                     
                 } catch (restartError) {
                     console.log(`💀 CRITICAL: Bot ${instance.url} cannot be restarted:`, restartError.message);
                     
-                    // Mark for special attention
                     const botInfo = permanentOnlineBots.get(instance.id) || {
                         instanceId: instance.id,
                         instanceUrl: instance.url,
@@ -293,17 +532,13 @@ async function keepAllBotsPermanentlyOnline() {
             }
         }
         
-        console.log(`📊 Permanent Online Stats: ${onlineCount} online, ${restartedCount} restarted`);
-        
     } catch (error) {
         console.log('❌ Permanent online system critical error:', error.message);
     }
 }
 
-// ✅ GET INSTANCES FOR SYSTEM (Without user token) - Render Optimized
 async function getInstancesForSystem() {
     try {
-        // For system operations, we need to get instances without user token
         const response = await axios.get(`${AUTH_SERVER_URL}/api/bot-instances?token=system_admin_2024`, {
             timeout: 20000,
             headers: {
@@ -322,25 +557,17 @@ async function getInstancesForSystem() {
     }
 }
 
-// ✅ HELPER FUNCTIONS
-
-// ✅ Extract Video Info with Short URL Resolution
+// ✅ VIDEO INFO EXTRACTION
 function extractVideoInfo(url) {
     let cleanUrl = url.split('?')[0].trim();
     
-    console.log('🔍 Analyzing URL:', cleanUrl);
-    
-    // TYPE 1: Standard TikTok URL with video ID (19 digits)
     const standardMatch = cleanUrl.match(/tiktok\.com\/@[^\/]+\/video\/(\d{19})/);
     if (standardMatch) {
-        console.log('✅ Standard URL detected, Video ID:', standardMatch[1]);
         return { id: standardMatch[1], type: 'STANDARD' };
     }
     
-    // TYPE 2: Short URL (vm.tiktok.com, vt.tiktok.com) - NEED RESOLUTION
     const shortUrlMatch = cleanUrl.match(/(vm|vt)\.tiktok\.com\/([A-Za-z0-9]+)/);
     if (shortUrlMatch) {
-        console.log('🔄 Short URL detected, code:', shortUrlMatch[2]);
         return { 
             id: shortUrlMatch[2], 
             type: 'SHORT_URL',
@@ -349,22 +576,16 @@ function extractVideoInfo(url) {
         };
     }
     
-    // TYPE 3: Just the 19-digit video ID in the URL
     const videoIdMatch = cleanUrl.match(/\/(\d{19})(\/|$)/);
     if (videoIdMatch) {
-        console.log('✅ Video ID detected:', videoIdMatch[1]);
         return { id: videoIdMatch[1], type: 'VIDEO_ID_ONLY' };
     }
     
-    console.log('❌ No video ID found in URL');
     return { id: null, type: 'UNKNOWN' };
 }
 
-// ✅ Resolve Short URL to get actual Video ID
 function resolveShortUrl(shortCode) {
     return new Promise((resolve) => {
-        console.log('🔄 Resolving short URL:', shortCode);
-        
         const options = {
             hostname: 'vm.tiktok.com',
             path: `/${shortCode}/`,
@@ -376,39 +597,28 @@ function resolveShortUrl(shortCode) {
         };
 
         const req = https.request(options, (res) => {
-            console.log('📡 Short URL response status:', res.statusCode);
-            
-            // Follow redirect to get final URL
             const finalUrl = res.headers.location;
-            console.log('🔗 Redirect URL:', finalUrl);
             
             if (finalUrl) {
-                // Extract video ID from final URL
                 const videoIdMatch = finalUrl.match(/\/(\d{19})/);
                 if (videoIdMatch) {
-                    console.log('✅ Resolved to Video ID:', videoIdMatch[1]);
                     resolve(videoIdMatch[1]);
                 } else {
-                    console.log('❌ No video ID in redirect URL');
                     resolve(null);
                 }
             } else {
-                console.log('❌ No redirect location found');
                 resolve(null);
             }
             
-            // Consume the response body
             res.on('data', () => {});
             res.on('end', () => {});
         });
 
         req.on('error', (error) => {
-            console.log('❌ Short URL resolve error:', error.message);
             resolve(null);
         });
         
         req.setTimeout(10000, () => {
-            console.log('❌ Short URL resolve timeout');
             req.destroy();
             resolve(null);
         });
@@ -417,72 +627,46 @@ function resolveShortUrl(shortCode) {
     });
 }
 
-// ✅ Get TikTok Video Stats with Auto Resolution
 function getTikTokVideoStats(videoInfo) {
     return new Promise((resolve) => {
-        console.log('📊 Getting stats for:', videoInfo);
-        
-        // If it's a short URL, resolve it first and get stats with real ID
         if (videoInfo.type === 'SHORT_URL') {
-            console.log('🔄 Short URL detected, resolving...');
-            
             resolveShortUrl(videoInfo.shortCode)
                 .then(resolvedVideoId => {
                     if (resolvedVideoId) {
-                        console.log('✅ Short URL resolved to REAL Video ID:', resolvedVideoId);
-                        // Get stats with the REAL video ID
                         getTikTokVideoStatsDirect(resolvedVideoId)
                             .then(stats => {
-                                // Add resolved ID to stats
                                 stats.resolvedVideoId = resolvedVideoId;
                                 stats.originalShortCode = videoInfo.shortCode;
                                 stats.resolved = true;
-                                console.log('🎯 Stats with resolved ID:', stats);
                                 resolve(stats);
                             })
                             .catch((error) => {
-                                console.log('❌ Error getting stats with resolved ID:', error);
                                 resolve(getFallbackStats());
                             });
                     } else {
-                        console.log('❌ Short URL resolution failed');
-                        const fallbackStats = getFallbackStats();
-                        fallbackStats.resolved = false;
-                        resolve(fallbackStats);
+                        resolve(getFallbackStats());
                     }
                 })
                 .catch((error) => {
-                    console.log('❌ Short URL resolution error:', error);
-                    const fallbackStats = getFallbackStats();
-                    fallbackStats.resolved = false;
-                    resolve(fallbackStats);
+                    resolve(getFallbackStats());
                 });
             return;
         }
 
-        // For standard video IDs, directly get stats
-        console.log('🎯 Getting stats for standard Video ID:', videoInfo.id);
         getTikTokVideoStatsDirect(videoInfo.id)
             .then(stats => {
                 stats.resolved = true;
                 stats.resolvedVideoId = videoInfo.id;
-                console.log('✅ Stats for standard ID:', stats);
                 resolve(stats);
             })
             .catch((error) => {
-                console.log('❌ Error getting stats for standard ID:', error);
-                const fallbackStats = getFallbackStats();
-                fallbackStats.resolved = false;
-                resolve(fallbackStats);
+                resolve(getFallbackStats());
             });
     });
 }
 
-// ✅ Get TikTok Video Stats Direct (for resolved IDs)
 function getTikTokVideoStatsDirect(videoId) {
     return new Promise((resolve, reject) => {
-        console.log('🎯 Fetching stats directly for Video ID:', videoId);
-        
         const options = {
             hostname: 'www.tiktok.com',
             path: `/@tiktok/video/${videoId}`,
@@ -502,32 +686,20 @@ function getTikTokVideoStatsDirect(videoId) {
             });
 
             res.on('end', () => {
-                console.log('✅ Received data length:', data.length);
-                
-                if (data.length < 1000) {
-                    console.log('❌ Response too short, likely blocked');
-                    reject(new Error('Response too short'));
-                    return;
-                }
-                
                 try {
                     const stats = extractStatsFromHTML(data);
-                    console.log('📈 Extracted stats:', stats);
                     resolve(stats);
                 } catch (error) {
-                    console.log('❌ Error parsing stats:', error);
                     reject(error);
                 }
             });
         });
 
         req.on('error', (error) => {
-            console.log('❌ Request error:', error.message);
             reject(error);
         });
         
         req.setTimeout(15000, () => {
-            console.log('❌ Request timeout');
             req.destroy();
             reject(new Error('Request timeout'));
         });
@@ -536,7 +708,6 @@ function getTikTokVideoStatsDirect(videoId) {
     });
 }
 
-// ✅ Extract Stats from HTML
 function extractStatsFromHTML(html) {
     const stats = {
         views: 0,
@@ -548,15 +719,11 @@ function extractStatsFromHTML(html) {
         resolvedVideoId: null
     };
 
-    console.log('🔍 Extracting stats from HTML...');
-
     try {
-        // Method 1: Extract from JSON-LD
         const jsonLdMatch = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
         if (jsonLdMatch) {
             try {
                 const jsonData = JSON.parse(jsonLdMatch[1]);
-                console.log('✅ JSON-LD found:', jsonData);
                 
                 if (jsonData.interactionStatistic) {
                     stats.views = parseInt(jsonData.interactionStatistic.userInteractionCount) || 0;
@@ -567,58 +734,44 @@ function extractStatsFromHTML(html) {
                 if (jsonData.author && jsonData.author.name) {
                     stats.author = jsonData.author.name;
                 }
-            } catch (e) {
-                console.log('❌ JSON-LD parse error');
-            }
+            } catch (e) {}
         }
 
-        // Method 2: Extract from meta tags
         const viewMatch = html.match(/"playCount":(\d+)/) || html.match(/"viewCount":(\d+)/);
         if (viewMatch) {
             stats.views = parseInt(viewMatch[1]) || 0;
-            console.log('✅ Views from meta:', stats.views);
         }
 
         const likeMatch = html.match(/"diggCount":(\d+)/) || html.match(/"likeCount":(\d+)/);
         if (likeMatch) {
             stats.likes = parseInt(likeMatch[1]) || 0;
-            console.log('✅ Likes from meta:', stats.likes);
         }
 
         const commentMatch = html.match(/"commentCount":(\d+)/);
         if (commentMatch) {
             stats.comments = parseInt(commentMatch[1]) || 0;
-            console.log('✅ Comments from meta:', stats.comments);
         }
 
         const authorMatch = html.match(/"author":"([^"]*)"/) || html.match(/"uniqueId":"([^"]*)"/);
         if (authorMatch) {
             stats.author = authorMatch[1] || 'Unknown';
-            console.log('✅ Author from meta:', stats.author);
         }
 
         const titleMatch = html.match(/"title":"([^"]*)"/) || html.match(/"description":"([^"]*)"/);
         if (titleMatch && titleMatch[1] !== 'Company') {
             stats.title = titleMatch[1] || 'No Title';
-            console.log('✅ Title from meta:', stats.title);
         }
 
-        // Method 3: Try to find video ID in the HTML
         const videoIdMatch = html.match(/"videoId":"(\d+)"/);
         if (videoIdMatch) {
             stats.resolvedVideoId = videoIdMatch[1];
-            console.log('✅ Video ID found in HTML:', stats.resolvedVideoId);
         }
 
-    } catch (error) {
-        console.log('❌ Error in extractStatsFromHTML:', error);
-    }
+    } catch (error) {}
 
-    console.log('📊 Final stats:', stats);
     return stats;
 }
 
-// ✅ Get Fallback Stats
 function getFallbackStats() {
     return {
         views: 0,
@@ -631,40 +784,480 @@ function getFallbackStats() {
     };
 }
 
-function startVideoMonitoring(videoId, targetViews) {
-    const checkInterval = setInterval(async () => {
+// ✅ ZEFAME SERVICES INTEGRATION
+// ✅ FIXED ZEFAME SERVICES ROUTE
+// ✅ CORRECT ZEFAME ROUTES - Add these to your existing routes
+
+// ✅ FIXED: Zefame Services Route
+// ✅ REPLACE WITH ACTUAL ZEFAME API ROUTES
+
+// Zefame Test Connection
+app.get('/api/zefame/test', verifyToken, async (req, res) => {
+    try {
+        console.log('🔍 Testing Zefame API connection...');
+        
+        const response = await axios.get('https://zefame-free.com/api_free.php?action=config', {
+            timeout: 10000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/json'
+            }
+        });
+        
+        console.log('✅ Zefame API response status:', response.status);
+        
+        res.json({
+            success: true,
+            status: response.status,
+            data: response.data,
+            message: 'Zefame API is working'
+        });
+    } catch (error) {
+        console.log('❌ Zefame API test failed:', error.message);
+        res.json({
+            success: false,
+            error: error.message,
+            message: 'Zefame API connection failed'
+        });
+    }
+});
+
+// Actual Zefame Services
+app.get('/api/zefame/services', verifyToken, async (req, res) => {
+    try {
+        console.log('🔄 Fetching actual Zefame services...');
+        
+        // Direct call to Zefame API
+        const response = await axios.get('https://zefame-free.com/api_free.php?action=config', {
+            timeout: 15000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/json'
+            }
+        });
+
+        console.log('📦 Zefame raw response received');
+
+        let servicesData = response.data;
+        
+        // Parse response if it's string
+        if (typeof servicesData === 'string') {
+            try {
+                servicesData = JSON.parse(servicesData);
+            } catch (parseError) {
+                console.log('❌ JSON parse error:', parseError.message);
+                return res.json({
+                    success: false,
+                    message: 'Invalid JSON from Zefame API'
+                });
+            }
+        }
+
+        console.log('🔍 Zefame response structure:', Object.keys(servicesData));
+
+        // Extract services from Zefame response
+        let services = [];
+        
+        // Zefame API structure
+        if (servicesData.data && servicesData.data.tiktok && servicesData.data.tiktok.services) {
+            services = servicesData.data.tiktok.services;
+            console.log('✅ Found services in data.tiktok.services');
+        } 
+        else if (servicesData.tiktok && servicesData.tiktok.services) {
+            services = servicesData.tiktok.services;
+            console.log('✅ Found services in tiktok.services');
+        }
+        else if (Array.isArray(servicesData)) {
+            services = servicesData;
+            console.log('✅ Found services as direct array');
+        }
+        else {
+            console.log('❌ No services found in expected structure');
+            // Try to find services anywhere in response
+            services = findAllServices(servicesData);
+        }
+
+        if (services.length === 0) {
+            console.log('❌ No services extracted from Zefame response');
+            return res.json({
+                success: false,
+                message: 'No services found in Zefame API response'
+            });
+        }
+
+        console.log(`✅ Extracted ${services.length} services from Zefame`);
+
+        // Map services to our format
+        const serviceMap = {
+            229: "TikTok Views",
+            228: "TikTok Followers", 
+            232: "TikTok Free Likes",
+            235: "TikTok Free Shares",
+            236: "TikTok Free Favorites"
+        };
+
+        const formattedServices = services.map(service => {
+            const serviceId = service.id || service.service_id;
+            return {
+                id: serviceId,
+                name: serviceMap[serviceId] || service.name || `Service ${serviceId}`,
+                available: service.available !== undefined ? service.available : true,
+                description: service.description || service.rate || '',
+                rate: service.description ? 
+                     service.description.replace('vues', 'views')
+                        .replace('partages', 'shares')
+                        .replace('favoris', 'favorites') 
+                     : (service.rate || 'Free Service')
+            };
+        }).filter(service => service.id); // Remove invalid services
+
+        console.log('🎯 Final formatted services:', formattedServices.length);
+
+        res.json({ 
+            success: true, 
+            services: formattedServices,
+            total: formattedServices.length,
+            source: 'Zefame API'
+        });
+        
+    } catch (error) {
+        console.log('❌ Zefame services error:', error.message);
+        
+        res.json({ 
+            success: false, 
+            message: 'Zefame API error: ' + error.message
+        });
+    }
+});
+
+// Helper function to find services in any structure
+function findAllServices(obj, path = '') {
+    const services = [];
+    
+    if (!obj || typeof obj !== 'object') {
+        return services;
+    }
+    
+    // Check if current object is a service
+    if ((obj.id !== undefined || obj.service_id !== undefined) && 
+        (obj.name !== undefined || obj.description !== undefined)) {
+        services.push(obj);
+    }
+    
+    // Recursively search in all properties
+    for (let key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            if (Array.isArray(obj[key])) {
+                obj[key].forEach(item => {
+                    services.push(...findAllServices(item, path + '.' + key));
+                });
+            } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+                services.push(...findAllServices(obj[key], path + '.' + key));
+            }
+        }
+    }
+    
+    return services;
+}
+
+// Actual Zefame Order Placement
+app.post('/api/zefame/order', verifyToken, async (req, res) => {
+    try {
+        const { serviceId, videoLink, quantity = 1 } = req.body;
+        
+        console.log(`🔄 Placing actual Zefame order: Service ${serviceId}, Quantity ${quantity}`);
+        
+        if (!serviceId || !videoLink) {
+            return res.json({ success: false, message: 'Service ID and video link required' });
+        }
+
+        const videoInfo = extractVideoInfo(videoLink);
+        if (!videoInfo.id) {
+            return res.json({ success: false, message: 'Invalid TikTok link' });
+        }
+
+        const orders = [];
+        let successCount = 0;
+
+        for (let i = 0; i < quantity; i++) {
+            try {
+                const orderData = new URLSearchParams();
+                orderData.append('action', 'order');
+                orderData.append('service', serviceId.toString());
+                orderData.append('link', videoLink);
+                orderData.append('uuid', require('crypto').randomUUID());
+                orderData.append('videoId', videoInfo.id);
+
+                console.log(`📤 Sending order ${i+1} to Zefame...`);
+
+                const orderResponse = await axios.post('https://zefame-free.com/api_free.php', orderData, {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    },
+                    timeout: 20000
+                });
+
+                console.log(`✅ Order ${i+1} response:`, orderResponse.status);
+
+                let orderResult;
+                
+                // Parse response
+                if (typeof orderResponse.data === 'string') {
+                    try {
+                        orderResult = JSON.parse(orderResponse.data);
+                    } catch {
+                        orderResult = { 
+                            success: orderResponse.status === 200, 
+                            raw: orderResponse.data 
+                        };
+                    }
+                } else {
+                    orderResult = orderResponse.data;
+                }
+
+                orders.push(orderResult);
+                
+                if (orderResult.success) {
+                    successCount++;
+                    console.log(`✅ Order ${i+1} successful`);
+                } else {
+                    console.log(`❌ Order ${i+1} failed:`, orderResult);
+                }
+
+                // Respect rate limiting
+                await new Promise(resolve => setTimeout(resolve, 3000));
+
+            } catch (orderError) {
+                console.log(`❌ Order ${i+1} error:`, orderError.message);
+                orders.push({ 
+                    success: false, 
+                    error: orderError.message,
+                    attempt: i + 1
+                });
+                
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
+
+        res.json({ 
+            success: successCount > 0,
+            message: `Placed ${successCount}/${quantity} orders via Zefame API`,
+            orders: orders,
+            summary: {
+                requested: quantity,
+                successful: successCount,
+                failed: quantity - successCount
+            }
+        });
+        
+    } catch (error) {
+        console.log('❌ Zefame order error:', error.message);
+        res.json({ 
+            success: false, 
+            message: 'Zefame order failed: ' + error.message 
+        });
+    }
+});
+
+// ✅ PROGRESS TRACKING SYSTEM
+function startEnhancedMonitoring(jobId, videoId, targetViews) {
+    const monitoringInterval = setInterval(async () => {
         try {
-            // Check if job is still running
-            if (!global.runningJobs || !global.runningJobs[videoId] || !global.runningJobs[videoId].isRunning) {
-                clearInterval(checkInterval);
+            const job = progressTracker.get(jobId);
+            if (!job || !job.isRunning) {
+                clearInterval(monitoringInterval);
                 return;
             }
 
-            // Get current views
+            await updateInstanceStatuses(jobId);
+            
             const currentStats = await getTikTokVideoStats({ id: videoId, type: 'STANDARD' });
-            const currentViews = currentStats.views;
+            job.currentViews = currentStats.views;
+            job.lastUpdate = new Date();
+            job.checkCount++;
 
-            // Check if target reached
-            if (currentViews >= targetViews) {
-                console.log(`🎯 Target reached for video ${videoId}! Stopping bots...`);
-                
-                // Stop all bots for this video
-                if (global.runningJobs[videoId]) {
-                    global.runningJobs[videoId].isRunning = false;
-                }
-                
-                clearInterval(checkInterval);
+            progressTracker.set(jobId, job);
+
+            if (currentStats.views >= targetViews) {
+                job.isRunning = false;
+                progressTracker.set(jobId, job);
+                clearInterval(monitoringInterval);
+                stopJobBots(jobId);
             }
 
         } catch (error) {
             console.log('Monitoring error:', error.message);
         }
-    }, 5000);
+    }, 2000);
 }
 
-// ✅ RENDER COMPATIBLE ROUTES
+async function updateInstanceStatuses(jobId) {
+    const job = progressTracker.get(jobId);
+    if (!job) return;
 
-// Health check route (required for Render)
+    for (let instance of job.instances) {
+        if (instance.status === 'running') {
+            try {
+                const response = await axios.get(`${instance.url}/status`, {
+                    timeout: 5000,
+                    headers: {
+                        'User-Agent': 'TikTok-Bot-Controller/3.0.0'
+                    }
+                });
+                
+                const status = response.data;
+                instance.success = status.success || 0;
+                instance.requests = status.reqs || 0;
+                instance.rps = status.rps || 0;
+                instance.status = status.running ? 'running' : 'stopped';
+                
+            } catch (error) {
+                instance.status = 'offline';
+            }
+        }
+    }
+
+    job.totalSuccess = job.instances.reduce((sum, inst) => sum + inst.success, 0);
+    job.totalRequests = job.instances.reduce((sum, inst) => sum + inst.requests, 0);
+    
+    progressTracker.set(jobId, job);
+}
+
+async function stopJobBots(jobId) {
+    const job = progressTracker.get(jobId);
+    if (!job) return;
+
+    for (let instance of job.instances) {
+        if (instance.status === 'running') {
+            try {
+                await axios.post(`${instance.url}/stop`, {}, {
+                    timeout: 5000,
+                    headers: {
+                        'User-Agent': 'TikTok-Bot-Controller/3.0.0'
+                    }
+                });
+                instance.status = 'stopped';
+            } catch (error) {
+                console.log(`Failed to stop instance ${instance.id}:`, error.message);
+            }
+        }
+    }
+    
+    job.isRunning = false;
+    progressTracker.set(jobId, job);
+}
+
+// ✅ ACTUAL STATUS CHECK
+app.get('/api/actual-status', verifyToken, async (req, res) => {
+    try {
+        const instances = await getInstancesFromAuthServer(req.query.token);
+        const runningInstances = [];
+        
+        for (const instance of instances) {
+            try {
+                const response = await axios.get(`${instance.url}/status`, {
+                    timeout: 5000
+                });
+                if (response.data.running) {
+                    runningInstances.push({
+                        id: instance.id,
+                        url: instance.url,
+                        status: response.data
+                    });
+                }
+            } catch (error) {}
+        }
+        
+        res.json({
+            success: true,
+            actuallyRunning: runningInstances.length > 0,
+            runningInstances: runningInstances,
+            totalChecked: instances.length
+        });
+        
+    } catch (error) {
+        res.json({
+            success: false,
+            actuallyRunning: false,
+            error: error.message
+        });
+    }
+});
+
+// ✅ LIVE PROGRESS ENDPOINT
+app.get('/api/live-progress', verifyToken, async (req, res) => {
+    try {
+        const { jobId } = req.query;
+        
+        if (!jobId || !progressTracker.has(jobId)) {
+            return res.json({ 
+                success: false, 
+                isRunning: false,
+                message: 'No active job found'
+            });
+        }
+
+        const job = progressTracker.get(jobId);
+        
+        await updateInstanceStatuses(jobId);
+        const updatedJob = progressTracker.get(jobId);
+
+        const progress = updatedJob.currentViews - updatedJob.startViews;
+        const remaining = updatedJob.targetViews - updatedJob.currentViews;
+        const percentage = Math.min(100, ((progress / updatedJob.userTarget) * 100));
+        
+        const timeElapsed = (new Date() - updatedJob.startTime) / 1000;
+        const viewsPerMinute = timeElapsed > 0 ? (progress / timeElapsed) * 60 : 0;
+        const estimatedTime = viewsPerMinute > 0 ? (remaining / viewsPerMinute) : 0;
+
+        res.json({
+            success: true,
+            isRunning: updatedJob.isRunning,
+            jobId: updatedJob.jobId,
+            videoInfo: {
+                id: updatedJob.videoId,
+                startViews: updatedJob.startViews,
+                currentViews: updatedJob.currentViews,
+                targetViews: updatedJob.targetViews
+            },
+            progress: {
+                current: progress,
+                target: updatedJob.userTarget,
+                remaining: remaining,
+                percentage: percentage.toFixed(1),
+                viewsPerMinute: Math.round(viewsPerMinute),
+                estimatedMinutes: Math.round(estimatedTime)
+            },
+            instances: updatedJob.instances.map(inst => ({
+                id: inst.id,
+                status: inst.status,
+                success: inst.success,
+                requests: inst.requests,
+                rps: inst.rps
+            })),
+            totals: {
+                success: updatedJob.totalSuccess,
+                requests: updatedJob.totalRequests,
+                activeBots: updatedJob.instances.filter(inst => inst.status === 'running').length,
+                totalBots: updatedJob.instances.length
+            },
+            timing: {
+                startTime: updatedJob.startTime,
+                lastUpdate: updatedJob.lastUpdate,
+                checkCount: updatedJob.checkCount
+            }
+        });
+        
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            message: 'Progress tracking error: ' + error.message 
+        });
+    }
+});
+
+// ✅ ROUTES
 app.get('/health', (req, res) => {
     res.status(200).json({ 
         status: 'OK', 
@@ -677,7 +1270,6 @@ app.get('/', (req, res) => {
     res.redirect(AUTH_SERVER_URL);
 });
 
-// ✅ FIXED DASHBOARD ROUTE - Render Optimized
 app.get('/dashboard', async (req, res) => {
     const token = req.query.token;
     
@@ -685,7 +1277,6 @@ app.get('/dashboard', async (req, res) => {
         return res.redirect(AUTH_SERVER_URL);
     }
     
-    // Verify token before showing dashboard
     try {
         const response = await axios.post(`${AUTH_SERVER_URL}/api/verify-token`, {
             token: token
@@ -702,17 +1293,14 @@ app.get('/dashboard', async (req, res) => {
             res.redirect(AUTH_SERVER_URL);
         }
     } catch (error) {
-        console.log('Dashboard auth error:', error.message);
         res.redirect(AUTH_SERVER_URL);
     }
 });
 
-// ✅ FIXED LOGOUT - Render Optimized
 app.post('/api/logout', async (req, res) => {
     try {
         const token = req.body.token;
         
-        // Notify auth server about logout
         if (token) {
             axios.post(`${AUTH_SERVER_URL}/api/global-logout`, {
                 token: token
@@ -721,9 +1309,7 @@ app.post('/api/logout', async (req, res) => {
                 headers: {
                     'User-Agent': 'TikTok-Bot-Controller/3.0.0'
                 }
-            }).catch(err => {
-                // Ignore errors for logout
-            });
+            }).catch(err => {});
         }
         
         res.json({ 
@@ -739,7 +1325,6 @@ app.post('/api/logout', async (req, res) => {
     }
 });
 
-// ✅ Route 1: Get Video Information with Short URL Support
 app.post('/api/get-video-info', verifyToken, async (req, res) => {
     try {
         const { videoLink, token } = req.body;
@@ -748,21 +1333,14 @@ app.post('/api/get-video-info', verifyToken, async (req, res) => {
             return res.json({ success: false, message: 'Video link required' });
         }
 
-        console.log('🎯 Processing video link:', videoLink);
         const videoInfo = extractVideoInfo(videoLink);
         
         if (!videoInfo.id) {
             return res.json({ success: false, message: 'Invalid TikTok link!' });
         }
-
-        console.log('📊 Video Info:', videoInfo);
         
-        // Get current video stats (with auto resolution for short URLs)
         const currentStats = await getTikTokVideoStats(videoInfo);
         
-        console.log('📈 Stats retrieved:', currentStats);
-        
-        // Prepare response
         const responseData = {
             success: true,
             videoInfo: {
@@ -776,7 +1354,6 @@ app.post('/api/get-video-info', verifyToken, async (req, res) => {
             }
         };
 
-        // Add resolved video ID if available
         if (currentStats.resolvedVideoId) {
             responseData.videoInfo.resolvedVideoId = currentStats.resolvedVideoId;
             responseData.videoInfo.resolved = true;
@@ -789,7 +1366,6 @@ app.post('/api/get-video-info', verifyToken, async (req, res) => {
         res.json(responseData);
         
     } catch (error) {
-        console.log('❌ Video info error:', error);
         res.status(500).json({ 
             success: false, 
             message: 'Server error: ' + error.message 
@@ -797,7 +1373,6 @@ app.post('/api/get-video-info', verifyToken, async (req, res) => {
     }
 });
 
-// ✅ Route 2: Start All Bots with Resolved Video ID - Render Optimized
 app.post('/api/start-all', verifyToken, async (req, res) => {
     try {
         const { videoLink, targetViews, token, currentViews } = req.body;
@@ -818,42 +1393,49 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
             return res.json({ success: false, message: 'Invalid TikTok link' });
         }
 
-        // ✅ GET FINAL VIDEO ID (Resolve short URL if needed)
         let finalVideoId = videoInfo.id;
         let finalVideoLink = videoLink;
 
         if (videoInfo.type === 'SHORT_URL') {
-            console.log('🔄 Resolving short URL for bot start...');
             const resolvedVideoId = await resolveShortUrl(videoInfo.shortCode);
             if (resolvedVideoId) {
                 finalVideoId = resolvedVideoId;
-                // Create proper TikTok URL from resolved ID
                 finalVideoLink = `https://www.tiktok.com/@tiktok/video/${resolvedVideoId}`;
-                console.log('✅ Using resolved Video ID for bots:', finalVideoId);
             }
         }
 
-        // Calculate target views: currentViews + additional target
         const currentViewsNum = parseInt(currentViews) || 0;
         const targetViewsNum = parseInt(targetViews) || 0;
         const finalTarget = currentViewsNum + targetViewsNum;
 
-        // Store target in global variable for monitoring
-        global.runningJobs = global.runningJobs || {};
-        global.runningJobs[finalVideoId] = {
+        const jobId = finalVideoId + '_' + Date.now();
+        
+        progressTracker.set(jobId, {
+            jobId: jobId,
             videoId: finalVideoId,
             videoLink: finalVideoLink,
             startViews: currentViewsNum,
             targetViews: finalTarget,
+            userTarget: targetViewsNum,
             startTime: new Date(),
             isRunning: true,
-            originalLink: videoLink
-        };
+            instances: enabledInstances.map(inst => ({
+                id: inst.id,
+                url: inst.url,
+                status: 'starting',
+                success: 0,
+                requests: 0
+            })),
+            totalSuccess: 0,
+            totalRequests: 0,
+            currentViews: currentViewsNum,
+            lastUpdate: new Date(),
+            checkCount: 0
+        });
 
         const results = [];
         for (const instance of enabledInstances) {
             try {
-                // ✅ Send FINAL video ID to bots
                 await axios.post(`${instance.url}/start`, {
                     targetViews: finalTarget,
                     videoLink: finalVideoLink,
@@ -865,13 +1447,27 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
                     }
                 });
                 results.push({ instance: instance.id, success: true, message: 'Started' });
+                
+                const job = progressTracker.get(jobId);
+                const instanceIndex = job.instances.findIndex(inst => inst.id === instance.id);
+                if (instanceIndex !== -1) {
+                    job.instances[instanceIndex].status = 'running';
+                }
+                progressTracker.set(jobId, job);
+                
             } catch (error) {
                 results.push({ instance: instance.id, success: false, message: 'Failed: ' + error.message });
+                
+                const job = progressTracker.get(jobId);
+                const instanceIndex = job.instances.findIndex(inst => inst.id === instance.id);
+                if (instanceIndex !== -1) {
+                    job.instances[instanceIndex].status = 'failed';
+                }
+                progressTracker.set(jobId, job);
             }
         }
 
-        // Start monitoring for this video
-        startVideoMonitoring(finalVideoId, finalTarget);
+        startEnhancedMonitoring(jobId, finalVideoId, finalTarget);
 
         const successful = results.filter(r => r.success).length;
         res.json({
@@ -879,58 +1475,12 @@ app.post('/api/start-all', verifyToken, async (req, res) => {
             message: `${successful}/${enabledInstances.length} started`,
             finalTarget: finalTarget,
             finalVideoId: finalVideoId,
+            jobId: jobId,
             results: results
         });
+        
     } catch (error) {
-        console.log('Start bots error:', error);
         res.status(500).json({ success: false, message: 'Server error: ' + error.message });
-    }
-});
-
-// ✅ Route 3: Monitoring Status
-app.get('/api/monitoring-status', verifyToken, async (req, res) => {
-    try {
-        const { videoId } = req.query;
-        
-        if (!global.runningJobs || !global.runningJobs[videoId]) {
-            return res.json({ success: false, isRunning: false });
-        }
-
-        const job = global.runningJobs[videoId];
-        const currentStats = await getTikTokVideoStats({ id: videoId, type: 'STANDARD' });
-
-        res.json({
-            success: true,
-            isRunning: job.isRunning,
-            startViews: job.startViews,
-            targetViews: job.targetViews,
-            currentViews: currentStats.views,
-            progress: currentStats.views - job.startViews,
-            remaining: job.targetViews - currentStats.views,
-            startTime: job.startTime
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// ✅ Protected APIs - Instances auth server se fetch karo
-app.get('/api/instances', verifyToken, async (req, res) => {
-    try {
-        const token = req.query.token || req.body.token;
-        const instances = await getInstancesFromAuthServer(token);
-        
-        const safeInstances = instances.map(instance => ({
-            id: instance.id,
-            name: `Bot Instance ${instance.id.substring(0, 8)}`,
-            status: 'active',
-            addedAt: instance.addedAt,
-            url: instance.url
-        }));
-        
-        res.json({ success: true, instances: safeInstances });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
@@ -940,27 +1490,38 @@ app.post('/api/stop-all', verifyToken, async (req, res) => {
         const instances = await getInstancesFromAuthServer(token);
         const enabledInstances = instances.filter(inst => inst.enabled);
         
+        let stoppedCount = 0;
+        const stopPromises = [];
+
         for (const instance of enabledInstances) {
-            try {
-                await axios.post(`${instance.url}/stop`, {}, { 
-                    timeout: 15000,
-                    headers: {
-                        'User-Agent': 'TikTok-Bot-Controller/3.0.0'
-                    },
-                    transformResponse: [function (data) {
-                        try {
-                            return JSON.parse(data);
-                        } catch (e) {
-                            return { success: true };
-                        }
-                    }]
-                });
-            } catch (error) {
-                console.log(`Instance ${instance.url} stop failed:`, error.message);
-            }
+            const stopPromise = axios.post(`${instance.url}/stop`, {}, { 
+                timeout: 10000,
+                headers: {
+                    'User-Agent': 'TikTok-Bot-Controller/3.0.0'
+                }
+            })
+            .then(() => {
+                stoppedCount++;
+            })
+            .catch(error => {
+                console.log(`❌ Failed to stop ${instance.url}:`, error.message);
+            });
+            
+            stopPromises.push(stopPromise);
         }
+
+        await Promise.allSettled(stopPromises);
         
-        res.json({ success: true, message: 'All instances stopped' });
+        progressTracker.clear();
+        global.runningJobs = {};
+        
+        res.json({ 
+            success: true, 
+            message: `Stopped ${stoppedCount}/${enabledInstances.length} bots`,
+            stopped: stoppedCount,
+            total: enabledInstances.length
+        });
+        
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
     }
@@ -978,14 +1539,7 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
                     timeout: 15000,
                     headers: {
                         'User-Agent': 'TikTok-Bot-Controller/3.0.0'
-                    },
-                    transformResponse: [function (data) {
-                        try {
-                            return JSON.parse(data);
-                        } catch (e) {
-                            return null;
-                        }
-                    }]
+                    }
                 });
                 
                 allStatus.push({ 
@@ -1029,62 +1583,6 @@ app.get('/api/status-all', verifyToken, async (req, res) => {
     }
 });
 
-// ✅ PERMANENT ONLINE CONTROL APIS
-app.post('/api/system/permanent-online/start', (req, res) => {
-    try {
-        startPermanentOnlineSystem();
-        res.json({ 
-            success: true, 
-            message: '🟢 Permanent Online System STARTED - Bots will never go offline',
-            status: 'active'
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-app.post('/api/system/permanent-online/stop', (req, res) => {
-    try {
-        stopPermanentOnlineSystem();
-        res.json({ 
-            success: true, 
-            message: '🛑 Permanent Online System STOPPED',
-            status: 'inactive'
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-app.get('/api/system/permanent-online/status', (req, res) => {
-    try {
-        const activeBots = Array.from(permanentOnlineBots.values());
-        
-        res.json({
-            success: true,
-            system: {
-                isActive: !!permanentOnlineInterval,
-                totalBots: activeBots.length,
-                onlineBots: activeBots.filter(bot => !bot.critical).length,
-                criticalBots: activeBots.filter(bot => bot.critical).length,
-                totalRestarts: activeBots.reduce((sum, bot) => sum + (bot.restartCount || 0), 0),
-                bots: activeBots.map(bot => ({
-                    instanceId: bot.instanceId,
-                    instanceUrl: bot.instanceUrl,
-                    firstSeen: bot.firstSeen,
-                    lastSeen: bot.lastSeen,
-                    restartCount: bot.restartCount || 0,
-                    status: bot.critical ? 'critical' : 'online',
-                    lastError: bot.lastError || null
-                }))
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// ✅ HEALTH CHECK - No authentication required (Render requirement)
 app.get('/api/health', (req, res) => {
     res.json({ 
         success: true, 
@@ -1095,37 +1593,217 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// ✅ RENDER ERROR HANDLING
-app.use((req, res) => {
-    res.status(404).json({ success: false, message: 'Route not found' });
+// ✅ ADD THIS ROUTE TO main-controller.js - EXACT LOCATION:
+
+// ... (tumhara existing code) ...
+
+// ✅ ✅ ✅ YEH ADD KARO - LAST MEIN ✅ ✅ ✅
+app.get('/api/zefame/test', verifyToken, async (req, res) => {
+    try {
+        console.log('🔍 Testing Zefame API connection...');
+        
+        const response = await axios.get('https://zefame-free.com/api_free.php?action=config', {
+            timeout: 10000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
+        
+        console.log('✅ Zefame API test successful:', response.status);
+        
+        res.json({
+            success: true,
+            status: response.status,
+            message: 'Zefame API is accessible'
+        });
+    } catch (error) {
+        console.log('❌ Zefame API test failed:', error.message);
+        res.json({
+            success: false,
+            error: error.message,
+            message: 'Zefame API is not accessible'
+        });
+    }
 });
 
-app.use((error, req, res, next) => {
-    console.error('Unhandled Error:', error);
-    res.status(500).json({ 
-        success: false, 
-        message: 'Internal server error',
-        errorId: Date.now()
-    });
+// ✅ ✅ ✅ YEH BHI ADD KARO ✅ ✅ ✅
+app.get('/api/zefame/services', verifyToken, async (req, res) => {
+    try {
+        console.log('🔄 Fetching Zefame services...');
+        
+        const response = await axios.get('https://zefame-free.com/api_free.php?action=config', {
+            timeout: 15000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
+
+        console.log('✅ Zefame response status:', response.status);
+
+        let servicesData = response.data;
+        
+        // Parse JSON if string
+        if (typeof servicesData === 'string') {
+            try {
+                servicesData = JSON.parse(servicesData);
+            } catch (parseError) {
+                return res.json({
+                    success: false,
+                    message: 'Invalid JSON from Zefame'
+                });
+            }
+        }
+
+        console.log('📦 Zefame response keys:', Object.keys(servicesData));
+
+        // Extract services
+        let services = [];
+        
+        if (servicesData.data && servicesData.data.tiktok && servicesData.data.tiktok.services) {
+            services = servicesData.data.tiktok.services;
+        } else if (servicesData.tiktok && servicesData.tiktok.services) {
+            services = servicesData.tiktok.services;
+        } else {
+            return res.json({
+                success: false,
+                message: 'No services found in Zefame response'
+            });
+        }
+
+        console.log(`✅ Found ${services.length} services`);
+
+        // Map services
+        const serviceMap = {
+            229: "TikTok Views",
+            228: "TikTok Followers", 
+            232: "TikTok Free Likes",
+            235: "TikTok Free Shares",
+            236: "TikTok Free Favorites"
+        };
+
+        const formattedServices = services.map(service => ({
+            id: service.id,
+            name: serviceMap[service.id] || service.name,
+            available: service.available !== undefined ? service.available : true,
+            description: service.description || '',
+            rate: service.description ? service.description.replace('vues', 'views').replace('partages', 'shares').replace('favoris', 'favorites') : 'Free Service'
+        }));
+
+        res.json({ 
+            success: true, 
+            services: formattedServices,
+            total: formattedServices.length
+        });
+        
+    } catch (error) {
+        console.log('❌ Zefame services error:', error.message);
+        res.json({ 
+            success: false, 
+            message: 'Zefame API error: ' + error.message
+        });
+    }
 });
 
-// ✅ RENDER SERVER START
+// ✅ ✅ ✅ YEH BHI ADD KARO ✅ ✅ ✅
+app.post('/api/zefame/order', verifyToken, async (req, res) => {
+    try {
+        const { serviceId, videoLink, quantity = 1 } = req.body;
+        
+        console.log(`🔄 Placing Zefame order: Service ${serviceId}, Quantity ${quantity}`);
+        
+        if (!serviceId || !videoLink) {
+            return res.json({ success: false, message: 'Service ID and video link required' });
+        }
+
+        const videoInfo = extractVideoInfo(videoLink);
+        if (!videoInfo.id) {
+            return res.json({ success: false, message: 'Invalid TikTok link' });
+        }
+
+        const orders = [];
+        let successCount = 0;
+
+        for (let i = 0; i < quantity; i++) {
+            try {
+                const orderData = new URLSearchParams();
+                orderData.append('action', 'order');
+                orderData.append('service', serviceId.toString());
+                orderData.append('link', videoLink);
+                orderData.append('uuid', require('crypto').randomUUID());
+                orderData.append('videoId', videoInfo.id);
+
+                const orderResponse = await axios.post('https://zefame-free.com/api_free.php', orderData, {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    },
+                    timeout: 15000
+                });
+
+                let orderResult;
+                
+                if (typeof orderResponse.data === 'string') {
+                    try {
+                        orderResult = JSON.parse(orderResponse.data);
+                    } catch {
+                        orderResult = { success: orderResponse.status === 200 };
+                    }
+                } else {
+                    orderResult = orderResponse.data;
+                }
+
+                orders.push(orderResult);
+                
+                if (orderResult.success) {
+                    successCount++;
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+            } catch (orderError) {
+                console.log(`❌ Order ${i+1} failed:`, orderError.message);
+                orders.push({ success: false, error: orderError.message });
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+
+        res.json({ 
+            success: successCount > 0,
+            message: `Placed ${successCount}/${quantity} orders successfully`,
+            orders: orders
+        });
+        
+    } catch (error) {
+        console.log('❌ Zefame order error:', error.message);
+        res.json({ 
+            success: false, 
+            message: 'Order failed: ' + error.message 
+        });
+    }
+});
+
+// 🚀 YEH PEHLE SE HONA CHAHIYE - ISSE PEHLE WALA CODE
+
+
+
+
+
+
+// ✅ SERVER START
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 TikTok Main Controller deployed on Render`);
     console.log(`📍 Port: ${PORT}`);
     console.log(`🔐 Auth Server: ${AUTH_SERVER_URL}`);
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`✅ Render Compatibility: Enabled`);
-    console.log(`🔄 Permanent Online System: Ready`);
     
-    // ✅ START PERMANENT ONLINE SYSTEM ON BOOT
     setTimeout(() => {
         startPermanentOnlineSystem();
         console.log('🔧 Permanent Online System: ACTIVE');
-    }, 15000); // Start 15 seconds after server boot
+    }, 15000);
 });
 
-// ✅ RENDER GRACEFUL SHUTDOWN
+// ✅ GRACEFUL SHUTDOWN
 process.on('SIGTERM', () => {
     console.log('🛑 SIGTERM received - shutting down gracefully');
     stopPermanentOnlineSystem();
